@@ -428,7 +428,9 @@ Phase 5 then adds only the machinery, with no rework of the form layer:
   `rejected` — superseded by a revision under a new id) rejects any client change
   and surfaces a warning. The server enforces this in `RecordStore.upsert`, not
   just the client, so a stale client transition arriving with a newer `updated_at`
-  can't clobber a remote rejection.
+  can't clobber a remote rejection. The refused push returns `conflict`, and the
+  client reacts: it warns and reloads the server's copy, so the form shows the
+  truth rather than the local edit the server rejected.
 - Clear on-screen indicator of pending unsynced records, with a count.
 
 Rationale: full offline in Phase 1 would delay proving the core loop — render, save,
