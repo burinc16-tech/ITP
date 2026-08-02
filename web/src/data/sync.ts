@@ -13,8 +13,19 @@ import type { CapturedSignature } from "./signature";
  * append-only evidence (SPEC §12) — the server drops an identical replay and
  * rejects a same-id write whose content differs.
  */
+export interface PushResult {
+  /**
+   * True only when the server refused the write because the record is locked
+   * server-side (accepted/rejected, §8) — the caller should warn and reconcile.
+   * Offline/network failures are NOT conflicts: the record stays durable locally
+   * for the queue to retry, so those resolve to `false`.
+   */
+  conflict: boolean;
+}
+
 export interface SyncLayer {
-  push(record: ChecklistRecord): Promise<void>;
+  /** Push a record. Resolves with whether the server reported a lock conflict (§8). */
+  push(record: ChecklistRecord): Promise<PushResult>;
   /**
    * Read the server's copy of a record, or null when unavailable/offline/local-only.
    * Used to reflect a remote change (e.g. a rejection made via a sign-off link)
@@ -34,9 +45,10 @@ export interface SyncLayer {
  * method without touching the save path or the form.
  */
 export class PassthroughSync implements SyncLayer {
-  async push(_record: ChecklistRecord): Promise<void> {
+  async push(_record: ChecklistRecord): Promise<PushResult> {
     // Intentionally does nothing yet. This is where the Phase 5 outbox/queue and
     // the API push will live. Records are durable in Dexie regardless.
+    return { conflict: false };
   }
 
   async pull(_id: string): Promise<ChecklistRecord | null> {
@@ -85,16 +97,21 @@ export class ApiSync implements SyncLayer {
     return token ? { authorization: `Bearer ${token}` } : {};
   }
 
-  async push(record: ChecklistRecord): Promise<void> {
+  async push(record: ChecklistRecord): Promise<PushResult> {
     try {
-      await fetch(`${this.baseUrl}/api/records`, {
+      const res = await fetch(`${this.baseUrl}/api/records`, {
         method: "POST",
         headers: { "content-type": "application/json", ...this.authHeader() },
         body: JSON.stringify(record),
       });
+      // A non-2xx (e.g. 401/500) is a transport/auth problem, not a lock conflict.
+      if (!res.ok) return { conflict: false };
+      const body = (await res.json().catch(() => ({}))) as { conflict?: boolean };
+      return { conflict: body.conflict === true };
     } catch (err) {
       // Local save already succeeded; retries are Phase 5.
       console.warn("sync push failed (kept locally)", err);
+      return { conflict: false };
     }
   }
 

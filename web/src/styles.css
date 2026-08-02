@@ -935,6 +935,15 @@ input[readonly] {
   font-size: 0.85rem;
   font-weight: 600;
 }
+.record-conflict {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
 .app-bar-controls {
   display: flex;
   gap: 0.5rem;

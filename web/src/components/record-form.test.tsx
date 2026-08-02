@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { parseTemplate } from "@schema";
@@ -8,8 +8,9 @@ import { ChecklistDb } from "../data/db";
 import { RecordsRepo } from "../data/records-repo";
 import { RegistryRepo } from "../data/registry-repo";
 import { SignaturesRepo } from "../data/signatures-repo";
-import { PassthroughSync } from "../data/sync";
-import { templateVersionId } from "../data/record";
+import { PassthroughSync, type SyncLayer } from "../data/sync";
+import { createDraft, templateVersionId } from "../data/record";
+import { emptyValues } from "../lib/values";
 import { uuidv7 } from "../data/uuidv7";
 import { RecordForm } from "./record-form";
 
@@ -103,6 +104,55 @@ describe("RecordForm — local-first save path", () => {
       const stored = await repo.latestDraft(templateVersionId(template));
       expect(stored?.values.header.doc_no).toBe("AUTO-1");
     });
+  });
+
+  it("warns and reloads the server copy when a push is refused as a conflict (§8)", async () => {
+    const user = userEvent.setup();
+    const { repo, signaturesRepo, auditRepo, registryRepo } = freshRepos();
+
+    // The server holds a locked version; the client's push is refused, and pull
+    // returns that server copy to reconcile to.
+    const serverValues = emptyValues(template);
+    serverValues.header.doc_no = "SERVER-COPY";
+    const serverRecord = {
+      ...createDraft(template, {
+        id: uuidv7(),
+        now: "2026-08-02T00:00:00.000Z",
+        createdBy: "u",
+      }),
+      status: "rejected" as const,
+      values: serverValues,
+    };
+    const sync: SyncLayer = {
+      push: vi.fn().mockResolvedValue({ conflict: true }),
+      pull: vi.fn().mockResolvedValue(serverRecord),
+      pushSignature: vi.fn().mockResolvedValue(undefined),
+      pushAudit: vi.fn().mockResolvedValue(undefined),
+    };
+
+    render(
+      <RecordForm
+        template={template}
+        repo={repo}
+        signaturesRepo={signaturesRepo}
+        auditRepo={auditRepo}
+        registryRepo={registryRepo}
+        role="site_engineer"
+        sync={sync}
+        autosaveMs={0}
+      />,
+    );
+    const docNo = await screen.findByLabelText("Doc No");
+    await user.type(docNo, "LOCAL-EDIT");
+
+    // The conflict warning surfaces, the server copy is pulled, and the form
+    // reconciles to the server's locked (rejected) state instead of keeping the
+    // refused local edit.
+    expect(await screen.findByText(/locked on the server/i)).toBeInTheDocument();
+    expect(sync.pull).toHaveBeenCalled();
+    expect(
+      await screen.findByText(/Fields locked — record is rejected/i),
+    ).toBeInTheDocument();
   });
 
   it("creates exactly one draft for a template on first load", async () => {

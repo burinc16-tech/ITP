@@ -27,22 +27,40 @@ describe("saveRecord", () => {
   it("writes to Dexie and pushes through the sync layer", async () => {
     const repo = freshRepo();
     const sync: SyncLayer = {
-      push: vi.fn().mockResolvedValue(undefined),
+      push: vi.fn().mockResolvedValue({ conflict: false }),
       pull: vi.fn().mockResolvedValue(null),
       pushSignature: vi.fn().mockResolvedValue(undefined),
       pushAudit: vi.fn().mockResolvedValue(undefined),
     };
     const record = draft();
 
-    const saved = await saveRecord(
+    const { record: saved, conflict } = await saveRecord(
       { repo, sync, clock: () => "2026-07-30T01:00:00.000Z" },
       record,
     );
 
     expect(saved.updated_at).toBe("2026-07-30T01:00:00.000Z");
+    expect(conflict).toBe(false);
     expect(await repo.get(record.id)).toEqual(saved);
     expect(sync.push).toHaveBeenCalledOnce();
     expect(sync.push).toHaveBeenCalledWith(saved);
+  });
+
+  it("propagates a server lock conflict but still writes locally (§8)", async () => {
+    const repo = freshRepo();
+    const sync: SyncLayer = {
+      push: vi.fn().mockResolvedValue({ conflict: true }),
+      pull: vi.fn().mockResolvedValue(null),
+      pushSignature: vi.fn().mockResolvedValue(undefined),
+      pushAudit: vi.fn().mockResolvedValue(undefined),
+    };
+    const record = draft();
+
+    const { record: saved, conflict } = await saveRecord({ repo, sync }, record);
+
+    expect(conflict).toBe(true);
+    // The local write is durable regardless — the caller reconciles from here.
+    expect(await repo.get(record.id)).toEqual(saved);
   });
 
   it("is idempotent — re-saving the same id updates in place", async () => {

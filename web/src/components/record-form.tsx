@@ -113,6 +113,9 @@ export function RecordForm(props: {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
+  // A save that the server refused because the record is locked (§8). Shown
+  // prominently and unconditionally — it can happen during any autosave.
+  const [conflictNote, setConflictNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // Object URLs backing the on-screen signature images, revoked on refresh/unmount.
   const imageUrls = useRef<string[]>([]);
@@ -274,6 +277,25 @@ export function RecordForm(props: {
     [signingSlot, newId, currentUser, deviceId, clock, signaturesRepo, sync, refreshSignatures],
   );
 
+  // A push refused because the server copy is locked (accepted/rejected, §8):
+  // warn and reload the server's version, so the form shows the truth rather than
+  // the local change the server rejected. The local write already happened; this
+  // reconciles it back to server state.
+  const reconcileConflict = useCallback(
+    async (id: string) => {
+      setConflictNote(
+        "This record is locked on the server (already accepted or rejected), so your change wasn't saved. Reloading the server's version.",
+      );
+      const server = await sync.pull(id);
+      if (!server) return;
+      await repo.upsert(server);
+      setRecord(server);
+      setValues(server.values);
+      setSave({ status: "saved", at: server.updated_at });
+    },
+    [sync, repo],
+  );
+
   // Persist the current record + latest values through the local-first path.
   // Saves are chained so overlapping calls (fast typing) run in order and never
   // complete out of sequence — the store always ends on the newest values.
@@ -285,7 +307,14 @@ export function RecordForm(props: {
       if (!base || !vals) return;
       setSave({ status: "saving" });
       try {
-        const saved = await saveRecord({ repo, sync, clock }, { ...base, values: vals });
+        const { record: saved, conflict } = await saveRecord(
+          { repo, sync, clock },
+          { ...base, values: vals },
+        );
+        if (conflict) {
+          await reconcileConflict(saved.id);
+          return;
+        }
         setRecord(saved);
         setSave({ status: "saved", at: saved.updated_at });
       } catch {
@@ -293,7 +322,7 @@ export function RecordForm(props: {
       }
     });
     return saveChain.current;
-  }, [repo, sync, clock]);
+  }, [repo, sync, clock, reconcileConflict]);
 
   const handleChange = useCallback(
     (next: RecordValues) => {
@@ -346,7 +375,16 @@ export function RecordForm(props: {
           context_snapshot: snapshot,
         };
         const result = transition({ record: base, action, ctx, now, reason });
-        const saved = await saveRecord({ repo, sync, clock }, result.record);
+        const { record: saved, conflict } = await saveRecord(
+          { repo, sync, clock },
+          result.record,
+        );
+        if (conflict) {
+          // The server has a locked version; the transition didn't take. Warn and
+          // reconcile instead of logging an audit entry for a change that was refused.
+          await reconcileConflict(saved.id);
+          return;
+        }
         const auditEntry = createAuditEntry({
           id: newId(),
           recordId: saved.id,
@@ -366,7 +404,7 @@ export function RecordForm(props: {
         setActionError(e instanceof Error ? e.message : "Action failed");
       }
     },
-    [record, values, signatures, role, template, clock, repo, sync, auditRepo, registryRepo, newId, currentUser],
+    [record, values, signatures, role, template, clock, repo, sync, auditRepo, registryRepo, newId, currentUser, reconcileConflict],
   );
 
   // Correct a rejected record: create its next revision, save it, log the link,
@@ -382,7 +420,9 @@ export function RecordForm(props: {
         now,
         createdBy: currentUser,
       });
-      const saved = await saveRecord({ repo, sync, clock }, next);
+      // A revision always has a fresh id the server has never seen, so it can't
+      // hit a lock conflict — take the record and move on.
+      const { record: saved } = await saveRecord({ repo, sync, clock }, next);
       const auditEntry = createAuditEntry({
         id: newId(),
         recordId: saved.id,
@@ -497,6 +537,11 @@ export function RecordForm(props: {
           <span className="save-status save-saved" role="status">
             Fields locked — record is {record.status.replace(/_/g, " ")}
           </span>
+        )}
+        {conflictNote && (
+          <p className="record-conflict" role="alert">
+            {conflictNote}
+          </p>
         )}
         <StatusBar
           status={record.status}
