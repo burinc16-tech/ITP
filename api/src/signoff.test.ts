@@ -263,6 +263,10 @@ describe("remote sign-off — open + sign", () => {
     expect(second.status).toBe(200);
 
     expect(await h.signatures.listByRecord("r1")).toHaveLength(1);
+    // The "signed" lifecycle audit is deterministic-id keyed, so it dedupes too —
+    // one signing event, one audit row (not two).
+    const signed = (await h.audit.listByRecord("r1")).filter((a) => a.action === "signed");
+    expect(signed).toHaveLength(1);
   });
 
   it("400s a sign with no image", async () => {
