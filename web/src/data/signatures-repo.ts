@@ -52,6 +52,11 @@ export class SignaturesRepo {
     await this.db.signatures.add(signature);
   }
 
+  /** One signature by id, or undefined — used by the sync queue to load a push. */
+  async get(id: string): Promise<CapturedSignature | undefined> {
+    return this.db.signatures.get(id);
+  }
+
   /** All signatures captured against a record, in insertion order. */
   async listByRecord(recordId: string): Promise<CapturedSignature[]> {
     return this.db.signatures.where("record_id").equals(recordId).toArray();
