@@ -33,13 +33,21 @@ choosing differently.
 
 ## Current phase
 
-**Phase 1.** Scope and exit criteria are in SPEC.md §11. In short: the heat load test
-template renders as a fillable form, saves through the local-first path, and prints
-identically to `Heat_Load_Test_Report.html`.
+**Phase 5 — in progress.** Phases 1–4 are complete: the generic JSON renderer,
+local-first save and print; template library, versioning, serial numbers;
+on-device signatures, roles, status workflow, audit log, record locking; register,
+dashboards, batch export, equipment tree, and remote sign-off links.
 
-Not in Phase 1: signatures, photos, R2, template editing UI, multiple templates,
-auth beyond a stub, dashboards, registers, the sync queue. If a task seems to need
-one of these, say so instead of building it.
+The offline-capable **foundation** is done and hardened (SPEC §8, §12): all ids are
+UUIDv7; signatures and audit entries sync and are insert-once with an
+evidence-conflict tripwire; `accepted`/`rejected` records can't be clobbered by
+client last-write-wins, and the client warns and reconciles on a refused push;
+remote sign-off writes are idempotent under a concurrent double-submit.
+
+Still to build in Phase 5 — the offline **machinery**: the durable sync queue
+(retry/backoff, oldest-first, and a pending-unsynced indicator), service-worker/PWA
+precaching, the calibration register, and the outstanding-items list (§8, §10, §11).
+SPEC §12 refers to this queue as future work — **don't assume it exists yet.**
 
 ## Hard rules
 
