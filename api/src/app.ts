@@ -24,7 +24,7 @@ import {
   MemorySignatureStore,
   MemoryUserStore,
 } from "./store";
-import { decodeImage, generateToken, hashToken } from "./token";
+import { decodeImage, deterministicId, generateToken, hashToken } from "./token";
 import { uuidv7 } from "./uuidv7";
 import { buildSignRequestEmail, MemoryEmailSender, type EmailSender } from "./email";
 import { verifyPassword } from "./auth";
@@ -153,10 +153,17 @@ export function createApp(deps: AppDeps) {
     recordId: string,
     role: string,
     action: string,
-    extra: { reason?: string | null; after?: string | null; user?: string | null } = {},
+    extra: {
+      reason?: string | null;
+      after?: string | null;
+      user?: string | null;
+      /** Deterministic id for a once-per-request lifecycle event (§9/§12), so a
+       *  concurrent double-submit dedupes instead of logging the event twice. */
+      id?: string;
+    } = {},
   ): Promise<void> {
     const entry: AuditRow = {
-      id: newId(),
+      id: extra.id ?? newId(),
       record_id: recordId,
       user: extra.user ?? null,
       role,
@@ -441,7 +448,9 @@ export function createApp(deps: AppDeps) {
     if (now() > req.expires_at) {
       const expired = { ...req, status: "expired" as const, closed_at: now() };
       await signRequests.update(expired);
-      await writeAudit(req.record_id, req.role, "expired");
+      await writeAudit(req.record_id, req.role, "expired", {
+        id: await deterministicId(`audit:${req.id}:expired`),
+      });
       return { ok: false, status: 410, body: { error: "expired" } };
     }
 
@@ -465,7 +474,9 @@ export function createApp(deps: AppDeps) {
     if (r.req.status === "sent") {
       const opened = { ...r.req, status: "opened" as const, opened_at: now() };
       await signRequests.update(opened);
-      await writeAudit(r.req.record_id, r.req.role, "opened");
+      await writeAudit(r.req.record_id, r.req.role, "opened", {
+        id: await deterministicId(`audit:${r.req.id}:opened`),
+      });
     }
     return c.json({
       record: r.record,
@@ -521,7 +532,9 @@ export function createApp(deps: AppDeps) {
     });
 
     await signRequests.update({ ...r.req, status: "signed", closed_at: signedAt });
-    await writeAudit(r.req.record_id, r.req.role, "signed");
+    await writeAudit(r.req.record_id, r.req.role, "signed", {
+      id: await deterministicId(`audit:${r.req.id}:signed`),
+    });
     return c.json({ ok: true });
   });
 
@@ -547,7 +560,10 @@ export function createApp(deps: AppDeps) {
       closed_at: rejectedAt,
     });
     await store.setStatus(r.req.record_id, "rejected", rejectedAt);
-    await writeAudit(r.req.record_id, r.req.role, "rejected", { reason });
+    await writeAudit(r.req.record_id, r.req.role, "rejected", {
+      reason,
+      id: await deterministicId(`audit:${r.req.id}:rejected`),
+    });
     return c.json({ ok: true });
   });
 
@@ -559,7 +575,11 @@ export function createApp(deps: AppDeps) {
       return c.json({ error: "already closed", status: req.status }, 409);
     }
     await signRequests.update({ ...req, status: "revoked", closed_at: now() });
-    await writeAudit(req.record_id, ROLE_QA, "revoked", { after: req.id, user: c.get("user").email });
+    await writeAudit(req.record_id, ROLE_QA, "revoked", {
+      after: req.id,
+      user: c.get("user").email,
+      id: await deterministicId(`audit:${req.id}:revoked`),
+    });
     return c.json({ ok: true });
   });
 

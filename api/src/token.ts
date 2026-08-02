@@ -25,6 +25,23 @@ export async function hashToken(raw: string): Promise<string> {
 }
 
 /**
+ * A deterministic UUID (version 8) derived from `seed` via SHA-256. Same seed →
+ * same id, so a server write that a concurrent or retried request would otherwise
+ * repeat can be made idempotent by keying its id on the logical event it records
+ * (SPEC §9/§12) — insert-once then drops the duplicate. Version 8 marks it as a
+ * deliberately non-time-ordered, derived id, distinct from the UUIDv7s minted for
+ * new entities.
+ */
+export async function deterministicId(seed: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
+  const b = new Uint8Array(digest).slice(0, 16);
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x80; // version 8 (custom / deterministic)
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80; // variant 10xx
+  const hex = HEX(b);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
  * Decode a signature image posted by a remote signer. Accepts either a
  * `data:<mime>;base64,...` URL (what a canvas `toDataURL()` produces) or bare
  * base64. Returns the raw bytes and the content type (default image/png).
