@@ -29,6 +29,8 @@ describe("saveRecord", () => {
     const sync: SyncLayer = {
       push: vi.fn().mockResolvedValue(undefined),
       pull: vi.fn().mockResolvedValue(null),
+      pushSignature: vi.fn().mockResolvedValue(undefined),
+      pushAudit: vi.fn().mockResolvedValue(undefined),
     };
     const record = draft();
 

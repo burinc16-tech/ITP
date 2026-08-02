@@ -10,6 +10,7 @@ import type {
   SignatureImageStore,
   SignatureRequest,
   SignatureRequestStore,
+  SignatureRow,
   SignatureStore,
   UserRole,
   UserStore,
@@ -24,6 +25,7 @@ import {
   MemoryUserStore,
 } from "./store";
 import { decodeImage, generateToken, hashToken } from "./token";
+import { uuidv7 } from "./uuidv7";
 import { buildSignRequestEmail, MemoryEmailSender, type EmailSender } from "./email";
 import { verifyPassword } from "./auth";
 
@@ -50,6 +52,31 @@ interface AuthUser {
 const ROLE_QA: UserRole = "qa_qc";
 const EXPIRY_DAYS = 7;
 const SESSION_DAYS = 30;
+
+/**
+ * Insert-once tamper tripwire (SPEC §12): the content identity of an evidence
+ * row under a given id. A replay carries the same fingerprint (no-op); a same-id
+ * write whose fingerprint differs is an evidence conflict, never an overwrite.
+ * Signature image bytes are compared separately (they live in R2, not the row).
+ */
+function signatureFingerprint(s: SignatureRow): string {
+  return JSON.stringify([
+    s.record_id, s.slot_id, s.role, s.name, s.company, s.method,
+    s.signed_by_user, s.device_id, s.signed_at, s.signer_email, s.signer_ip,
+  ]);
+}
+
+function auditFingerprint(e: AuditRow): string {
+  return JSON.stringify([
+    e.record_id, e.user, e.role, e.action, e.before, e.after, e.reason, e.at,
+  ]);
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 
 export interface AppDeps {
   store: RecordStore;
@@ -84,7 +111,8 @@ export function createApp(deps: AppDeps) {
   const sessions = deps.sessions ?? new MemorySessionStore();
   const email = deps.email ?? new MemoryEmailSender();
   const now = deps.now ?? (() => new Date().toISOString());
-  const newId = deps.newId ?? (() => crypto.randomUUID());
+  // UUIDv7 for every server-minted id (SPEC §4, Hard Rule #2) — never v4/sequence.
+  const newId = deps.newId ?? uuidv7;
   const genToken = deps.generateToken ?? generateToken;
 
   const bearer = (c: { req: { header: (n: string) => string | undefined } }): string | null => {
@@ -205,6 +233,108 @@ export function createApp(deps: AppDeps) {
     const record = await store.get(c.req.param("id"));
     if (!record) return c.json({ error: "not found" }, 404);
     return c.json(record);
+  });
+
+  // --- Sync push: append-only evidence (SPEC §8, §12) ----------------------
+  // On-device signatures and client-authored audit entries. Insert-once: an
+  // identical replay returns { applied: false }; a same-id write whose content
+  // differs is an evidence conflict (409), never an overwrite (Hard Rule #6).
+
+  app.post("/api/records/:id/signatures", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+
+    let body: {
+      id?: string; slot_id?: string; role?: string; name?: string; company?: string;
+      method?: string; signed_by_user?: string | null; device_id?: string;
+      signed_at?: string; image?: string;
+    };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body.id || !body.slot_id || !body.role || !body.method || !body.device_id || !body.signed_at) {
+      return c.json({ error: "invalid signature" }, 400);
+    }
+    let bytes: Uint8Array;
+    let contentType: string;
+    try {
+      ({ bytes, contentType } = decodeImage(body.image ?? ""));
+    } catch {
+      return c.json({ error: "a signature image is required" }, 400);
+    }
+
+    const imageKey = `signatures/${recordId}/${body.id}.png`;
+    const row: SignatureRow = {
+      id: body.id,
+      record_id: recordId,
+      slot_id: body.slot_id,
+      role: body.role,
+      name: body.name ?? "",
+      company: body.company ?? "",
+      method: body.method,
+      signed_by_user: body.signed_by_user ?? null,
+      device_id: body.device_id,
+      image_key: imageKey,
+      signed_at: body.signed_at,
+      signer_email: null,
+      signer_ip: null,
+    };
+
+    const existing = await signatures.getById(body.id);
+    if (existing) {
+      const stored = await images.get(existing.image_key);
+      const identical =
+        signatureFingerprint(existing) === signatureFingerprint(row) &&
+        !!stored &&
+        bytesEqual(stored, bytes);
+      if (!identical) return c.json({ error: "evidence_conflict" }, 409);
+      return c.json({ applied: false }); // insert-once no-op
+    }
+
+    await images.put(imageKey, bytes, contentType);
+    await signatures.add(row);
+    return c.json({ applied: true }, 201);
+  });
+
+  app.post("/api/records/:id/audit", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+
+    let body: {
+      id?: string; role?: string; action?: string; user?: string | null;
+      before?: string | null; after?: string | null; reason?: string | null; at?: string;
+    };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body.id || !body.role || !body.action || !body.at) {
+      return c.json({ error: "invalid audit entry" }, 400);
+    }
+    const row: AuditRow = {
+      id: body.id,
+      record_id: recordId,
+      user: body.user ?? null,
+      role: body.role,
+      action: body.action,
+      before: body.before ?? null,
+      after: body.after ?? null,
+      reason: body.reason ?? null,
+      at: body.at,
+    };
+
+    const existing = await audit.getById(body.id);
+    if (existing) {
+      if (auditFingerprint(existing) !== auditFingerprint(row)) {
+        return c.json({ error: "evidence_conflict" }, 409);
+      }
+      return c.json({ applied: false }); // insert-once no-op
+    }
+    await audit.add(row);
+    return c.json({ applied: true }, 201);
   });
 
   // --- Remote sign-off: issue (privileged, QA/QC) --------------------------
@@ -370,8 +500,12 @@ export function createApp(deps: AppDeps) {
 
     const signedAt = now();
     const signerIp = c.req.header("cf-connecting-ip") ?? null;
+    // The signature id is the request id, not a fresh newId(): a remote signature
+    // is 1:1 with its single-use request, so this makes a concurrent double-submit
+    // of one token collide on the same id and dedupe via insert-once (§12) instead
+    // of writing two rows for one slot. The request id is already a UUIDv7.
     await signatures.add({
-      id: newId(),
+      id: r.req.id,
       record_id: r.req.record_id,
       slot_id: r.req.slot_id,
       role: r.req.role,

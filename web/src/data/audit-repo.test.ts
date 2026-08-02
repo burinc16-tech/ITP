@@ -33,11 +33,22 @@ describe("AuditRepo", () => {
     expect(await repo.listByRecord("rec-2")).toHaveLength(1);
   });
 
-  it("is append-only — a duplicate id is rejected", async () => {
+  it("insert-once — re-adding the identical entry is a no-op (SPEC §12)", async () => {
     const repo = freshRepo();
     const e = entry();
     await repo.add(e);
-    await expect(repo.add(e)).rejects.toBeDefined();
+    await expect(repo.add(e)).resolves.toBeUndefined(); // replay is safe
+    expect(await repo.listByRecord("rec-1")).toHaveLength(1);
+  });
+
+  it("is append-only — a same-id entry with different content is rejected", async () => {
+    const repo = freshRepo();
+    const e = entry();
+    await repo.add(e);
+    await expect(repo.add({ ...e, action: "tampered" })).rejects.toBeDefined();
+    const rows = await repo.listByRecord("rec-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.action).toBe("complete");
   });
 
   it("returns the most recent entries across records, newest first", async () => {

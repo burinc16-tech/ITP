@@ -48,7 +48,18 @@ describe("SignaturesRepo", () => {
     expect(stored.image).toBeDefined();
   });
 
-  it("is append-only — re-adding the same id is rejected, never overwritten", async () => {
+  it("insert-once — re-adding the identical signature is a no-op (SPEC §12)", async () => {
+    const repo = freshRepo();
+    const sig = signature({ name: "Original" });
+    await repo.add(sig);
+    await expect(repo.add(sig)).resolves.toBeUndefined(); // replay is safe
+
+    const rows = await repo.listByRecord("rec-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.name).toBe("Original");
+  });
+
+  it("is append-only — a same-id write with different content is rejected, never overwritten", async () => {
     const repo = freshRepo();
     const sig = signature({ name: "Original" });
     await repo.add(sig);

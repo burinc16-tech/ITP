@@ -6,11 +6,14 @@ import {
 } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
 import {
+  addChecklistRow,
   addTableRow,
   emptyValues,
+  removeChecklistRow,
+  setAddedRowField,
+  setTableCell,
   removeTableRow,
   setRowValue,
-  setTableCell,
 } from "./values";
 
 const template = parseTemplate(rawTemplate);
@@ -88,5 +91,35 @@ describe("row mutations", () => {
     const values = emptyValues(template);
     const next = setRowValue(values, "s2_01", "na");
     expect(next.rows.s2_01).toEqual({ value: "na", remarks: "" });
+  });
+});
+
+describe("ad-hoc appended rows", () => {
+  it("appends a blank row carrying the caller-supplied id", () => {
+    const values = emptyValues(template);
+    const next = addChecklistRow(values, "pre_test", "row-a");
+    expect(next.added.pre_test).toEqual([
+      { id: "row-a", no: "", group: "", description: "", value: "", remarks: "" },
+    ]);
+    expect(values.added.pre_test).toBeUndefined(); // original untouched
+  });
+
+  it("uses the id verbatim, so distinct ids stay distinct", () => {
+    const one = addChecklistRow(emptyValues(template), "pre_test", "id-1");
+    const two = addChecklistRow(one, "pre_test", "id-2");
+    expect(two.added.pre_test!.map((r) => r.id)).toEqual(["id-1", "id-2"]);
+  });
+
+  it("edits a field of the addressed row only", () => {
+    const values = addChecklistRow(emptyValues(template), "pre_test", "row-a");
+    const next = setAddedRowField(values, "pre_test", "row-a", "description", "Extra check");
+    expect(next.added.pre_test![0]!.description).toBe("Extra check");
+  });
+
+  it("removes a row by id", () => {
+    const a = addChecklistRow(emptyValues(template), "pre_test", "row-a");
+    const b = addChecklistRow(a, "pre_test", "row-b");
+    const next = removeChecklistRow(b, "pre_test", "row-a");
+    expect(next.added.pre_test!.map((r) => r.id)).toEqual(["row-b"]);
   });
 });

@@ -18,7 +18,7 @@ export function StandardSection(props: {
   section: StandardSectionDef;
 }): ReactNode {
   const { section } = props;
-  const { values, onChange } = useForm();
+  const { values, onChange, newId } = useForm();
   const added = values.added[section.id] ?? [];
 
   // Group header before the first row of each contiguous `group` run.
@@ -72,7 +72,7 @@ export function StandardSection(props: {
         <button
           type="button"
           className="row-add"
-          onClick={() => onChange(addChecklistRow(values, section.id))}
+          onClick={() => onChange(addChecklistRow(values, section.id, newId()))}
         >
           + Add item
         </button>

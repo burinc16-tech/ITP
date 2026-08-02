@@ -105,4 +105,44 @@ describe("api /api/records", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("locks an accepted record against a newer client push (§8)", async () => {
+    const { app, authed } = await make();
+    // Entering accepted is allowed — the prior draft is not locked.
+    await app.request("/api/records", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(record({ status: "accepted", updated_at: "2026-08-02T05:00:00.000Z", marker: "final" })),
+    });
+    // A later, newer client push must not overwrite it.
+    const res = await app.request("/api/records", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(record({ status: "witnessed", updated_at: "2026-08-02T06:00:00.000Z", marker: "stale" })),
+    });
+    expect(await res.json()).toEqual({ applied: false, conflict: true });
+
+    const get = await app.request("/api/records/r1", { headers: authed });
+    const body = (await get.json()) as { status: string; marker: string };
+    expect(body.status).toBe("accepted");
+    expect(body.marker).toBe("final");
+  });
+
+  it("locks a rejected record so a stale client transition can't clobber it (§8)", async () => {
+    const { app, authed } = await make();
+    await app.request("/api/records", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(record({ status: "rejected", updated_at: "2026-08-02T05:00:00.000Z", marker: "rej" })),
+    });
+    const res = await app.request("/api/records", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(record({ status: "witnessed", updated_at: "2026-08-02T06:00:00.000Z", marker: "stale" })),
+    });
+    expect(await res.json()).toEqual({ applied: false, conflict: true });
+
+    const get = await app.request("/api/records/r1", { headers: authed });
+    expect(((await get.json()) as { status: string }).status).toBe("rejected");
+  });
 });

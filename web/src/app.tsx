@@ -131,6 +131,9 @@ export function App(): ReactNode {
       equipmentId: scope.equipmentId,
       scopeType: "equipment",
     });
+    // Local-first create (SPEC §12 "Draft creation and sync"): persist locally
+    // only. The record syncs on the first edit (autosave → saveRecord) or via the
+    // Phase 5 queue, so an abandoned new draft leaves nothing on the server.
     await repo.upsert(record);
     setNewDialog(null);
     setView({ kind: "record", id: record.id, template: scope.template });

@@ -1,10 +1,17 @@
+import type { AuditEntry } from "./audit";
 import type { ChecklistRecord } from "./record";
+import type { CapturedSignature } from "./signature";
 
 /**
  * The boundary between local writes and the API (SPEC §8, hard rule #1). The
  * form never calls the API directly — it writes to Dexie, then hands the record
- * to a SyncLayer. Phase 5 replaces the implementation with a durable queue
- * (retry, backoff, oldest-first); the interface stays the same.
+ * (and its append-only evidence) to a SyncLayer. Phase 5 replaces the
+ * implementation with a durable queue (retry, backoff, oldest-first); the
+ * interface stays the same.
+ *
+ * Records upsert last-write-wins; signatures and audit entries are insert-once
+ * append-only evidence (SPEC §12) — the server drops an identical replay and
+ * rejects a same-id write whose content differs.
  */
 export interface SyncLayer {
   push(record: ChecklistRecord): Promise<void>;
@@ -15,6 +22,10 @@ export interface SyncLayer {
    * best-effort read.
    */
   pull(id: string): Promise<ChecklistRecord | null>;
+  /** Push a captured on-device signature (SPEC §6 path A). Best-effort. */
+  pushSignature(signature: CapturedSignature): Promise<void>;
+  /** Push an audit entry the client authored (SPEC §9). Best-effort. */
+  pushAudit(entry: AuditEntry): Promise<void>;
 }
 
 /**
@@ -32,6 +43,22 @@ export class PassthroughSync implements SyncLayer {
     // Local-only mode: there is no server to read from.
     return null;
   }
+
+  async pushSignature(_signature: CapturedSignature): Promise<void> {
+    // No queue, no network — the signature is durable in Dexie.
+  }
+
+  async pushAudit(_entry: AuditEntry): Promise<void> {
+    // No queue, no network — the entry is durable in Dexie.
+  }
+}
+
+/** Base64 `data:` URL for a blob, so a signature PNG rides in a JSON body. */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return `data:${blob.type || "image/png"};base64,${btoa(binary)}`;
 }
 
 /** A bearer token, or a getter for the current session token (task 4). */
@@ -81,6 +108,43 @@ export class ApiSync implements SyncLayer {
     } catch (err) {
       console.warn("sync pull failed", err);
       return null;
+    }
+  }
+
+  async pushSignature(signature: CapturedSignature): Promise<void> {
+    try {
+      const image = await blobToDataUrl(signature.image);
+      await fetch(`${this.baseUrl}/api/records/${signature.record_id}/signatures`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify({
+          id: signature.id,
+          slot_id: signature.slot_id,
+          role: signature.role,
+          name: signature.name,
+          company: signature.company,
+          method: signature.method,
+          signed_by_user: signature.signed_by_user,
+          device_id: signature.device_id,
+          signed_at: signature.signed_at,
+          image,
+        }),
+      });
+    } catch (err) {
+      // Local save already succeeded; retries are Phase 5.
+      console.warn("signature push failed (kept locally)", err);
+    }
+  }
+
+  async pushAudit(entry: AuditEntry): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/records/${entry.record_id}/audit`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(entry),
+      });
+    } catch (err) {
+      console.warn("audit push failed (kept locally)", err);
     }
   }
 }

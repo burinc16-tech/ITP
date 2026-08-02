@@ -219,6 +219,9 @@ describe("remote sign-off — open + sign", () => {
 
     const sigs = await h.signatures.listByRecord("r1");
     expect(sigs).toHaveLength(1);
+    // Deterministic id = the request id, so a concurrent double-submit dedupes
+    // via insert-once instead of writing a second row (§12).
+    expect(sigs[0]!.id).toBe(body.id);
     expect(sigs[0]).toMatchObject({
       slot_id: "sig_witness",
       role: "witness",
@@ -234,6 +237,32 @@ describe("remote sign-off — open + sign", () => {
     expect(actions(await h.audit.listByRecord("r1"))).toEqual(
       expect.arrayContaining(["issued", "opened", "signed"]),
     );
+  });
+
+  it("dedupes a double-submit of one token into a single signature row", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    const { body } = await issue(h.app);
+
+    const sign = () =>
+      h.app.request(`/api/sign/${body.token}`, {
+        method: "POST",
+        headers: json,
+        body: JSON.stringify({ image: PNG, name: "Sam Client" }),
+      });
+
+    const first = await sign();
+    expect(first.status).toBe(200);
+
+    // Simulate the concurrent race: both submits pass resolve() while the request
+    // is still "opened". Reset it and submit again — the deterministic signature id
+    // (= request id) makes insert-once drop the duplicate.
+    const req = (await h.signRequests.getById(body.id))!;
+    await h.signRequests.update({ ...req, status: "opened", closed_at: null });
+    const second = await sign();
+    expect(second.status).toBe(200);
+
+    expect(await h.signatures.listByRecord("r1")).toHaveLength(1);
   });
 
   it("400s a sign with no image", async () => {
