@@ -46,14 +46,6 @@ export interface AddedRow {
   remarks: string;
 }
 
-let addedRowCounter = 0;
-
-/** A form-local unique id for an appended row (not a record identifier). */
-function newAddedRowId(): string {
-  addedRowCounter += 1;
-  return `add-${Date.now().toString(36)}-${addedRowCounter.toString(36)}`;
-}
-
 /** A blank record for a template, seeded with variable/header/table defaults. */
 export function emptyValues(template: Template): RecordValues {
   const variables: Record<string, string> = {};
@@ -95,13 +87,21 @@ export function emptyValues(template: Template): RecordValues {
 
 // --- Ad-hoc appended rows -------------------------------------------------
 
+/**
+ * Append a blank ad-hoc row. `id` is supplied by the caller (a UUIDv7 from the
+ * form's injected `newId`, SPEC §4 / Hard Rule #2) — this stays a pure transform,
+ * matching how `createDraft`/`createSignature` take their id rather than minting
+ * one. The id is persisted in `Record.values.added` and snapshotted, so it must
+ * be globally unique, not a per-session counter that collides across devices.
+ */
 export function addChecklistRow(
   values: RecordValues,
   sectionId: string,
+  id: string,
 ): RecordValues {
   const list = values.added[sectionId] ?? [];
   const row: AddedRow = {
-    id: newAddedRowId(),
+    id,
     no: "",
     group: "",
     description: "",

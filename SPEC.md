@@ -358,6 +358,12 @@ Rules that apply to path B:
 - Every transition (issued, opened, signed, rejected, expired, revoked) is written
   to `AuditLog`.
 - Rejection carries a reason and returns the record to `rejected` (§6 table).
+- **Path B is online-only** (the token is server-minted and stored, email is
+  server-side, and the record must already be synced). Offline, issuing and
+  revoking are gated with a clear message; the offline route to a signature is
+  path A. The client reads outstanding-request status best-effort when online and
+  may cache the last-known value for display — it never authors or mirrors a
+  `SignatureRequest` locally (§12).
 
 Both paths write to the same `Signature` row shape and render identically in the
 PDF, distinguished only by a small method annotation beneath the signature block.
@@ -417,8 +423,12 @@ Phase 5 then adds only the machinery, with no rework of the form layer:
 - Service worker precaching the app shell; templates and the active project's
   equipment list cached locally.
 - Sync queue with retry and backoff, oldest first.
-- Conflict rule: last-write-wins on `draft`; a record already `accepted` on the
-  server rejects any offline change and surfaces a warning.
+- Conflict rule: last-write-wins on `draft`; a record already in a locked,
+  server-authoritative status on the server (`accepted` — locked forever; or
+  `rejected` — superseded by a revision under a new id) rejects any client change
+  and surfaces a warning. The server enforces this in `RecordStore.upsert`, not
+  just the client, so a stale client transition arriving with a newer `updated_at`
+  can't clobber a remote rejection.
 - Clear on-screen indicator of pending unsynced records, with a count.
 
 Rationale: full offline in Phase 1 would delay proving the core loop — render, save,
@@ -487,6 +497,10 @@ explaining what changed.
 | First three templates | DB Power Turn-on; Network Room / IT Room Handover; Wall, Floor and Ceiling Closure Inspection |
 | Ad-hoc checklist rows | Allowed as a scoped exception to Hard Rule #5, on sections flagged `allow_add_rows`. The engineer's added text is stored as record data in `Record.values`/`context_snapshot`, never written into `TemplateVersion.definition` — so template wording stays immutable and versioned (§2, §5.1). Added rows are subject to the same audit log as any post-`completed` edit (§9) |
 | "In Progress" status | A status row set to In Progress counts as outstanding — it maps to Fail for outstanding-items derivation (§6). The item clears only when a later revision records that row as Pass/Yes. Required because the IDF Handover template uses a four-state control (Yes / No / N/A / In Progress) |
+| Idempotency of append-only evidence | **Insert-once**, not upsert. A duplicate-id write to an append-only store (signatures, audit) is a successful **no-op** — the entry is already durably stored — and is **never** an overwrite. Records keep last-write-wins upsert (§8); only these two stores are insert-once. Enforced at both the client repo (`.add` → duplicate resolves ok) and the server endpoint (`INSERT … ON CONFLICT(id) DO NOTHING`). As a tamper/bug tripwire, a duplicate id whose content fingerprint differs from the stored row raises an **evidence-conflict error** instead of the silent no-op. Reconciles Hard Rule #3 (idempotent, replay-safe) with Hard Rule #6 (evidence never mutated). The remote-link signature takes its id from its single-use `SignatureRequest`, so a concurrent double-submit of one token collides on that id and dedupes rather than writing two rows for one slot |
+| Draft creation and sync | **Local-first.** Creating a draft is a local write (`repo.upsert`); it reaches the server on the first edit (autosave → `saveRecord`) or, in Phase 5, when the sync queue sweeps un-synced records. Durability is the local store **plus** the queue — not eager per-write push. Eager `sync.push` (of records, and of the append-only evidence above) is a best-effort latency optimization, not the delivery guarantee. A blank, never-edited draft is therefore **not** pushed, so the server holds no abandoned empty drafts and Phase 5's "pending unsynced" count (§8) stays meaningful |
+| Remote sign-off is online-only | Issuing and revoking a remote sign-off link (§6 path B) require connectivity — the token is server-minted and stored, email is server-side, and the record must already be synced. Offline, the action is gated with a clear message; the offline route to a signature is on-device (§6 path A). **No issue-queue.** The client reads outstanding-request status best-effort when online (like the record-status pull) and may cache the last-known value for display; it never authors or mirrors a `SignatureRequest` locally |
+| Entity ownership: local-first vs server-owned | Two classes. **Client-owned, local-first** — Record, on-device Signature, AuditLog, and the registry — carry a client UUIDv7, are offline-capable, and sync via the queue (Hard Rules #2/#3). **Server-owned coordination state** — `SignatureRequest`, `Session`, and the remote-link Signature — carry a server UUIDv7, are created only by online server actions, and are never authored or mirrored on the client. A server-generated `SignatureRequest.id` is therefore not a Hard Rule #2 violation: that rule governs the local-first class |
 
 ### Why these three templates
 
@@ -512,6 +526,62 @@ like any other entry. The template's own steps remain fixed and versioned. The W
 Floor and Ceiling Closure form (added rows + a free-text defects list) is what forces
 this; the exception is deliberately narrow — only sections that opt in with
 `allow_add_rows`, and only for appended rows, never for editing a template-defined step.
+
+### Why insert-once, not upsert, for evidence
+
+Hard Rule #3 wants every mutation to be an idempotent upsert so the Phase 5 sync
+queue (§8) can replay it — delivery is at-least-once, so a push can commit on the
+server and still lose its ack over a flaky link, and the queue resends. Hard Rule #6
+wants signatures and audit rows to be append-only: the repos use Dexie `.add`, not
+`.put`, precisely so a re-add rejects rather than overwrites. Making these stores
+upsert would satisfy #3 by breaking #6 — a replayed or tampered write bearing the
+same id but different bytes would silently replace signed evidence.
+
+Insert-once resolves both. Because ids are client-generated UUIDv7 and an evidence
+row is never mutated after creation, *same id ⇒ same content* holds by construction,
+so a duplicate-id write carries nothing new and is safe to treat as a no-op success —
+the queue makes progress, no evidence is touched. Dedupe-before-send (per-entry acks)
+is the primary path; the constraint no-op is the backstop for the lost-ack window.
+The fingerprint tripwire turns the "never overwrites" guarantee from an assumption
+into something checked: under correct operation it never fires, and if it ever does,
+it fails loudly rather than corrupting the record. This is the append-only counterpart
+to the record path's last-write-wins upsert, not a replacement for it.
+
+### Why draft creation stays local-first
+
+A tempting "consistency" fix is to route new-draft creation through `saveRecord` so
+every write takes one path and lands on the server immediately. It is the wrong fix.
+Durability here comes from the local store plus the Phase 5 queue, which reconciles
+every un-synced record — not from each write eagerly reaching the API. Pushing on
+create would put an empty draft on the server for every "New record" tap the engineer
+later abandons, and it would make the "pending unsynced records" count (§8) almost
+always zero, hollowing out the one indicator that tells someone on site whether their
+work has left the device. So creation is a deliberate local-first write; the first
+edit (autosave) or the queue carries it up. The eager `sync.push` calls are latency
+optimizations layered on top of that guarantee, never the guarantee itself — which is
+also why a best-effort evidence push that races ahead of its record (a signature on a
+brand-new draft) can fail harmlessly: the queue will carry both.
+
+### Why remote sign-off is not local-first
+
+The local-first model exists so a plant room with no signal doesn't stop the work.
+Remote sign-off is the one flow that inverts every assumption behind it: the token
+must be minted and held by the server (the public link page validates against it, so
+no client can forge one offline), the email leaves from the server, and the record
+has to be on the server before a request can attach to it. Most of all, the point of
+path B is to reach a signer who is *not on this device* — a link queued on a
+disconnected tablet reaches no one, and one that emails whenever the tablet next
+reconnects hands the operator nothing at issue time and fires at an unpredictable
+later moment. So path B is deliberately online-only, and path A (on-device) is the
+offline route that keeps "get a signature with no signal" possible.
+
+This is what separates the two entity classes. A `SignatureRequest` is server-owned
+coordination state, not a document the engineer authors — like a `Session`, and
+unlike a Record or an on-device Signature. It is created only by an online server
+action, its id is minted server-side, and the client merely reads its status when
+connected. Hard Rule #2's "client-generated UUIDv7" governs the local-first class it
+was written for; applying it to server-owned state would be a category error, not a
+fix. Naming the two classes removes the apparent contradiction the audit surfaced.
 
 ---
 

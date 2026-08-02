@@ -13,7 +13,23 @@ export interface IncomingRecord {
 export interface UpsertResult {
   /** False when a newer copy already exists (last-write-wins by `updated_at`). */
   applied: boolean;
+  /**
+   * True when the write was refused because the server copy is in a locked,
+   * server-authoritative status (`accepted` or `rejected`, §6/§8) and the client
+   * pushed a newer version. Lets the UI warn and pull rather than lose the change
+   * silently. Absent on the ordinary last-write-wins path.
+   */
+  conflict?: boolean;
 }
+
+/**
+ * Statuses the server treats as locked: a client push never overwrites a record
+ * already `accepted` (locked forever, §6) or `rejected` (superseded by a revision
+ * under a new id — the rejected record itself is frozen). Extends SPEC §8's
+ * conflict rule beyond `accepted` so a remote rejection can't be clobbered by a
+ * stale client transition arriving with a newer `updated_at`.
+ */
+const LOCKED_STATUSES: ReadonlySet<string> = new Set(["accepted", "rejected"]);
 
 /**
  * The record persistence the API depends on. Kept behind an interface so the Hono
@@ -28,6 +44,14 @@ export interface RecordStore {
    * "rejected", §6). Bumps `updated_at` — which, by design, voids any other
    * outstanding sign request on the record via the version check. No-op if the
    * record is absent.
+   *
+   * Safety (task #6 review): the only caller is the public reject endpoint, and a
+   * second reject on the same token is blocked upstream (`resolve()` → 409 closed),
+   * so this never double-fires. It is a dumb setter with no `updated_at` guard, but
+   * it is always called with a fresh server `now()` and is never client-replayed.
+   * The one residual hazard is Phase 5 conflict policy, not this method: a client
+   * record upsert with a newer `updated_at` can still last-write-wins over a
+   * server-set "rejected" (§8 protects only "accepted"). Tracked separately.
    */
   setStatus(id: string, status: string, updatedAt: string): Promise<void>;
 }
@@ -38,9 +62,13 @@ export class D1RecordStore implements RecordStore {
 
   async upsert(record: IncomingRecord): Promise<UpsertResult> {
     const existing = await this.db
-      .prepare("SELECT updated_at FROM records WHERE id = ?")
+      .prepare("SELECT updated_at, status FROM records WHERE id = ?")
       .bind(record.id)
-      .first<{ updated_at: string }>();
+      .first<{ updated_at: string; status: string }>();
+    if (existing && LOCKED_STATUSES.has(existing.status)) {
+      // Locked server-side (§6, §8): never overwritten by a client push.
+      return { applied: false, conflict: record.updated_at > existing.updated_at };
+    }
     if (existing && existing.updated_at >= record.updated_at) {
       return { applied: false };
     }
@@ -87,6 +115,10 @@ export class MemoryRecordStore implements RecordStore {
 
   async upsert(record: IncomingRecord): Promise<UpsertResult> {
     const existing = this.map.get(record.id);
+    if (existing && LOCKED_STATUSES.has(existing.status)) {
+      // Locked server-side (§6, §8): never overwritten by a client push.
+      return { applied: false, conflict: record.updated_at > existing.updated_at };
+    }
     if (existing && existing.updated_at >= record.updated_at) {
       return { applied: false };
     }
@@ -154,7 +186,17 @@ export interface SignatureRequestStore {
   create(req: SignatureRequest): Promise<void>;
   getByTokenHash(hash: string): Promise<SignatureRequest | null>;
   getById(id: string): Promise<SignatureRequest | null>;
-  /** Persist the mutable lifecycle fields (status/opened_at/closed_at/reject_reason). */
+  /**
+   * Persist the mutable lifecycle fields (status/opened_at/closed_at/reject_reason).
+   *
+   * Safety (task #6 review): a dumb setter. The legal state machine
+   * (sent→opened→signed|rejected|revoked|expired) is enforced by the endpoints
+   * before this is called — `resolve()` blocks acting on an expired/closed request,
+   * revoke blocks a closed one — so an illegal or repeated transition can't reach
+   * here in sequence, and it is never client-replayed. The one gap is a true
+   * concurrent double-submit of a single token (no D1 transaction), which can
+   * duplicate the remote signature row; tracked separately.
+   */
   update(req: SignatureRequest): Promise<void>;
 }
 
@@ -177,7 +219,9 @@ export interface SignatureRow {
 }
 
 export interface SignatureStore {
+  /** Insert-once (SPEC §12): a duplicate id is ignored, never overwritten. */
   add(sig: SignatureRow): Promise<void>;
+  getById(id: string): Promise<SignatureRow | null>;
   listByRecord(recordId: string): Promise<SignatureRow[]>;
 }
 
@@ -195,7 +239,9 @@ export interface AuditRow {
 }
 
 export interface AuditStore {
+  /** Insert-once (SPEC §12): a duplicate id is ignored, never overwritten. */
   add(entry: AuditRow): Promise<void>;
+  getById(id: string): Promise<AuditRow | null>;
   listByRecord(recordId: string): Promise<AuditRow[]>;
 }
 
@@ -275,7 +321,7 @@ export class D1SignatureStore implements SignatureStore {
   async add(s: SignatureRow): Promise<void> {
     await this.db
       .prepare(
-        `INSERT INTO signatures (${SIGNATURE_COLUMNS})
+        `INSERT OR IGNORE INTO signatures (${SIGNATURE_COLUMNS})
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
@@ -296,6 +342,14 @@ export class D1SignatureStore implements SignatureStore {
       .run();
   }
 
+  async getById(id: string): Promise<SignatureRow | null> {
+    const row = await this.db
+      .prepare(`SELECT ${SIGNATURE_COLUMNS} FROM signatures WHERE id = ?`)
+      .bind(id)
+      .first<SignatureRow>();
+    return row ?? null;
+  }
+
   async listByRecord(recordId: string): Promise<SignatureRow[]> {
     const res = await this.db
       .prepare(`SELECT ${SIGNATURE_COLUMNS} FROM signatures WHERE record_id = ?`)
@@ -311,11 +365,19 @@ export class D1AuditStore implements AuditStore {
   async add(e: AuditRow): Promise<void> {
     await this.db
       .prepare(
-        `INSERT INTO audit_log (id, record_id, user, role, action, before, after, reason, at)
+        `INSERT OR IGNORE INTO audit_log (id, record_id, user, role, action, before, after, reason, at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(e.id, e.record_id, e.user, e.role, e.action, e.before, e.after, e.reason, e.at)
       .run();
+  }
+
+  async getById(id: string): Promise<AuditRow | null> {
+    const row = await this.db
+      .prepare("SELECT * FROM audit_log WHERE id = ?")
+      .bind(id)
+      .first<AuditRow>();
+    return row ?? null;
   }
 
   async listByRecord(recordId: string): Promise<AuditRow[]> {
@@ -367,7 +429,11 @@ export class MemorySignatureRequestStore implements SignatureRequestStore {
 export class MemorySignatureStore implements SignatureStore {
   readonly rows: SignatureRow[] = [];
   async add(sig: SignatureRow): Promise<void> {
+    if (this.rows.some((r) => r.id === sig.id)) return; // insert-once (§12)
     this.rows.push({ ...sig });
+  }
+  async getById(id: string): Promise<SignatureRow | null> {
+    return this.rows.find((r) => r.id === id) ?? null;
   }
   async listByRecord(recordId: string): Promise<SignatureRow[]> {
     return this.rows.filter((r) => r.record_id === recordId);
@@ -377,7 +443,11 @@ export class MemorySignatureStore implements SignatureStore {
 export class MemoryAuditStore implements AuditStore {
   readonly rows: AuditRow[] = [];
   async add(entry: AuditRow): Promise<void> {
+    if (this.rows.some((r) => r.id === entry.id)) return; // insert-once (§12)
     this.rows.push({ ...entry });
+  }
+  async getById(id: string): Promise<AuditRow | null> {
+    return this.rows.find((r) => r.id === id) ?? null;
   }
   async listByRecord(recordId: string): Promise<AuditRow[]> {
     return this.rows.filter((r) => r.record_id === recordId);

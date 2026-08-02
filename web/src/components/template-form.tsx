@@ -22,8 +22,9 @@ export function TemplateForm(props: {
   onSign?: (slot: Signature) => void;
   locked?: boolean;
   canSign?: boolean;
+  newId?: () => string;
 }): ReactNode {
-  const { template, values, onChange, signatures, onSign, locked, canSign } = props;
+  const { template, values, onChange, signatures, onSign, locked, canSign, newId } = props;
   return (
     <FormProvider
       template={template}
@@ -33,6 +34,7 @@ export function TemplateForm(props: {
       onSign={onSign}
       locked={locked}
       canSign={canSign}
+      newId={newId}
     >
       <form
         className={locked ? "template-form template-form-locked" : "template-form"}

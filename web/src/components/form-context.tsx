@@ -3,12 +3,15 @@ import type { Signature, Template } from "@schema";
 import { buildVarMap, type VarMap } from "../lib/interpolate";
 import type { RecordValues } from "../lib/values";
 import type { SignatureView } from "../data/signature";
+import { uuidv7 } from "../data/uuidv7";
 
 interface FormContextValue {
   template: Template;
   values: RecordValues;
   vars: VarMap;
   onChange: (next: RecordValues) => void;
+  /** Mint a client id for appended ad-hoc rows (UUIDv7; injectable for tests). */
+  newId: () => string;
   /** Captured signatures for the current record, keyed by slot id. */
   signatures: Map<string, SignatureView>;
   /** Open the signing screen for a slot. */
@@ -41,9 +44,10 @@ export function FormProvider(props: {
   onSign?: (slot: Signature) => void;
   locked?: boolean;
   canSign?: boolean;
+  newId?: () => string;
   children: ReactNode;
 }): ReactNode {
-  const { template, values, onChange, signatures, onSign, locked, canSign, children } =
+  const { template, values, onChange, signatures, onSign, locked, canSign, newId, children } =
     props;
   const vars = useMemo(
     () => buildVarMap(template.variables, values.variables),
@@ -60,6 +64,7 @@ export function FormProvider(props: {
         onSign: onSign ?? noSign,
         locked: locked ?? false,
         canSign: canSign ?? true,
+        newId: newId ?? uuidv7,
       }}
     >
       {children}

@@ -160,6 +160,10 @@ export function RecordForm(props: {
           now: clock(),
           createdBy: currentUser,
         });
+      // Local-first create (SPEC §12 "Draft creation and sync"): a new draft is a
+      // local write only. It is pushed on the first edit (autosave → saveRecord)
+      // or by the Phase 5 queue — deliberately not through saveRecord here, so an
+      // opened-but-untouched draft never lands an empty record on the server.
       if (!existing) await repo.upsert(draft);
       if (!alive) return;
       setRecord(draft);
@@ -263,10 +267,11 @@ export function RecordForm(props: {
         now: clock(),
       });
       await signaturesRepo.add(signature);
+      await sync.pushSignature(signature);
       setSigningSlot(null);
       await refreshSignatures(current.id);
     },
-    [signingSlot, newId, currentUser, deviceId, clock, signaturesRepo, refreshSignatures],
+    [signingSlot, newId, currentUser, deviceId, clock, signaturesRepo, sync, refreshSignatures],
   );
 
   // Persist the current record + latest values through the local-first path.
@@ -342,19 +347,19 @@ export function RecordForm(props: {
         };
         const result = transition({ record: base, action, ctx, now, reason });
         const saved = await saveRecord({ repo, sync, clock }, result.record);
-        await auditRepo.add(
-          createAuditEntry({
-            id: newId(),
-            recordId: saved.id,
-            user: currentUser,
-            role,
-            action,
-            before: result.from,
-            after: result.to,
-            reason: reason ?? null,
-            now,
-          }),
-        );
+        const auditEntry = createAuditEntry({
+          id: newId(),
+          recordId: saved.id,
+          user: currentUser,
+          role,
+          action,
+          before: result.from,
+          after: result.to,
+          reason: reason ?? null,
+          now,
+        });
+        await auditRepo.add(auditEntry);
+        await sync.pushAudit(auditEntry);
         setRecord(saved);
         setSave({ status: "saved", at: saved.updated_at });
       } catch (e) {
@@ -378,19 +383,19 @@ export function RecordForm(props: {
         createdBy: currentUser,
       });
       const saved = await saveRecord({ repo, sync, clock }, next);
-      await auditRepo.add(
-        createAuditEntry({
-          id: newId(),
-          recordId: saved.id,
-          user: currentUser,
-          role,
-          action: "revised_from",
-          before: current.status,
-          after: saved.status,
-          reason: `Supersedes ${current.id}`,
-          now,
-        }),
-      );
+      const auditEntry = createAuditEntry({
+        id: newId(),
+        recordId: saved.id,
+        user: currentUser,
+        role,
+        action: "revised_from",
+        before: current.status,
+        after: saved.status,
+        reason: `Supersedes ${current.id}`,
+        now,
+      });
+      await auditRepo.add(auditEntry);
+      await sync.pushAudit(auditEntry);
       if (onRevised) {
         // Register-first: let the app navigate to the new revision.
         onRevised(saved.id);
@@ -424,6 +429,9 @@ export function RecordForm(props: {
     }
     if (server.status === "rejected") {
       await repo.upsert(server);
+      // Local mirror of a server-authored rejection: the server already logged
+      // its own audit entry when the link was rejected (§6), so this one is not
+      // pushed back — it only records locally that the client observed it.
       await auditRepo.add(
         createAuditEntry({
           id: newId(),
@@ -545,6 +553,7 @@ export function RecordForm(props: {
           onSign={handleSign}
           locked={!editable}
           canSign={canSign}
+          newId={newId}
         />
       </div>
 
