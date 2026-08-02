@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wall Closure First Fix Inspection Checklist</title>
+<style>
+:root{
+  --brand:#3B5998;
+  --brand-dk:#2c4372;
+  --band:#D8DFEA;
+  --line:#7d8ba3;
+  --line-lt:#c6cfdf;
+  --ink:#1b2333;
+  --muted:#6a7285;
+  --field:#f4f7fc;
+  --ok:#1e7a44;
+  --no:#b3261e;
+  --na:#5c6472;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:#e9edf3;color:var(--ink);
+  font:13px/1.42 Arial,Helvetica,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:9px 14px;background:var(--brand-dk);color:#fff;
+  box-shadow:0 1px 6px rgba(0,0,0,.25);
+}
+.toolbar .tname{font-weight:bold;letter-spacing:.4px;margin-right:auto;font-size:13px}
+.btn{
+  font:inherit;font-size:12.5px;cursor:pointer;
+  background:#fff;color:var(--brand-dk);border:1px solid #fff;border-radius:3px;
+  padding:6px 12px;font-weight:bold;
+}
+.btn:hover{background:#dde4f2}
+.btn.ghost{background:transparent;color:#fff;border-color:#7f92bd;font-weight:normal}
+.btn.ghost:hover{background:rgba(255,255,255,.14)}
+.btn:focus-visible,.tick:focus-visible,input:focus-visible,textarea:focus-visible,
+.slink:focus-visible,.logo:focus-within{outline:2px solid #f0a500;outline-offset:1px}
+
+/* ---------- page ---------- */
+.page{
+  width:210mm;max-width:100%;margin:14px auto 40px;
+  background:#fff;padding:12mm 11mm;
+  box-shadow:0 2px 14px rgba(20,30,60,.18);
+}
+.docheader{display:flex;align-items:center;gap:12px;background:var(--brand);color:#fff;padding:8px 12px;margin:0 0 12px}
+.logo{
+  width:150px;height:66px;flex:0 0 150px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1px solid rgba(255,255,255,.55);border-radius:3px;padding:5px 8px;
+  font-size:10px;color:#8894ab;cursor:pointer;overflow:hidden;position:relative;
+}
+.logo.blank{background:rgba(255,255,255,.12);border-style:dashed;color:#e2e8f6}
+.logo img{max-width:100%;max-height:100%;display:block;object-fit:contain}
+.logo input{display:none}
+.docheader input.title{
+  flex:1 1 auto;width:auto;text-align:center;font:bold 16px/1.25 inherit;letter-spacing:.8px;
+  background:transparent;border:0;border-radius:3px;color:#fff;padding:3px 6px;
+}
+.docheader input.rev{
+  flex:0 0 150px;width:150px;text-align:right;font-size:11px;
+  background:transparent;border:0;border-radius:3px;color:#fff;padding:3px 4px;
+}
+.docheader input:hover{background:rgba(255,255,255,.14)}
+.docheader input:focus{background:rgba(255,255,255,.2)}
+.docheader input::placeholder{color:rgba(255,255,255,.55)}
+
+table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 12px}
+td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:middle;word-wrap:break-word}
+tr{page-break-inside:avoid;break-inside:avoid}
+.sec td{background:var(--brand);color:#fff;font-weight:bold;font-size:13px;letter-spacing:.3px;padding:5px 8px;border-color:var(--brand)}
+
+/* project block */
+.meta td{border:0;padding:2px 0}
+.meta .k{width:118px;font-weight:bold;white-space:nowrap;vertical-align:middle}
+.meta input{border-bottom:1px solid var(--line)}
+
+/* ---------- fields ---------- */
+input[type=text],input[type=date],textarea{
+  font:inherit;color:var(--ink);width:100%;border:0;background:var(--field);
+  border-bottom:1px solid var(--line-lt);border-radius:2px;padding:3px 5px;
+}
+input::placeholder,textarea::placeholder{color:#aab1c0}
+textarea{resize:vertical;min-height:22px;overflow:hidden;line-height:1.45}
+
+/* ---------- checklist ---------- */
+.cl th{background:var(--band);font-weight:bold;font-size:12px;text-align:center;padding:4px}
+.cl .c-sn{width:7%}
+.cl .c-it{width:15%}
+.cl .c-de{width:40%}
+.cl .c-st{width:8%}
+.cl .c-rm{width:22%}
+.cl td.sn{text-align:center;font-size:12px}
+.cl td.grp{text-align:center;font-weight:bold;font-size:12px;background:#f2f5fa;vertical-align:middle}
+.cl td.de{font-size:12px}
+.cl td.st{text-align:center;padding:3px}
+.cl td.rm{padding:2px 4px}
+.tick{
+  width:19px;height:19px;padding:0;cursor:pointer;display:inline-block;vertical-align:middle;
+  border:1.4px solid var(--line);border-radius:2px;background:#fff;
+  font:bold 14px/16px Arial,sans-serif;color:transparent;
+}
+.tick:hover{background:#eef2fa}
+.tick[aria-checked="true"]{color:#fff}
+.tick[aria-checked="true"][data-v="Yes"]{background:var(--ok);border-color:var(--ok)}
+.tick[aria-checked="true"][data-v="NA"]{background:var(--na);border-color:var(--na)}
+.tick[aria-checked="true"][data-v="No"]{background:var(--no);border-color:var(--no)}
+.tick[aria-checked="true"]::after{content:"\2713"}
+
+/* row tools */
+.rowtool{width:26px;padding:0 2px;border:0;text-align:center}
+.xbtn{
+  border:0;background:none;color:#b3261e;cursor:pointer;font-size:15px;line-height:1;
+  padding:2px 4px;border-radius:3px;
+}
+.xbtn:hover{background:#fbe9e7}
+.addrow{
+  font:inherit;font-size:12px;cursor:pointer;background:#fff;color:var(--brand-dk);
+  border:1px solid var(--line-lt);border-radius:3px;padding:4px 10px;margin:-4px 0 12px;
+}
+.addrow:hover{background:#eef2fa}
+
+/* defects */
+.def td{height:26px}
+.def td.n{width:7%;text-align:center;font-size:12px;background:#f2f5fa}
+
+/* ---------- sign-off ---------- */
+.sign th{background:var(--band);font-weight:bold;font-size:12px;text-align:center;padding:4px}
+.sign .c-role{width:22%}
+.sign .c-name{width:26%}
+.sign .c-sig{width:30%}
+.sign .c-date{width:22%}
+.sign td.role{background:var(--band);font-size:12px;vertical-align:middle}
+.sign td.role b{display:block}
+.sign td{vertical-align:top}
+.sigbox{position:relative;background:var(--field);border:1px solid var(--line-lt);border-radius:2px}
+canvas.pad{display:block;width:100%;height:64px;touch-action:none;cursor:crosshair}
+.sigtools{display:flex;gap:6px;padding:3px 4px;border-top:1px solid var(--line-lt);background:#fff}
+.slink{font-size:10.5px;color:var(--brand);background:none;border:0;cursor:pointer;padding:0 2px;text-decoration:underline}
+.slink:hover{color:var(--no)}
+.sighint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#aab1c0;pointer-events:none}
+.sigbox.inked .sighint{display:none}
+
+.dprint{display:none}
+.docfooter{border-top:1px solid var(--line);margin-top:4px;padding-top:5px;font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#22304d;color:#fff;padding:9px 16px;border-radius:4px;font-size:12.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media (max-width:820px){
+  .page{padding:9mm 5mm}
+  .docheader{flex-wrap:wrap;gap:8px}
+  .docheader input.title{order:3;flex:1 1 100%;text-align:left;font-size:14px}
+  .docheader input.rev{flex:1 1 auto;width:auto;text-align:right}
+  .logo{width:120px;height:52px;flex:0 0 120px}
+  .meta .k{width:92px;font-size:12px}
+  table{table-layout:auto}
+  .cl td.de textarea,.cl td.rm textarea,.cl td.sn input{font-size:12px}
+  .tick{width:22px;height:22px}
+  .sign td.role{font-size:11.5px}
+}
+
+@media print{
+  @page{size:A4 portrait;margin:11mm}
+  body{background:#fff;font-size:10.5px}
+  .toolbar,.sigtools,.addrow,.rowtool,.toast{display:none !important}
+  .page{width:auto;margin:0;padding:0;box-shadow:none}
+  .docheader{padding:6px 10px;margin-bottom:9px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .logo{background:#fff !important;border:1px solid #fff;width:132px;height:54px;flex:0 0 132px;padding:4px 6px}
+  .logo.blank{visibility:hidden}
+  .docheader input{color:#fff !important}
+  .docheader input.title{font-size:14px}
+  .docheader input.rev{flex:0 0 132px;width:132px}
+  input,textarea{background:transparent !important;border:0 !important;padding:1px 2px;color:#000}
+  input::placeholder,textarea::placeholder{color:transparent !important;opacity:0 !important}
+  .cl td.de textarea,.cl td.rm textarea{font-size:9.5px;line-height:1.3}
+  .cl td.de,.cl td.rm{vertical-align:top}
+  .page{font-size:10px}
+  .meta input{border-bottom:1px solid #000 !important}
+  .sigbox{background:transparent;border:0}
+  .sighint{display:none !important}
+  td.dt input[type=date]{display:none}
+  .dprint{display:block;padding:2px;font-size:11px}
+  .sign{page-break-inside:avoid;break-inside:avoid}
+  canvas.pad{height:54px}
+  .sec td,.cl th,.sign th,.sign td.role,.cl td.grp,.def td.n{
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tick{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:16px;height:16px;font-size:12px;line-height:13px}
+  table{margin-bottom:8px}
+  td,th{padding:2px 4px}
+  .def td{height:22px}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="tname">Wall Closure First Fix Inspection Checklist</span>
+  <button type="button" class="btn" id="btnPdf">PDF Print</button>
+  <button type="button" class="btn" id="btnSave">Save as HTML</button>
+  <button type="button" class="btn ghost" id="btnClear">Clear form</button>
+</div>
+
+<div class="page">
+
+  <div class="docheader">
+    <label class="logo" id="logo" title="Click to replace the logo">
+      <span id="logoTxt">Add logo</span>
+      <input type="file" accept="image/*" id="logoIn">
+    </label>
+    <input type="text" class="title" data-f="doc.title" value="Wall Closure First Fix Inspection Checklist" aria-label="Document title" placeholder="Document title">
+    <input type="text" class="rev" data-f="doc.rev" value="" aria-label="Revision" placeholder="Rev / doc no.">
+  </div>
+
+  <table class="meta">
+    <tr><td class="k">Project:</td><td><input type="text" data-f="p.project" value="Morgan Stanley Project Merlion"></td></tr>
+    <tr><td class="k">Level / Area:</td><td><input type="text" data-f="p.area" placeholder="Level / area inspected"></td></tr>
+  </table>
+  <table class="cl">
+    <colgroup><col style="width:6.5%"><col style="width:12%"><col style="width:37%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:25%"></colgroup>
+    <tr class="sec"><td colspan="7">Inspection Checklist</td></tr>
+    <tr><th rowspan="2">SN</th><th rowspan="2">Items</th><th rowspan="2">Description</th><th colspan="3">Status</th><th rowspan="2">Remarks</th></tr>
+    <tr><th>Yes</th><th>NA</th><th>No</th></tr>
+    <tr data-row="i1"><td class="sn"><input type="text" data-f="i1.sn" value="1" style="text-align:center"></td><td class="grp" rowspan="3">Architectural</td><td class="de"><textarea data-f="i1.desc" rows="1">Rockwool installation acceptable</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i1" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i1" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i1" data-v="No"></button></td><td class="rm"><textarea data-f="i1.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i2"><td class="sn"><input type="text" data-f="i2.sn" value="2" style="text-align:center"></td><td class="de"><textarea data-f="i2.desc" rows="1">C-channel horizon / vertical installation is acceptable</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i2" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i2" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i2" data-v="No"></button></td><td class="rm"><textarea data-f="i2.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i3"><td class="sn"><input type="text" data-f="i3.sn" value="3" style="text-align:center"></td><td class="de"><textarea data-f="i3.desc" rows="1">All penetrations has been sealed off for acoustic purpose.</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i3" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i3" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i3" data-v="No"></button></td><td class="rm"><textarea data-f="i3.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i4"><td class="sn"><input type="text" data-f="i4.sn" value="4" style="text-align:center"></td><td class="grp" rowspan="5">M&amp;E</td><td class="de"><textarea data-f="i4.desc" rows="1">M&amp;E conduit has been installed and proper support.</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i4" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i4" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i4" data-v="No"></button></td><td class="rm"><textarea data-f="i4.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i5"><td class="sn"><input type="text" data-f="i5.sn" value="" style="text-align:center"></td><td class="de"><textarea data-f="i5.desc" rows="1">Socket outlets are porper install and earthed</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i5" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i5" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i5" data-v="No"></button></td><td class="rm"><textarea data-f="i5.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i6"><td class="sn"><input type="text" data-f="i6.sn" value="" style="text-align:center"></td><td class="de"><textarea data-f="i6.desc" rows="1">Lighting switch is install at correct location and high</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i6" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i6" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i6" data-v="No"></button></td><td class="rm"><textarea data-f="i6.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i7"><td class="sn"><input type="text" data-f="i7.sn" value="5" style="text-align:center"></td><td class="de"><textarea data-f="i7.desc" rows="1">ACMV equipments e.g. Thermostat, toggle switches and CO2 Sensers are install at corret location and hight</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i7" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i7" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i7" data-v="No"></button></td><td class="rm"><textarea data-f="i7.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tr data-row="i8"><td class="sn"><input type="text" data-f="i8.sn" value="6" style="text-align:center"></td><td class="de"><textarea data-f="i8.desc" rows="1">IT socket and security card readers and push buttons are install at correct location and high.</textarea></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="Yes" data-st="i8" data-v="Yes"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="NA" data-st="i8" data-v="NA"></button></td><td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" aria-label="No" data-st="i8" data-v="No"></button></td><td class="rm"><textarea data-f="i8.rm" rows="1" placeholder="Remarks"></textarea></td></tr>
+    <tbody id="extraRows"></tbody>
+  </table>
+  <button type="button" class="addrow" id="addItem">+ Add checklist item</button>
+  <table class="def">
+    <colgroup><col style="width:6.5%"><col><col style="width:26px"></colgroup>
+    <tr class="sec"><td colspan="3">Defects List: (If any)</td></tr>
+    <tbody id="defBody">
+      <tr><td class="n">1</td><td><input type="text" data-f="d1" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">2</td><td><input type="text" data-f="d2" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">3</td><td><input type="text" data-f="d3" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">4</td><td><input type="text" data-f="d4" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">5</td><td><input type="text" data-f="d5" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">6</td><td><input type="text" data-f="d6" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">7</td><td><input type="text" data-f="d7" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">8</td><td><input type="text" data-f="d8" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+      <tr><td class="n">9</td><td><input type="text" data-f="d9" placeholder=""></td><td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td></tr>
+    </tbody>
+  </table>
+  <button type="button" class="addrow" id="addDefect">+ Add defect row</button>
+  <table class="sign">
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:30%"><col style="width:22%"></colgroup>
+    <tr class="sec"><td colspan="4">Sign-off</td></tr>
+    <tr><th class="c-role"></th><th class="c-name">Name</th><th class="c-sig">Signature</th><th class="c-date">Date</th></tr>
+    <tr><td class="role"><b>Checked by:</b>Kenyon</td><td><input type="text" data-f="sg.chk.name" placeholder="Name"></td><td><div class="sigbox" data-sig="chk"><canvas class="pad" id="pad-chk"></canvas><span class="sighint">Sign here</span><div class="sigtools"><button type="button" class="slink" data-clear="chk">Clear</button><label class="slink" style="cursor:pointer">Upload<input type="file" accept="image/*" data-sigup="chk" hidden></label></div></div></td><td class="dt"><input type="date" data-f="sg.chk.date"><span class="dprint" data-dp="sg.chk.date"></span></td></tr>
+    <tr><td class="role"><b>Witnessed by:</b>RTO</td><td><input type="text" data-f="sg.rto.name" placeholder="Name"></td><td><div class="sigbox" data-sig="rto"><canvas class="pad" id="pad-rto"></canvas><span class="sighint">Sign here</span><div class="sigtools"><button type="button" class="slink" data-clear="rto">Clear</button><label class="slink" style="cursor:pointer">Upload<input type="file" accept="image/*" data-sigup="rto" hidden></label></div></div></td><td class="dt"><input type="date" data-f="sg.rto.date"><span class="dprint" data-dp="sg.rto.date"></span></td></tr>
+    <tr><td class="role"><b>Witnessed by:</b>Consultant</td><td><input type="text" data-f="sg.con.name" placeholder="Name"></td><td><div class="sigbox" data-sig="con"><canvas class="pad" id="pad-con"></canvas><span class="sighint">Sign here</span><div class="sigtools"><button type="button" class="slink" data-clear="con">Clear</button><label class="slink" style="cursor:pointer">Upload<input type="file" accept="image/*" data-sigup="con" hidden></label></div></div></td><td class="dt"><input type="date" data-f="sg.con.date"><span class="dprint" data-dp="sg.con.date"></span></td></tr>
+  </table>
+
+  <div class="docfooter"><span id="ftLeft">Wall Closure First Fix Inspection Checklist</span><span>Kenyon Pte Ltd</span></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+
+var DEFAULT_LOGO="data:image/png;base64,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";
+var logoSrc="";
+var sigs={};
+var dirty=false;
+document.addEventListener("input",function(){dirty=true;});
+document.addEventListener("change",function(){dirty=true;});
+
+function toast(msg){var t=$("#toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("show");},2200);}
+
+/* ---------- auto-grow textareas ---------- */
+function grow(ta){ta.style.height="auto";ta.style.height=(ta.scrollHeight+2)+"px";}
+function growAll(){$$("textarea").forEach(grow);}
+document.addEventListener("input",function(e){if(e.target.tagName==="TEXTAREA")grow(e.target);});
+
+/* ---------- status ticks (one per row) ---------- */
+document.addEventListener("click",function(e){
+  var t=e.target.closest?e.target.closest(".tick"):null;
+  if(!t)return;
+  var on=t.getAttribute("aria-checked")==="true";
+  $$('.tick[data-st="'+t.getAttribute("data-st")+'"]').forEach(function(o){
+    o.setAttribute("aria-checked","false");});
+  t.setAttribute("aria-checked",on?"false":"true");
+  dirty=true;
+});
+document.addEventListener("keydown",function(e){
+  if((e.key===" "||e.key==="Enter")&&e.target.classList&&e.target.classList.contains("tick")){
+    e.preventDefault();e.target.click();}
+});
+
+/* ---------- image resize (signature uploads / logo) ---------- */
+function shrink(file,cb){
+  var fr=new FileReader();
+  fr.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var max=1000,w=img.width,h=img.height,k=Math.min(1,max/Math.max(w,h));
+      w=Math.round(w*k);h=Math.round(h*k);
+      var c=document.createElement("canvas");c.width=w;c.height=h;
+      var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+      cb(c.toDataURL("image/jpeg",0.8));
+    };
+    img.onerror=function(){toast("That file could not be read as an image.");};
+    img.src=e.target.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ---------- logo ---------- */
+function setLogo(src){
+  logoSrc=src||"";
+  var box=$("#logo"),txt=$("#logoTxt"),img=$("#logoImg");
+  if(src){
+    if(!img){img=document.createElement("img");img.id="logoImg";img.alt="Company logo";box.insertBefore(img,txt);}
+    img.src=src;txt.style.display="none";box.classList.remove("blank");
+  }else{
+    if(img)img.remove();txt.style.display="";box.classList.add("blank");
+  }
+}
+
+/* ---------- signature pads ---------- */
+function padCtx(cv){
+  var r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(r.width*dpr)||cv.height!==Math.round(r.height*dpr)){
+    cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  }
+  var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+  c.lineWidth=1.8;c.lineCap="round";c.lineJoin="round";c.strokeStyle="#10182b";
+  return c;
+}
+function setSig(key,src){
+  sigs[key]=src||"";
+  var cv=$("#pad-"+key);if(!cv)return;
+  var c=padCtx(cv),r=cv.getBoundingClientRect();
+  c.clearRect(0,0,r.width,r.height);
+  var box=cv.parentNode;
+  if(src){
+    var im=new Image();
+    im.onload=function(){
+      var k=Math.min(r.width/im.width,r.height/im.height);
+      var w=im.width*k,h=im.height*k;
+      c.drawImage(im,(r.width-w)/2,(r.height-h)/2,w,h);
+      box.classList.add("inked");
+    };
+    im.src=src;
+  }else{box.classList.remove("inked");}
+}
+$$("canvas.pad").forEach(function(cv){
+  var key=cv.parentNode.getAttribute("data-sig"),drawing=false,c=null;
+  function pt(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+  cv.addEventListener("pointerdown",function(e){
+    e.preventDefault();cv.setPointerCapture(e.pointerId);
+    c=padCtx(cv);drawing=true;var p=pt(e);c.beginPath();c.moveTo(p.x,p.y);
+    cv.parentNode.classList.add("inked");
+  });
+  cv.addEventListener("pointermove",function(e){if(!drawing)return;var p=pt(e);c.lineTo(p.x,p.y);c.stroke();});
+  function stop(){if(!drawing)return;drawing=false;dirty=true;sigs[key]=cv.toDataURL("image/png");}
+  cv.addEventListener("pointerup",stop);
+  cv.addEventListener("pointercancel",stop);
+  cv.addEventListener("pointerleave",stop);
+});
+var rz;
+window.addEventListener("resize",function(){
+  clearTimeout(rz);rz=setTimeout(function(){
+    Object.keys(sigs).forEach(function(k){if(sigs[k])setSig(k,sigs[k]);});growAll();
+  },220);
+});
+
+document.addEventListener("change",function(e){
+  var t=e.target;
+  if(t.matches("[data-sigup]")){
+    var k=t.getAttribute("data-sigup");
+    if(t.files[0])shrink(t.files[0],function(src){setSig(k,src);});
+    t.value="";
+  }
+  if(t.id==="logoIn"&&t.files[0]){shrink(t.files[0],function(src){setLogo(src);});t.value="";}
+});
+document.addEventListener("click",function(e){
+  var cl=e.target.closest?e.target.closest("[data-clear]"):null;
+  if(cl){setSig(cl.getAttribute("data-clear"),"");dirty=true;}
+});
+
+/* ---------- dynamic rows ---------- */
+var extraN=0;
+function statusCells(key){
+  var h="";
+  ["Yes","NA","No"].forEach(function(v){
+    h+='<td class="st"><button type="button" class="tick" role="checkbox" aria-checked="false" '+
+       'aria-label="'+v+'" data-st="'+key+'" data-v="'+v+'"></button></td>';
+  });
+  return h;
+}
+function addItem(){
+  extraN++;
+  var key="x"+extraN;
+  var tr=document.createElement("tr");
+  tr.setAttribute("data-row",key);
+  tr.innerHTML='<td class="sn"><input type="text" data-f="'+key+'.sn" style="text-align:center"></td>'+
+    '<td class="grp"><input type="text" data-f="'+key+'.grp" style="text-align:center" placeholder="Items"></td>'+
+    '<td class="de"><textarea data-f="'+key+'.desc" rows="1" placeholder="Description"></textarea></td>'+
+    statusCells(key)+
+    '<td class="rm"><textarea data-f="'+key+'.rm" rows="1" placeholder="Remarks"></textarea></td>';
+  $("#extraRows").appendChild(tr);
+  var ta=tr.querySelector("textarea");grow(ta);ta.focus();
+  dirty=true;
+  return tr;
+}
+$("#addItem").addEventListener("click",addItem);
+
+function renumberDefects(){
+  $$("#defBody tr").forEach(function(tr,i){
+    tr.querySelector("td.n").textContent=i+1;
+    tr.querySelector("input").setAttribute("data-f","d"+(i+1));
+  });
+}
+function addDefect(){
+  var tr=document.createElement("tr");
+  tr.innerHTML='<td class="n"></td><td><input type="text"></td>'+
+    '<td class="rowtool"><button type="button" class="xbtn" data-delrow="1" title="Delete row">&times;</button></td>';
+  $("#defBody").appendChild(tr);
+  renumberDefects();
+  tr.querySelector("input").focus();
+  dirty=true;
+  return tr;
+}
+$("#addDefect").addEventListener("click",addDefect);
+document.addEventListener("click",function(e){
+  var b=e.target.closest?e.target.closest("[data-delrow]"):null;
+  if(!b)return;
+  var tr=b.closest("tr"),tb=tr.parentNode;
+  if(tb.id==="defBody"&&tb.children.length<=1){
+    tr.querySelector("input").value="";dirty=true;return;
+  }
+  tr.remove();renumberDefects();dirty=true;
+});
+
+/* ---------- printed dates (dd/mm/yyyy) ---------- */
+function syncDates(){
+  $$(".dprint").forEach(function(sp){
+    var el=$('[data-f="'+sp.getAttribute("data-dp")+'"]');
+    var v=el?el.value:"";
+    if(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v)){
+      var q=v.split("-");sp.textContent=q[2]+"/"+q[1]+"/"+q[0];
+    }else{sp.textContent="";}
+  });
+}
+document.addEventListener("input",function(e){
+  if(e.target.type==="date")syncDates();
+});
+document.addEventListener("change",function(e){
+  if(e.target.type==="date")syncDates();
+});
+window.addEventListener("beforeprint",syncDates);
+
+/* ---------- title ---------- */
+function syncTitle(){
+  var t=($('[data-f="doc.title"]')||{}).value||"Inspection Checklist";
+  var r=($('[data-f="doc.rev"]')||{}).value||"";
+  document.title=t+(r?" ("+r+")":"");
+  $(".tname").textContent=t+(r?" \u2014 "+r:"");
+  $("#ftLeft").textContent=t+(r?"  |  "+r:"");
+}
+$$(".docheader input[type=text]").forEach(function(el){el.addEventListener("input",syncTitle);});
+
+/* ---------- collect / apply ---------- */
+function collect(){
+  var f={},ticks={};
+  $$("[data-f]").forEach(function(el){f[el.getAttribute("data-f")]=el.value;});
+  $$(".tick[aria-checked='true']").forEach(function(t){ticks[t.getAttribute("data-st")]=t.getAttribute("data-v");});
+  return {v:1,fields:f,ticks:ticks,sigs:sigs,
+          logo:(logoSrc===DEFAULT_LOGO?"":logoSrc),
+          extra:$$("#extraRows tr").length,
+          defects:$$("#defBody tr").length,
+          saved:new Date().toISOString()};
+}
+function apply(st){
+  if(!st)return;
+  var want=st.extra||0;
+  while($$("#extraRows tr").length<want)addItem();
+  var dwant=st.defects||0;
+  while($$("#defBody tr").length<dwant)addDefect();
+  while($$("#defBody tr").length>dwant&&$$("#defBody tr").length>1){
+    $("#defBody").lastElementChild.remove();
+  }
+  renumberDefects();
+  Object.keys(st.fields||{}).forEach(function(k){
+    var el=$('[data-f="'+k.replace(/"/g,'\\"')+'"]');
+    if(el){el.value=st.fields[k];if(el.tagName==="TEXTAREA")grow(el);}
+  });
+  Object.keys(st.ticks||{}).forEach(function(k){
+    var t=$('.tick[data-st="'+k+'"][data-v="'+st.ticks[k]+'"]');
+    if(t)t.setAttribute("aria-checked","true");
+  });
+  sigs={};
+  Object.keys(st.sigs||{}).forEach(function(k){if(st.sigs[k])setSig(k,st.sigs[k]);});
+  setLogo(st.logo||DEFAULT_LOGO);
+  syncTitle();growAll();syncDates();
+}
+
+/* ---------- export ---------- */
+function slug(s){return (s||"Form").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,50);}
+function saveHtml(){
+  var st=collect();
+  var clone=document.documentElement.cloneNode(true);
+  $$("#logoImg",clone).forEach(function(i){i.remove();});
+  var old=clone.querySelector("#savedState");if(old)old.remove();
+  var s=document.createElement("script");
+  s.id="savedState";s.type="application/json";
+  s.textContent=JSON.stringify(st).replace(/</g,"\\u003c");
+  clone.querySelector("body").appendChild(s);
+  var blob=new Blob(["<!DOCTYPE html>\n"+clone.outerHTML],{type:"text/html;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=slug(($('[data-f="doc.title"]')||{}).value)+"_"+
+             slug(($('[data-f="p.area"]')||{}).value||"")+
+             "_"+new Date().toISOString().slice(0,10)+".html";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+  dirty=false;
+  toast("Saved. Reopen that file to keep editing.");
+}
+
+/* ---------- toolbar ---------- */
+$("#btnPdf").addEventListener("click",function(){window.print();});
+$("#btnSave").addEventListener("click",saveHtml);
+$("#btnClear").addEventListener("click",function(){
+  if(!confirm("Clear every entry and signature on this form?"))return;
+  $$("[data-f]").forEach(function(el){
+    if(el.getAttribute("data-f").indexOf("doc.")===0)return;
+    el.value="";if(el.tagName==="TEXTAREA")grow(el);
+  });
+  $$(".tick").forEach(function(t){t.setAttribute("aria-checked","false");});
+  $$("canvas.pad").forEach(function(cv){setSig(cv.parentNode.getAttribute("data-sig"),"");});
+  $("#extraRows").innerHTML="";
+  syncDates();
+  toast("Form cleared.");
+});
+window.addEventListener("beforeunload",function(e){
+  if(dirty){e.preventDefault();e.returnValue="";}
+});
+
+/* ---------- init ---------- */
+setLogo(DEFAULT_LOGO);
+function boot(){
+  var saved=document.getElementById("savedState");
+  if(saved){
+    try{apply(JSON.parse(saved.textContent));dirty=false;}
+    catch(err){console.error("Saved data could not be read",err);toast("Saved data in this file could not be read.");}
+  }
+  syncTitle();growAll();syncDates();
+}
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",boot);}else{boot();}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+{
+  "code": "PTO",
+  "title": "NWBP Power Turn-On Form",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Power_Turn_On_Form.html",
+
+  "header": {
+    "title": "DB / Panel Details",
+    "fields": [
+      { "id": "ssb_db_cct",   "label": "SSB / DB / CCT",       "type": "text",     "source": "equipment.tag" },
+      { "id": "cable_size",   "label": "Cable Size",           "type": "textarea" },
+      { "id": "main_breaker", "label": "Main Breaker Rating",  "type": "text" },
+      { "id": "panel_loc",    "label": "Panel Location",       "type": "text",     "source": "equipment.location" },
+      { "id": "oc_amps",      "label": "O/C Setting (A)",      "type": "text" },
+      { "id": "oc_tm",        "label": "O/C Setting (TM)",     "type": "text" },
+      { "id": "drawing_ref",  "label": "Drawing Reference",    "type": "text",     "source": "equipment.drawing_ref" },
+      { "id": "ef_amps",      "label": "EF / ELR / RCCB (A)",  "type": "text" },
+      { "id": "ef_sec",       "label": "EF / ELR / RCCB (sec)","type": "text" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments_tbl" },
+
+  "sections": [
+    {
+      "id": "insulation",
+      "no": "1",
+      "title": "Insulation Test  ( ≥ 1 MΩ @ 500 Vdc )",
+      "type": "matrix",
+      "limit": { "min": 1 },
+      "row_bands": [
+        {
+          "id": "re", "label": "Resistance to Earth", "unit": "MΩ",
+          "points": [
+            { "id": "re_el1", "label": "E – L1" },
+            { "id": "re_el2", "label": "E – L2" },
+            { "id": "re_el3", "label": "E – L3" },
+            { "id": "re_en",  "label": "E – N" }
+          ]
+        },
+        {
+          "id": "rn", "label": "Resistance to Neutral", "unit": "MΩ",
+          "points": [
+            { "id": "rn_nl1", "label": "N – L1" },
+            { "id": "rn_nl2", "label": "N – L2" },
+            { "id": "rn_nl3", "label": "N – L3" }
+          ]
+        },
+        {
+          "id": "rp", "label": "Resistance between Phase", "unit": "MΩ",
+          "points": [
+            { "id": "rp_l1l2", "label": "L1 – L2" },
+            { "id": "rp_l1l3", "label": "L1 – L3" },
+            { "id": "rp_l2l3", "label": "L2 – L3" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "voltage",
+      "no": "2",
+      "title": "Others — Voltage Readings",
+      "type": "matrix",
+      "row_bands": [
+        {
+          "id": "v_line", "label": "Incoming Voltage", "unit": "V",
+          "points": [
+            { "id": "v_l1n",  "label": "L1 – N" },
+            { "id": "v_l2n",  "label": "L2 – N" },
+            { "id": "v_l3n",  "label": "L3 – N" },
+            { "id": "v_l1l2", "label": "L1 – L2" },
+            { "id": "v_l1l3", "label": "L1 – L3" },
+            { "id": "v_l2l3", "label": "L2 – L3" }
+          ]
+        },
+        {
+          "id": "v_earth", "label": "Incoming Voltage", "unit": "V",
+          "points": [
+            { "id": "v_l1e", "label": "L1 – E" },
+            { "id": "v_l2e", "label": "L2 – E" },
+            { "id": "v_l3e", "label": "L3 – E" },
+            { "id": "v_ne",  "label": "N – E" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "phase_eli",
+      "no": "3",
+      "title": "Phase Rotation & Earth Loop Impedance",
+      "rows": [
+        {
+          "id": "phase_rot", "type": "status", "description": "Phase Rotation",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ]
+        },
+        {
+          "id": "eli", "type": "number", "description": "Earth Loop Impedance",
+          "unit": "Ω", "limit": { "max": 1 }
+        }
+      ]
+    },
+
+    {
+      "id": "instruments_tbl",
+      "no": "4",
+      "title": "Test Instrument / Tools Required",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "min_rows": 5,
+      "columns": [
+        { "id": "function",   "label": "Function",         "type": "text", "width": "30%" },
+        { "id": "make_model", "label": "Make / Model",     "type": "text", "width": "25%" },
+        { "id": "serial_no",  "label": "Serial No",        "type": "text", "width": "22%" },
+        { "id": "cal_cert",   "label": "Calibration Cert", "type": "text", "width": "23%" }
+      ],
+      "prefilled_rows": [
+        { "function": "Insulation Resistance" },
+        { "function": "Continuity / Voltage" },
+        { "function": "AC Current" },
+        { "function": "Earth Loop Impedance" },
+        { "function": "Phase Sequencing" }
+      ]
+    },
+
+    {
+      "id": "p1_remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "fields": [
+        { "id": "p1_rem", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "signoff_p1",
+      "title": "Sign-off — Test Sheet",
+      "type": "sign_off",
+      "signatures": [
+        { "id": "p1_tested", "role": "Tested By", "company_default": "Kenyon Pte Ltd", "required": true },
+        { "id": "p1_wit1",   "role": "Witnessed By", "required": false },
+        { "id": "p1_wit2",   "role": "Witnessed By", "required": false }
+      ]
+    },
+
+    {
+      "id": "p2_header",
+      "title": "Project Information",
+      "type": "field_group",
+      "page_break_before": true,
+      "fields": [
+        { "id": "p2_project", "label": "Project Name", "type": "text", "source": "project.name" },
+        { "id": "p2_ref",     "label": "Ref. No.",     "type": "text" },
+        { "id": "p2_date",    "label": "Date",         "type": "date" },
+        { "id": "p2_desc",    "label": "Description",   "type": "text" },
+        { "id": "p2_loc",     "label": "Location",     "type": "text", "source": "equipment.location" },
+        { "id": "p2_dwg",     "label": "Drawing No.",  "type": "text", "source": "equipment.drawing_ref" },
+        { "id": "p2_rev",     "label": "Rev",          "type": "text" },
+        { "id": "p2_system",  "label": "System",       "type": "text" }
+      ]
+    },
+
+    {
+      "id": "p2_checklist",
+      "title": "Visual & Safety Checklist",
+      "type": "standard",
+      "rows": [
+        { "id": "p2_pre_1",  "type": "status", "group": "Pre Test", "description": "Test equipment calibration cert presented and valid",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_2",  "type": "status", "group": "Pre Test", "description": "LEW (Landlord and/or Contractor if any) present",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_3",  "type": "status", "group": "Pre Test", "description": "Cable labelled and inspected",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_4",  "type": "status", "group": "Pre Test", "description": "Panel clean",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_5",  "type": "status", "group": "Pre Test", "description": "Panel components install correctly and inspected",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_6",  "type": "status", "group": "Pre Test", "description": "Incoming / outgoing cable has been tested",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_7",  "type": "status", "group": "Pre Test", "description": "Safety notice signage has been installed",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_8",  "type": "status", "group": "Pre Test", "description": "DB as-built drawing has been presented",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_9",  "type": "status", "group": "Pre Test", "description": "Blank test form available for recording",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_10", "type": "status", "group": "Pre Test", "description": "Test equipment available for testing",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_pre_11", "type": "status", "group": "Pre Test", "description": "Safety equipment (rubber mats etc.) has been provided as required",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_post_1", "type": "status", "group": "Post Test", "description": "Relay has been seal.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_post_2", "type": "status", "group": "Post Test", "description": "Once switchboard / panel energized, the room to be lock and under control by responsible party.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p2_post_3", "type": "status", "group": "Post Test", "description": "PTW system to be implemented.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] }
+      ]
+    },
+
+    {
+      "id": "p2_remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "fields": [
+        { "id": "p2_rem", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "signoff_p2",
+      "title": "Sign-off — Pre / Post Test",
+      "type": "sign_off",
+      "signatures": [
+        { "id": "p2_perf", "role": "Performed by NSC / DSC", "required": true },
+        { "id": "p2_lew",  "role": "Witnessed by LEW", "required": false },
+        { "id": "p2_cxa",  "role": "Witnessed by CxA", "required": false }
+      ]
+    },
+
+    {
+      "id": "p3_header",
+      "title": "Project Information",
+      "type": "field_group",
+      "page_break_before": true,
+      "fields": [
+        { "id": "p3_project", "label": "Project Name", "type": "text", "source": "project.name" },
+        { "id": "p3_ref",     "label": "Ref. No.",     "type": "text" },
+        { "id": "p3_date",    "label": "Date",         "type": "date" },
+        { "id": "p3_desc",    "label": "Description",   "type": "text" },
+        { "id": "p3_loc",     "label": "Location",     "type": "text", "source": "equipment.location" },
+        { "id": "p3_dwg",     "label": "Drawing No.",  "type": "text", "source": "equipment.drawing_ref" },
+        { "id": "p3_rev",     "label": "Rev",          "type": "text" },
+        { "id": "p3_system",  "label": "System",       "type": "text" }
+      ]
+    },
+
+    {
+      "id": "p3_checklist",
+      "title": "Cable Termination Checklist",
+      "type": "standard",
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ],
+        "remarks": false,
+        "editable_no": false
+      },
+      "rows": [
+        { "id": "p3_1", "type": "status", "description": "Cable routing from source and destination are correct.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_2", "type": "status", "description": "Cable insulation no damage",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_3", "type": "status", "description": "Correct type of termination and torque",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_4", "type": "status", "description": "Correct color code",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_5", "type": "status", "description": "Correct size of application",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_6", "type": "status", "description": "Correct cable laying and clamps. Ties are fitted.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_7", "type": "status", "description": "Proper cable glanding",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] },
+        { "id": "p3_8", "type": "status", "description": "Voltage has no significant drop.",
+          "states": [ { "value": "yes", "label": "YES", "outcome": "pass" }, { "value": "na", "label": "N/A", "outcome": "na" }, { "value": "no", "label": "NO", "outcome": "fail" } ] }
+      ]
+    },
+
+    {
+      "id": "p3_remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "fields": [
+        { "id": "p3_rem", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "signoff_p3",
+      "title": "Sign-off — Cable Termination",
+      "type": "sign_off",
+      "signatures": [
+        { "id": "p3_perf", "role": "Performed by NSC / DSC", "required": true },
+        { "id": "p3_rto",  "role": "Witness by RE / RTO", "required": false },
+        { "id": "p3_cxa",  "role": "Witness by CxA", "required": false }
+      ]
+    }
+  ]
+}

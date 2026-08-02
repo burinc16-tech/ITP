@@ -1,0 +1,92 @@
+import { describe, it, expect } from "vitest";
+import {
+  isDynamicTableSection,
+  parseTemplate,
+  type DynamicTableSection,
+} from "@schema";
+import rawTemplate from "../../../spec/templates/heat-load-test.json";
+import {
+  addTableRow,
+  emptyValues,
+  removeTableRow,
+  setRowValue,
+  setTableCell,
+} from "./values";
+
+const template = parseTemplate(rawTemplate);
+
+function table(id: string): DynamicTableSection {
+  const section = template.sections.find((s) => s.id === id);
+  if (!section || !isDynamicTableSection(section)) {
+    throw new Error(`no dynamic table ${id}`);
+  }
+  return section;
+}
+
+describe("emptyValues", () => {
+  const values = emptyValues(template);
+
+  it("seeds variables from their defaults, as strings", () => {
+    expect(values.variables.load_kw).toBe("6");
+    expect(values.variables.fcu_chw).toBe("CHW-FCU-A-NR-401");
+  });
+
+  it("seeds header fields from default_from, interpolated", () => {
+    expect(values.header.equipment).toBe(
+      "CHW-FCU-A-NR-401 & DXFCU-A-NR-401",
+    );
+  });
+
+  it("leaves header fields with no default empty", () => {
+    expect(values.header.doc_no).toBe("");
+  });
+
+  it("initialises every standard row blank", () => {
+    expect(values.rows.s2_01).toEqual({ value: "", remarks: "" });
+  });
+
+  it("keeps prefilled table rows and pads up to min_rows", () => {
+    const sec1 = values.tables.sec_1!;
+    expect(sec1).toHaveLength(4); // 2 prefilled + padded to min_rows: 4
+    expect(sec1[0]!.make_model).toBe("EH-ND11-A");
+    expect(sec1[2]!.make_model).toBe(""); // padded row is blank
+  });
+
+  it("pads a table with no prefilled rows to min_rows", () => {
+    expect(values.tables.sec_4).toHaveLength(12);
+  });
+});
+
+describe("table mutations", () => {
+  it("adds a blank row", () => {
+    const values = emptyValues(template);
+    const next = addTableRow(values, table("sec_4"));
+    expect(next.tables.sec_4).toHaveLength(13);
+    expect(values.tables.sec_4).toHaveLength(12); // original untouched
+  });
+
+  it("removes a row but never below min_rows", () => {
+    const values = emptyValues(template);
+    const atMin = removeTableRow(values, table("sec_4"), 0);
+    expect(atMin.tables.sec_4).toHaveLength(12); // refused
+
+    const grown = addTableRow(values, table("sec_4"));
+    const shrunk = removeTableRow(grown, table("sec_4"), 0);
+    expect(shrunk.tables.sec_4).toHaveLength(12); // allowed back down to min
+  });
+
+  it("sets a cell immutably", () => {
+    const values = emptyValues(template);
+    const next = setTableCell(values, "sec_4", 0, "temp", "27");
+    expect(next.tables.sec_4![0]!.temp).toBe("27");
+    expect(values.tables.sec_4![0]!.temp).toBe("");
+  });
+});
+
+describe("row mutations", () => {
+  it("sets a row value without dropping remarks", () => {
+    const values = emptyValues(template);
+    const next = setRowValue(values, "s2_01", "na");
+    expect(next.rows.s2_01).toEqual({ value: "na", remarks: "" });
+  });
+});

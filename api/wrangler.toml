@@ -1,0 +1,28 @@
+name = "itp-itr-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# Local dev uses miniflare's local D1 (no real database_id needed). On deploy,
+# replace database_id with the id from `wrangler d1 create itp-itr`.
+[[d1_databases]]
+binding = "DB"
+database_name = "itp-itr"
+database_id = "local-placeholder"
+migrations_dir = "../db/migrations"
+
+# R2 holds the signature PNGs (signatures.image_key). Miniflare emulates R2
+# locally; on deploy create it with `wrangler r2 bucket create itp-itr-signatures`.
+[[r2_buckets]]
+binding = "SIGNATURES"
+bucket_name = "itp-itr-signatures"
+
+# Auth (task 4): privileged endpoints require a bearer session from
+# POST /api/auth/login — no shared secret. Seed users with scripts/create-user.mjs.
+#
+# Email (task 3): set a Resend API key as a secret and a verified From address to
+# actually send signing links. When RESEND_API_KEY/EMAIL_FROM are unset, the
+# Worker logs the link to the console instead of sending (safe local default).
+#   wrangler secret put RESEND_API_KEY
+#   EMAIL_FROM must be a From on a domain verified in Resend.
+[vars]
+# EMAIL_FROM = "Kenyon T&C <no-reply@your-domain>"

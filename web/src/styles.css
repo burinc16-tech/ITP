@@ -1,0 +1,1259 @@
+/*
+ * On-screen styles for the checklist renderer. This is a working tool for the
+ * plant room, not the print layout (CLAUDE.md "Screen UI"): large touch targets,
+ * high contrast in bright and dark rooms, visible focus, no decorative motion.
+ * Print parity is a separate task with its own stylesheet.
+ */
+
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --text: #14181f;
+  --muted: #55606e;
+  --border: #b9c1cc;
+  --accent: #0b5cc7;
+  --pass-bg: #17803d;
+  --fail-bg: #c0271b;
+  --na-bg: #6b4ea0;
+  --error: #b3261e;
+  --focus: #1a73e8;
+  --touch: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10141a;
+    --surface: #1a212b;
+    --text: #eef2f7;
+    --muted: #a5b0bd;
+    --border: #3a4553;
+    --accent: #5aa0ff;
+    --pass-bg: #1f9d4d;
+    --fail-bg: #e04437;
+    --na-bg: #9a7ad6;
+    --error: #ff7a70;
+    --focus: #7bb0ff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+}
+.app-bar h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.app-bar-meta {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.app-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Save bar */
+.save-bar {
+  position: sticky;
+  top: 3.6rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.save-status {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.save-status.save-error {
+  color: var(--error);
+}
+.save-status.save-saved {
+  color: var(--pass-bg);
+}
+.save-button {
+  min-height: var(--touch);
+  padding: 0 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.save-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.record-loading {
+  color: var(--muted);
+}
+.print-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.ghost-button {
+  min-height: var(--touch);
+  padding: 0 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.02rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.4rem;
+}
+.section-hint {
+  margin: -0.5rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.section-note {
+  display: block;
+  margin: 0 0 0.6rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(180, 130, 0, 0.14);
+  border-left: 3px solid #b48200;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Field grids (variables + header) */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.field-bold input {
+  font-weight: 700;
+}
+
+/* Rows */
+.section-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.form-row-desc {
+  display: flex;
+  gap: 0.5rem;
+}
+.form-row-no {
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 1.8rem;
+}
+.form-row-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+.form-row-result,
+.form-row-remarks {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr 220px;
+    align-items: start;
+  }
+  .form-row-desc {
+    grid-row: 1 / span 2;
+  }
+}
+
+/* Controls */
+input,
+textarea,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  min-height: var(--touch);
+  width: 100%;
+}
+textarea {
+  resize: vertical;
+}
+input[readonly] {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.field-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.field-number input {
+  flex: 1;
+}
+.field-unit {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.verdict {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.verdict-pass {
+  background: var(--pass-bg);
+}
+.verdict-fail {
+  background: var(--fail-bg);
+}
+
+/* Three-state pass/fail/na */
+.field-pfn {
+  display: inline-flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.pfn-option {
+  min-height: var(--touch);
+  min-width: 56px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.pfn-option[aria-pressed="true"].pfn-pass {
+  background: var(--pass-bg);
+  border-color: var(--pass-bg);
+  color: #fff;
+}
+.pfn-option[aria-pressed="true"].pfn-fail {
+  background: var(--fail-bg);
+  border-color: var(--fail-bg);
+  color: #fff;
+}
+.pfn-option[aria-pressed="true"].pfn-na {
+  background: var(--na-bg);
+  border-color: var(--na-bg);
+  color: #fff;
+}
+
+.field-placeholder {
+  display: inline-block;
+  padding: 0.5rem 0.6rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.field-calculated {
+  display: inline-block;
+  padding: 0.5rem 0.6rem;
+  font-weight: 600;
+}
+
+.field-error {
+  margin: 0.15rem 0 0;
+  color: var(--error);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* Dynamic tables */
+.table-scroll {
+  overflow-x: auto;
+}
+.dynamic-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+.dynamic-table th,
+.dynamic-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem;
+  text-align: left;
+  vertical-align: top;
+}
+.dynamic-table th {
+  background: var(--bg);
+  font-size: 0.8rem;
+}
+.dynamic-table td input,
+.dynamic-table td textarea {
+  min-height: 40px;
+}
+.col-num {
+  width: 2.5rem;
+  text-align: center;
+  color: var(--muted);
+}
+.col-actions {
+  width: 3rem;
+  text-align: center;
+}
+.row-remove {
+  min-height: 40px;
+  min-width: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fail-bg);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.row-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.row-add {
+  margin-top: 0.75rem;
+  min-height: var(--touch);
+  padding: 0 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Sign-off */
+.signatures {
+  display: grid;
+  gap: 1rem;
+}
+.signatures.layout-two_column {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.signature {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+.signature-pad {
+  height: 80px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.signature-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.5rem;
+}
+.signature-meta span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Status field (N-state, SPEC §12) */
+.field-status {
+  display: inline-flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.status-option {
+  min-height: var(--touch);
+  min-width: 56px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.status-option[aria-pressed="true"].status-pass {
+  background: var(--pass-bg);
+  border-color: var(--pass-bg);
+  color: #fff;
+}
+.status-option[aria-pressed="true"].status-fail {
+  background: var(--fail-bg);
+  border-color: var(--fail-bg);
+  color: #fff;
+}
+.status-option[aria-pressed="true"].status-na {
+  background: var(--na-bg);
+  border-color: var(--na-bg);
+  color: #fff;
+}
+.status-option[aria-pressed="true"].status-neutral {
+  background: var(--muted);
+  border-color: var(--muted);
+  color: #fff;
+}
+
+/* Matrix section (fixed numeric grid) */
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+.matrix-table th,
+.matrix-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem;
+  text-align: center;
+}
+.matrix-band-head th {
+  background: var(--bg);
+  text-align: left;
+  font-size: 0.85rem;
+}
+.matrix-point-label {
+  background: var(--bg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.matrix-unit {
+  color: var(--muted);
+  font-weight: 600;
+}
+.matrix-band-inputs td input {
+  min-width: 64px;
+  text-align: center;
+}
+
+/* Row group headings within a standard section */
+.section-group {
+  margin: 0.75rem 0 0.25rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* Ad-hoc appended rows */
+.form-row-added .added-desc {
+  width: 100%;
+}
+.form-row-added .added-no {
+  width: 3.5rem;
+  margin-right: 0.4rem;
+}
+.form-row-added .added-group {
+  width: 8rem;
+  margin-right: 0.4rem;
+}
+
+/* Per-row photo affordance */
+.form-row-photo {
+  margin-top: 0.4rem;
+}
+
+/* Page break between template pages */
+.page-break {
+  margin: 1.5rem 0;
+  border: 0;
+  border-top: 2px dashed var(--border);
+}
+.page-break::after {
+  content: "Page break";
+  display: block;
+  margin-top: -0.7rem;
+  width: max-content;
+  padding: 0 0.5rem;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* App nav (register / dashboard) */
+.app-nav {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.app-nav-btn {
+  min-height: var(--touch);
+  padding: 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-nav-btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Dashboard (SPEC §10 screen 2) */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.dash-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+.dash-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.dash-percent {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.dash-headline-sub {
+  color: var(--muted);
+}
+.dash-status-counts {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.dash-status-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.dash-template-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.dash-template-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.35rem;
+}
+.dash-template-count {
+  color: var(--muted);
+}
+.dash-outstanding,
+.dash-activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.dash-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fail-bg);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+}
+.dash-item-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+.dash-item-desc {
+  font-weight: 600;
+}
+.dash-item-value {
+  color: var(--fail-bg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dash-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.dash-item-remark {
+  font-style: italic;
+}
+.dash-item-tag {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-weight: 600;
+  color: var(--text);
+}
+.dash-scope-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.register-tag {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+.dash-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 0.4rem;
+}
+.dash-activity-action {
+  font-weight: 700;
+  min-width: 8rem;
+}
+.dash-activity-detail {
+  color: var(--muted);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+/* Equipment / system tree (SPEC §10 screen 8) */
+.equip-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.registry-projects {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.registry-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.registry-form input,
+.registry-form select {
+  min-height: var(--touch);
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.registry-adders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+.tree-root,
+.tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tree-children {
+  margin-left: 1.1rem;
+  border-left: 2px solid var(--border);
+  padding-left: 0.8rem;
+}
+.tree-node {
+  margin: 0.3rem 0;
+}
+.tree-system {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+.tree-code {
+  font-size: 0.8rem;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+}
+.tree-equip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.tree-tag {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-weight: 600;
+}
+.tree-desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.tree-completion {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+.tree-new-itr {
+  min-height: 32px;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+}
+
+/* ITR register (SPEC §10 screen 3) */
+.register {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.register-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.register-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.register-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.register-filter select {
+  min-height: var(--touch);
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.register-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.register-empty {
+  color: var(--muted);
+  padding: 1.5rem 0;
+}
+.register-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.register-table th,
+.register-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.register-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: var(--bg);
+}
+.register-row:last-child td {
+  border-bottom: 0;
+}
+.register-row.is-superseded {
+  opacity: 0.6;
+}
+.register-superseded {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Status workflow bar (SPEC §6) */
+.status-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.status-chip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.status-chip-accepted {
+  background: var(--pass-bg);
+  border-color: var(--pass-bg);
+  color: #fff;
+}
+.status-chip-rejected {
+  background: var(--fail-bg);
+  border-color: var(--fail-bg);
+  color: #fff;
+}
+.status-rev {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.status-reject-reason {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.status-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.status-action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 220px;
+}
+.status-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+.status-reject-toggle {
+  align-self: center;
+}
+.status-reject-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+.status-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.app-bar-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Locked form — fields read-only past draft; sign-off stays interactive */
+.template-form-locked {
+  pointer-events: none;
+}
+.template-form-locked .panel-signoff {
+  pointer-events: auto;
+}
+.template-form-locked .section:not(.panel-signoff) {
+  opacity: 0.65;
+}
+
+/* Signature slot — sign action + captured result (Phase 3, SPEC §6 path A) */
+.signature-sign-btn {
+  width: 100%;
+  min-height: 72px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.signature-signed .signature-image {
+  display: block;
+  width: 100%;
+  height: 80px;
+  object-fit: contain;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.signature-time {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Signing screen (SPEC §10 screen 5) */
+.sign-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(8, 12, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.sign-dialog {
+  width: min(680px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.sign-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sign-dialog-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.sign-fields {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.sign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+.sign-field input,
+.sign-field select {
+  min-height: var(--touch);
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+.sign-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Signature capture (Phase 3, SPEC §6 path A) */
+.sig-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sig-capture-pad {
+  position: relative;
+  /* Always a white "paper" pad so dark ink reads in any room and matches print. */
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sig-capture-canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+  /* The reason the page does not scroll while drawing. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: crosshair;
+}
+.sig-capture-baseline {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 22%;
+  border-bottom: 2px solid var(--border);
+  pointer-events: none;
+}
+.sig-capture-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(22% + 6px);
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.sig-capture-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.sig-capture-clear {
+  min-height: var(--touch);
+  padding: 0 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.sig-capture-clear:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sig-preview {
+  display: block;
+  max-width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Public remote sign-off page (/sign/:token). No app chrome — a standalone,
+ * account-less screen for an external signer (SPEC §6 path B).
+ * ------------------------------------------------------------------------- */
+.sign-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+.sign-page-bar {
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.sign-page-bar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.sign-page-bar p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.sign-page-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.sign-page-intro h2,
+.sign-page-panel h3 {
+  margin: 0 0 0.5rem;
+}
+.sign-page-expiry {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.sign-page-loading {
+  padding: 2rem 0;
+  color: var(--muted);
+}
+.sign-page-doc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.sign-page-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+.sign-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.sign-page-notice {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+}
+.sign-page-notice.sign-page-ok {
+  border-left-color: var(--pass-bg);
+}
+.sign-page-notice h2 {
+  margin: 0 0 0.5rem;
+}
+.sign-page-notice p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sign-in screen + signed-in user chip (task 4, real auth).
+ * ------------------------------------------------------------------------- */
+.login-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+.login-bar {
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.login-bar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.login-bar p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.login-main {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1.25rem;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+.login-card h2 {
+  margin: 0;
+}
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.app-user-name {
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}

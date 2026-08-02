@@ -1,0 +1,337 @@
+/*
+ * Print / PDF stylesheet. Goal (CLAUDE.md, SPEC §7): output visually matches the
+ * source Heat_Load_Test_Report.html — A4 landscape, Times New Roman, the same
+ * mm dimensions and table layout. Additions the app requires over the bare
+ * source: repeated header, per-page footer, and a DRAFT watermark.
+ *
+ * Page dimensions come from the template orientation via [data-orientation],
+ * and the @page size is injected by PrintView — never hardcoded to one form.
+ */
+
+.print-doc {
+  display: none;
+} /* hidden on screen; shown in print, or in on-screen preview */
+
+.record-shell.is-preview .screen-view {
+  display: none;
+}
+.record-shell.is-preview .print-doc {
+  display: block;
+  background: #9aa3ad;
+  padding: 8mm;
+}
+
+.print-page {
+  box-sizing: border-box;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: "Times New Roman", Georgia, serif;
+  padding: 12mm 14mm 10mm 14mm;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.print-page[data-orientation="landscape"] {
+  width: 297mm;
+  min-height: 210mm;
+}
+.print-page[data-orientation="portrait"] {
+  width: 210mm;
+  min-height: 297mm;
+}
+.record-shell.is-preview .print-page {
+  margin: 0 auto 8mm;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Batch export: show every record's print doc on screen as a preview. */
+.batch-export .print-doc {
+  display: block;
+  background: #9aa3ad;
+  padding: 8mm;
+}
+.batch-export .print-page {
+  margin: 0 auto 8mm;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.batch-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.batch-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.batch-warning {
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* Header */
+.print-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 4mm;
+  margin-bottom: 6mm;
+}
+.print-logo {
+  height: 20mm; /* matches the source form's rendered logo size */
+  width: auto;
+  object-fit: contain;
+}
+.print-head-title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #555;
+  text-align: right;
+  max-width: 95mm;
+}
+
+/* Body */
+.print-page-body {
+  flex: 1 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.print-section-title {
+  font-size: 16pt;
+  margin: 0 0 4mm;
+}
+.print-section-title span {
+  display: inline-block;
+  width: 14mm;
+}
+.print-note {
+  margin: 0 0 4mm;
+  padding: 1.5mm 2.5mm;
+  font-size: 9pt;
+  background: rgba(180, 130, 0, 0.14);
+  border-left: 3px solid #b48200;
+  color: #7a5b00;
+}
+
+/* Info block */
+.print-info-block {
+  border: 1px solid #333;
+  margin-bottom: 6mm;
+}
+.print-block-title {
+  border-bottom: 1px solid #333;
+  font-weight: bold;
+  font-size: 12pt;
+  padding: 1.5mm 2.5mm;
+}
+.print-info-grid {
+  display: grid;
+  grid-template-columns: 34mm 4mm 1fr 34mm 4mm 1fr;
+  gap: 1mm 2mm;
+  padding: 2.5mm;
+  font-size: 10pt;
+}
+.print-val {
+  border-bottom: 1px solid #999;
+  min-height: 5mm;
+  color: #14357a;
+}
+.print-bold {
+  font-weight: bold;
+}
+
+/* Tables */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+.print-table th,
+.print-table td {
+  border: 1px solid #333;
+  padding: 2mm 2.5mm;
+  vertical-align: middle;
+}
+.print-table th {
+  background: #efefef;
+  font-weight: bold;
+  text-align: center;
+}
+.print-table td {
+  color: #14357a;
+}
+.print-c {
+  text-align: center;
+}
+.print-desc {
+  text-align: left;
+  color: #1a1a1a;
+  white-space: pre-line;
+}
+.print-remarks {
+  white-space: pre-line;
+}
+.print-num-col {
+  width: 10mm;
+}
+
+/* Row group heading within a standard section */
+.print-group-row td {
+  background: #e7ecf5;
+  font-weight: bold;
+  text-align: left;
+  color: #1a1a1a;
+}
+
+/* Matrix section (fixed numeric grid) */
+.print-matrix .print-matrix-head th {
+  background: #dfe6f2;
+  text-align: left;
+  font-weight: bold;
+  color: #1a1a1a;
+  border: 1px solid #333;
+  padding: 2mm 2.5mm;
+}
+.print-matrix-pt {
+  background: #eef2f9;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+.print-matrix-unit {
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+/* Sign-off */
+.print-signoff-grid {
+  display: flex;
+  gap: 16mm;
+  margin-top: 8mm;
+}
+.print-sign-col {
+  flex: 1;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 4mm;
+}
+.print-sign-col h3 {
+  text-align: center;
+  font-size: 11pt;
+  margin: 0 0 5mm;
+  font-weight: bold;
+}
+.print-sign-row {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 6mm;
+  font-size: 10.5pt;
+}
+.print-sign-lbl {
+  width: 28mm;
+}
+.print-sign-row .print-colon {
+  width: 5mm;
+}
+.print-sign-fld {
+  flex: 1;
+  border-bottom: 1px solid #999;
+  min-height: 5mm;
+  text-align: center;
+}
+.print-sign-sigrow {
+  align-items: flex-start;
+}
+.print-sign-sigrow .print-sign-lbl,
+.print-sign-sigrow .print-colon {
+  padding-top: 8mm;
+}
+.print-sign-pad {
+  flex: 1;
+  border: 1px dashed #888;
+  border-radius: 2px;
+  height: 28mm;
+}
+/* A captured signature (SPEC §7): the ink over a solid border, no dashed box. */
+.print-sign-pad-filled {
+  border: 1px solid #1a1a1a;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.print-sign-img {
+  max-width: 100%;
+  max-height: 26mm;
+  object-fit: contain;
+}
+
+/* Footer */
+.print-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6mm;
+  padding-top: 2mm;
+  border-top: 1px solid #999;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8pt;
+  color: #555;
+}
+.print-foot-status {
+  font-weight: bold;
+}
+
+/* DRAFT watermark */
+.print-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 96pt;
+  font-weight: bold;
+  color: rgba(200, 0, 0, 0.1);
+  letter-spacing: 8px;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+@media print {
+  .app-bar,
+  .record-controls,
+  .no-print,
+  .screen-view {
+    display: none !important;
+  }
+  .print-doc {
+    display: block !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+  .print-page {
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  /* Batch: start each record after the first on a fresh sheet. */
+  .batch-record + .batch-record {
+    page-break-before: always;
+    break-before: page;
+  }
+  body {
+    background: #fff;
+  }
+  /* Ensure backgrounds (th shading, watermark) print. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

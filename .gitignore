@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local Cloudflare / wrangler state (miniflare D1, R2, etc.)
+.wrangler/
+api/.wrangler/
+
+# Logs and temp
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db

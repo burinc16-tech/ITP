@@ -1,0 +1,150 @@
+{
+  "code": "HLT",
+  "title": "Network Room Heat Load Test — Acceptance Checklist",
+  "rev": "A",
+  "discipline": "Mechanical",
+  "category": "ITR",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "Converted from Heat_Load_Test_Report.html (L-4, APPLE @ AMK-3)",
+
+  "variables": [
+    { "id": "fcu_chw",      "label": "CHW FCU tag",              "type": "text",   "default": "CHW-FCU-A-NR-401" },
+    { "id": "fcu_dx",       "label": "DX FCU tag",               "type": "text",   "default": "DXFCU-A-NR-401" },
+    { "id": "load_kw",      "label": "Load bank capacity",       "type": "number", "unit": "kW", "default": 6 },
+    { "id": "setpoint",     "label": "Room set point",           "type": "number", "unit": "°C", "default": 23 },
+    { "id": "hi_temp",      "label": "Hi temperature set point", "type": "number", "unit": "°C", "default": 26 },
+    { "id": "disable_temp", "label": "Cooling-disable set point","type": "number", "unit": "°C", "default": 30 },
+    { "id": "run_hours",    "label": "Heater run duration",      "type": "number", "unit": "h",  "default": 4 }
+  ],
+
+  "header": {
+    "title": "Network Room Heat Load Checklist",
+    "fields": [
+      { "id": "project",     "label": "Project",            "type": "text", "source": "project.name", "readonly": true },
+      { "id": "doc_no",      "label": "Doc No",             "type": "text", "required": true },
+      { "id": "inspector",   "label": "Inspector",          "type": "text", "required": true },
+      { "id": "insp_date",   "label": "Date of Inspection", "type": "date", "required": true },
+      { "id": "equipment",   "label": "Equipment",          "type": "text", "bold": true,
+        "default_from": "{{fcu_chw}} & {{fcu_dx}}" },
+      { "id": "stage",       "label": "Stage of Work",      "type": "text" },
+      { "id": "label_ref",   "label": "Label / Ref",        "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "sec_1",
+      "no": "1",
+      "title": "TESTING EQUIPMENT",
+      "type": "dynamic_table",
+      "min_rows": 4,
+      "auto_number": true,
+      "link_to_instrument_register": true,
+      "columns": [
+        { "id": "description", "label": "Description",   "type": "textarea", "width": "auto" },
+        { "id": "make_model",  "label": "Make / Model",  "type": "text",     "width": "38mm", "align": "center" },
+        { "id": "qty",         "label": "QTY",           "type": "text",     "width": "26mm", "align": "center" },
+        { "id": "cal_cert",    "label": "Cal. Cert No.", "type": "text",     "width": "30mm", "_note": "column was unlabelled in the source form — confirm intent" },
+        { "id": "remarks",     "label": "Remarks",       "type": "text",     "width": "55mm" }
+      ],
+      "prefilled_rows": [
+        { "description": "Electrical Heater\n(each heater capacity: 1 kW)", "make_model": "EH-ND11-A", "qty": "6 nos" },
+        { "description": "Humidity / Temp Data Recorder",                   "make_model": "HOBO MX",   "qty": "6 nos" }
+      ]
+    },
+
+    {
+      "id": "sec_2",
+      "no": "2",
+      "title": "SET-UP",
+      "columns": { "result": { "label": "Result", "width": "26mm" }, "remarks": { "label": "Remarks", "width": "55mm" } },
+      "rows": [
+        { "id": "s2_01", "no": "1.", "type": "pass_fail_na", "labels": ["Yes", "No", "N.A."], "remarks": true,
+          "description": "Check {{load_kw}} kW load banks are installed.",
+          "emphasis": [{ "text": "{{load_kw}} kW", "colour": "red" }] },
+        { "id": "s2_02", "no": "2.", "type": "pass_fail_na", "labels": ["Yes", "No", "N.A."], "remarks": true,
+          "description": "Check airflow balancing to the grilles has been completed." },
+        { "id": "s2_03", "no": "3.", "type": "pass_fail_na", "labels": ["Yes", "No", "N.A."], "remarks": true,
+          "description": "Check fan coil unit is operating and set point is adjusted to {{setpoint}}°C for both DX FCU, due to CU on the rooftop outdoor location." },
+        { "id": "s2_04", "no": "4.", "type": "pass_fail_na", "labels": ["Yes", "No", "N.A."], "remarks": true,
+          "description": "Check the fire extinguishers are available in Network Room." },
+        { "id": "s2_05", "no": "5.", "type": "pass_fail_na", "labels": ["Yes", "No", "N.A."], "remarks": true,
+          "description": "Check Humidity / Temp Data Recorders are in the space." }
+      ]
+    },
+
+    {
+      "id": "sec_3",
+      "no": "3",
+      "title": "HEAT LOAD TEST",
+      "font_size": "8.6pt",
+      "columns": { "result": { "label": "Result", "type": "duration", "width": "26mm" }, "remarks": { "label": "Remarks", "width": "55mm" } },
+      "rows": [
+        { "id": "s3_01", "no": "1",  "type": "duration", "remarks": "textarea",
+          "description": "Put **{{fcu_chw}}** keypad set point to {{disable_temp}}°C to disable cooling, CHW FCU Hi temperature set point {{hi_temp}}°C, {{fcu_dx}} to confirm kick in." },
+        { "id": "s3_02", "no": "2",  "type": "duration", "remarks": "textarea",
+          "description": "Record the temperature." },
+        { "id": "s3_03", "no": "3",  "type": "duration", "remarks": "textarea",
+          "description": "Restoration of **{{fcu_chw}}** keypad temperature set point back to {{setpoint}}°C to enable cooling to Network Room." },
+        { "id": "s3_04", "no": "4",  "type": "duration", "remarks": "textarea",
+          "description": "Record the temperature ({{fcu_chw}}) **turn on and {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_chw}}.)",
+          "cross_ref": "sec_4" },
+        { "id": "s3_05", "no": "5",  "type": "duration", "remarks": "textarea",
+          "description": "When temperature reaches {{setpoint}}°C, reset Hi temperature while {{fcu_dx}} automatically cuts off." },
+        { "id": "s3_06", "no": "6",  "type": "duration", "remarks": "textarea",
+          "description": "Record the temperature." },
+        { "id": "s3_07", "no": "7",  "type": "duration", "remarks": "textarea",
+          "description": "Override time switch at {{fcu_chw}} panel to enable {{fcu_dx}} in operation. (Note: heat load test to be carried out after 15 min DX FCU operation, as there is a delay-off for {{fcu_chw}} to make {{fcu_dx}} more stabilised in operation.)" },
+        { "id": "s3_08", "no": "8",  "type": "duration", "remarks": "textarea",
+          "description": "Put **{{fcu_dx}}** keypad set point to **{{disable_temp}}°C** to disable cooling, DX FCU Hi temperature set point {{hi_temp}}°C, {{fcu_chw}} to confirm kick in." },
+        { "id": "s3_09", "no": "9",  "type": "duration", "remarks": "textarea",
+          "description": "Record the temperature (**{{fcu_dx}}**) **turn on c/w {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_dx}}.)",
+          "cross_ref": "sec_4" },
+        { "id": "s3_10", "no": "10", "type": "duration", "remarks": "textarea",
+          "description": "Restoration of **{{fcu_dx}}** keypad temperature set point back to {{setpoint}}°C to enable cooling to Network Room." },
+        { "id": "s3_11", "no": "11", "type": "duration", "remarks": "textarea",
+          "description": "Record the temperature." },
+        { "id": "s3_12", "no": "12", "type": "duration", "remarks": "textarea",
+          "description": "When temperature reaches {{setpoint}}°C, reset Hi temperature while {{fcu_chw}} automatically cuts off." },
+        { "id": "s3_13", "no": "13", "type": "duration", "remarks": "textarea",
+          "description": "Switch off source of cooling and continuously monitor internal conditions within the Network Room, recording the time to reach {{hi_temp}}°C (heaters running, **turn off both CHW and DX FCUs**; measure the time taken to reach {{hi_temp}}°C)." },
+        { "id": "s3_14", "no": "14", "type": "duration", "remarks": "textarea",
+          "description": "Restore CHW FCU and continuously monitor internal conditions within the Network Room, recording the time to reach {{setpoint}}°C (turn both CHW and DX FCUs on, and measure the time taken to bring back to {{setpoint}}°C)." },
+        { "id": "s3_15", "no": "15", "type": "duration", "remarks": "textarea",
+          "description": "Switch off load banks one by one." },
+        { "id": "s3_16", "no": "16", "type": "duration", "remarks": "textarea",
+          "description": "End of test." }
+      ]
+    },
+
+    {
+      "id": "sec_4",
+      "no": "4",
+      "title": "TEMPERATURE & HUMIDITY RECORD SHEET",
+      "_status": "RECONSTRUCTED — section 4 is absent from the source HTML, but steps 4 and 9 refer to it. Confirm the real layout before issuing Rev A.",
+      "type": "dynamic_table",
+      "min_rows": 12,
+      "auto_number": true,
+      "columns": [
+        { "id": "time",     "label": "Time",              "type": "time" },
+        { "id": "logger",   "label": "Recorder ID",       "type": "text" },
+        { "id": "temp",     "label": "Temperature",       "type": "number", "unit": "°C", "limit": { "max": 26 } },
+        { "id": "rh",       "label": "Relative Humidity", "type": "number", "unit": "%" },
+        { "id": "remarks",  "label": "Remarks",           "type": "text" }
+      ]
+    }
+  ],
+
+  "instruments": { "required": true, "min": 1, "source_section": "sec_1" },
+
+  "footer": {
+    "no": "5",
+    "title": "SIGN-OFF",
+    "layout": "two_column",
+    "signatures": [
+      { "id": "sig_tested",   "role": "Inspection / Tested by", "company_default": "Kenyon Pte Ltd", "company_locked": true,  "required": true, "stage": "contractor" },
+      { "id": "sig_witness",  "role": "Witnessed by",           "company_locked": false, "required": false, "stage": "witness",
+        "_note": "source form titled both columns 'Inspection / Tested by' — confirm the right-hand signer's role" }
+    ]
+  }
+}
