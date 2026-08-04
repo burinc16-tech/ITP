@@ -49,9 +49,9 @@ export interface RecordStore {
    * second reject on the same token is blocked upstream (`resolve()` → 409 closed),
    * so this never double-fires. It is a dumb setter with no `updated_at` guard, but
    * it is always called with a fresh server `now()` and is never client-replayed.
-   * The one residual hazard is Phase 5 conflict policy, not this method: a client
-   * record upsert with a newer `updated_at` can still last-write-wins over a
-   * server-set "rejected" (§8 protects only "accepted"). Tracked separately.
+   * The status it writes is one of the locked set below, so a later client upsert
+   * carrying a newer `updated_at` can no longer last-write-wins over the server-set
+   * "rejected" — `upsert` treats it as a conflict, not an overwrite (§8).
    */
   setStatus(id: string, status: string, updatedAt: string): Promise<void>;
 }

@@ -77,6 +77,10 @@ const queuedSync = apiUrl
     })
   : null;
 const sync: SyncLayer = queuedSync ?? new PassthroughSync();
+// How often the app re-drains the outbox to retry entries whose backoff has
+// elapsed (SPEC §8). Matched to the backoff floor, not the 5-min cap, so early
+// retries stay responsive; each tick only sends what is actually due.
+const RETRY_HEARTBEAT_MS = 30_000;
 // Remote sign-off issue/revoke client (QA/QC). Only when the API is configured —
 // the record must be synced to the server before a link can be issued.
 const signoff = apiUrl ? new SignoffClient(apiUrl, getToken) : null;
@@ -142,12 +146,21 @@ export function App(): ReactNode {
   // Flush the durable outbox on startup (anything left unsynced from a previous
   // session) and whenever the browser regains connectivity. Enqueues during a
   // session self-kick their own drain; these cover the boot and reconnect gaps.
+  // A periodic heartbeat covers the remaining one: an entry whose push failed
+  // while the device stayed online sits behind its backoff `next_attempt_at`
+  // (SPEC §8) with no enqueue or reconnect to wake it. The tick re-drains; the
+  // outbox's due-gate means each pass only sends entries whose backoff elapsed,
+  // and drain() is re-entrancy guarded, so an idle tick is a cheap no-op.
   useEffect(() => {
     if (!queuedSync) return;
     void queuedSync.drain();
     const onOnline = () => void queuedSync.drain();
     window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
+    const heartbeat = window.setInterval(() => void queuedSync.drain(), RETRY_HEARTBEAT_MS);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.clearInterval(heartbeat);
+    };
   }, []);
 
   const handleLogout = async () => {
