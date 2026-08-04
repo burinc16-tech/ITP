@@ -957,6 +957,20 @@ input[readonly] {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.outstanding-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.outstanding-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
 
 /* Calibration register (SPEC §10 screen 9) */
 .cal-register {

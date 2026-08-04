@@ -3,6 +3,9 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { parseTemplate } from "@schema";
 import heatLoadRaw from "../../../spec/templates/heat-load-test.json";
+import idfRaw from "../../../spec/templates/idf-handover.json";
+import { createAttachment } from "../data/attachment";
+import { AttachmentsRepo } from "../data/attachments-repo";
 import { ChecklistDb } from "../data/db";
 import { createDraft, type ChecklistRecord } from "../data/record";
 import { RecordsRepo } from "../data/records-repo";
@@ -12,6 +15,7 @@ import { uuidv7 } from "../data/uuidv7";
 import { OutstandingList } from "./outstanding-list";
 
 const heatLoad = parseTemplate(heatLoadRaw);
+const idf = parseTemplate(idfRaw);
 
 function failingRecord(projectId: string, equipmentId: string): ChecklistRecord {
   const rec = createDraft(heatLoad, {
@@ -98,5 +102,39 @@ describe("OutstandingList", () => {
       />,
     );
     expect(await screen.findByText("No outstanding items.")).toBeInTheDocument();
+  });
+
+  it("shows a failing row's photo evidence (§6)", async () => {
+    const db = new ChecklistDb(`test-${uuidv7()}`);
+    const repo = new RecordsRepo(db);
+    const attachmentsRepo = new AttachmentsRepo(db);
+    const rec = createDraft(idf, { id: "r-idf", now: "2026-08-04T00:00:00.000Z", createdBy: "u" });
+    rec.values.rows.chk_3_1 = { value: "no", remarks: "" }; // No → fail (§12)
+    await repo.upsert({ ...rec, status: "completed" });
+    await attachmentsRepo.add(
+      createAttachment({
+        id: "at1",
+        recordId: "r-idf",
+        fieldId: "chk_3_1:photo", // the photo add-on cell for that row
+        image: new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" }),
+        caption: "dusty vent",
+        deviceId: "d",
+        now: "t",
+      }),
+    );
+
+    render(
+      <OutstandingList
+        repo={repo}
+        registryRepo={new RegistryRepo(db)}
+        templates={[idf]}
+        onOpen={vi.fn()}
+        attachmentsRepo={attachmentsRepo}
+      />,
+    );
+
+    const img = await screen.findByAltText("dusty vent");
+    expect(img.tagName).toBe("IMG");
+    expect(img).toHaveClass("outstanding-thumb");
   });
 });

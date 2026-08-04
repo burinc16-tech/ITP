@@ -280,6 +280,7 @@ export function App(): ReactNode {
             registryRepo={registryRepo}
             templates={TEMPLATES}
             onOpen={openRecord}
+            attachmentsRepo={attachmentsRepo}
           />
         ) : view.kind === "calibration" ? (
           <CalibrationRegister repo={instrumentsRepo} />

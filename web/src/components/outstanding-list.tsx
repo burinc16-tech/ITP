@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
+import type { AttachmentView } from "../data/attachment";
+import type { AttachmentsRepo } from "../data/attachments-repo";
 import type { ChecklistRecord } from "../data/record";
 import type { RecordsRepo } from "../data/records-repo";
 import type { Equipment, Project } from "../data/registry";
@@ -20,16 +22,18 @@ interface Group {
  * evaluates to Fail across the store, derived — never stored — from the head of
  * each revision chain, so a Fail cleared by a later revision drops off. Unlike the
  * dashboard's at-a-glance card this is the working close-out view: grouped per
- * project and filterable, carrying the equipment tag and ITR serial for each snag.
- * (Photo evidence is listed by SPEC §6 but photo capture isn't built yet.)
+ * project and filterable, carrying the equipment tag, ITR serial, and the photo
+ * evidence for each failing row (§6).
  */
 export function OutstandingList(props: {
   repo: RecordsRepo;
   registryRepo: RegistryRepo;
   templates: Template[];
   onOpen: (record: ChecklistRecord) => void;
+  /** Photo store, so each snag can show its evidence (§6). Optional for tests. */
+  attachmentsRepo?: AttachmentsRepo;
 }): ReactNode {
-  const { repo, registryRepo, templates, onOpen } = props;
+  const { repo, registryRepo, templates, onOpen, attachmentsRepo } = props;
   const [records, setRecords] = useState<ChecklistRecord[] | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -65,6 +69,58 @@ export function OutstandingList(props: {
     () => (records ? outstandingItems(records, templates) : []),
     [records, templates],
   );
+
+  // Photos for the failing rows, keyed by `${record_id}::${field_id}`. Loaded only
+  // for records that actually have outstanding items; object URLs are revoked when
+  // the set changes or the view unmounts.
+  const [photos, setPhotos] = useState<Map<string, AttachmentView[]>>(() => new Map());
+  const photoUrls = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!attachmentsRepo) return;
+    let alive = true;
+    const urls: string[] = [];
+    void (async () => {
+      const recordIds = new Set(items.map((i) => i.record_id));
+      const map = new Map<string, AttachmentView[]>();
+      for (const recordId of recordIds) {
+        for (const a of await attachmentsRepo.listByRecord(recordId)) {
+          const url = URL.createObjectURL(a.image);
+          urls.push(url);
+          const key = `${recordId}::${a.field_id}`;
+          const view: AttachmentView = { id: a.id, field_id: a.field_id, caption: a.caption, image_url: url };
+          const list = map.get(key);
+          if (list) list.push(view);
+          else map.set(key, [view]);
+        }
+      }
+      if (!alive) {
+        for (const u of urls) URL.revokeObjectURL(u);
+        return;
+      }
+      for (const u of photoUrls.current) URL.revokeObjectURL(u);
+      photoUrls.current = urls;
+      setPhotos(map);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [attachmentsRepo, items]);
+
+  useEffect(
+    () => () => {
+      for (const u of photoUrls.current) URL.revokeObjectURL(u);
+      photoUrls.current = [];
+    },
+    [],
+  );
+
+  // A failing row's photos live under its own id (a `type:"photo"` row) or the
+  // `${row}:photo` add-on cell (a `photo:true` row) — gather both.
+  const photosFor = (item: OutstandingItem): AttachmentView[] => [
+    ...(photos.get(`${item.record_id}::${item.row_id}`) ?? []),
+    ...(photos.get(`${item.record_id}::${item.row_id}:photo`) ?? []),
+  ];
 
   const filtered = useMemo(
     () =>
@@ -167,6 +223,7 @@ export function OutstandingList(props: {
                     ? equipmentById.get(item.equipment_id)?.tag
                     : undefined;
                   const record = recordById.get(item.record_id);
+                  const itemPhotos = photosFor(item);
                   return (
                     <tr key={`${item.record_id}:${item.row_id}`} className="register-row">
                       <td>
@@ -176,6 +233,19 @@ export function OutstandingList(props: {
                         </span>
                         {item.remarks && (
                           <span className="outstanding-remark">{item.remarks}</span>
+                        )}
+                        {itemPhotos.length > 0 && (
+                          <span className="outstanding-photos">
+                            {itemPhotos.map((p) => (
+                              <img
+                                key={p.id}
+                                className="outstanding-thumb"
+                                src={p.image_url}
+                                alt={p.caption || item.description}
+                                title={p.caption}
+                              />
+                            ))}
+                          </span>
                         )}
                       </td>
                       <td>{item.display}</td>
