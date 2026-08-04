@@ -63,4 +63,46 @@ describe("RecordForm — photo capture (§8)", () => {
       expect(rows[0]!.field_id).toBe("ph_01");
     });
   });
+
+  it("backfills a photo captured on another device when the record opens (§8)", async () => {
+    const db = new ChecklistDb(`test-${uuidv7()}`);
+    const repo = new RecordsRepo(db);
+    const attachmentsRepo = new AttachmentsRepo(db);
+    const id = uuidv7();
+    await repo.upsert(createDraft(template, { id, now: "2026-08-04T00:00:00.000Z", createdBy: "u" }));
+
+    // A sync layer that reports a server photo this device doesn't hold locally.
+    class BackfillSync extends PassthroughSync {
+      async pullAttachments() {
+        return [{ id: "srv1", field_id: "ph_01", caption: "from other device", device_id: "d2", created_at: "2026-08-04T01:00:00.000Z" }];
+      }
+      async pullAttachmentImage() {
+        return new Blob([new Uint8Array([9, 9, 9])], { type: "image/jpeg" });
+      }
+    }
+
+    render(
+      <RecordForm
+        template={template}
+        recordId={id}
+        repo={repo}
+        signaturesRepo={new SignaturesRepo(db)}
+        auditRepo={new AuditRepo(db)}
+        registryRepo={new RegistryRepo(db)}
+        attachmentsRepo={attachmentsRepo}
+        role="site_engineer"
+        sync={new BackfillSync()}
+        autosaveMs={5000}
+      />,
+    );
+
+    // The server photo shows (on-screen thumbnail + printed evidence)…
+    expect((await screen.findAllByAltText("from other device")).length).toBeGreaterThan(0);
+    // …and is now stored locally, so it's available offline afterwards.
+    await waitFor(async () => {
+      const rows = await attachmentsRepo.listByRecord(id);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.id).toBe("srv1");
+    });
+  });
 });

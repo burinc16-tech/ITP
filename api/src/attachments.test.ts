@@ -102,3 +102,39 @@ describe("api /api/records/:id/attachments", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("api GET /api/records/:id/attachments (cross-device backfill §8)", () => {
+  async function seeded() {
+    const h = await make();
+    await h.app.request("/api/records/r1/attachments", { method: "POST", headers: h.authed, body: JSON.stringify(body()) });
+    return h;
+  }
+
+  it("lists a record's photo metadata (auth)", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/attachments", { headers: authed });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([
+      { id: "at1", field_id: "chk_3_1:photo", caption: "north wall", device_id: "d", created_at: "2026-08-04T00:00:00.000Z" },
+    ]);
+  });
+
+  it("rejects the list without a session", async () => {
+    const { app } = await seeded();
+    const res = await app.request("/api/records/r1/attachments");
+    expect(res.status).toBe(401);
+  });
+
+  it("serves the image bytes (auth)", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/attachments/at1", { headers: authed });
+    expect(res.status).toBe(200);
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("404s an attachment on a different record", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/other/attachments/at1", { headers: authed });
+    expect(res.status).toBe(404);
+  });
+});

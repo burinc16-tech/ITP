@@ -367,6 +367,40 @@ export function createApp(deps: AppDeps) {
     return c.json({ applied: true });
   });
 
+  // Read a record's photos on another signed-in device (§8): list the metadata,
+  // then fetch each image. `<img src>` can't send a bearer, so the client fetches
+  // the bytes with auth and backfills them into its local store.
+  app.get("/api/records/:id/attachments", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+    const rows = await attachments.listByRecord(recordId);
+    return c.json(
+      rows.map((a) => ({
+        id: a.id,
+        field_id: a.field_id,
+        caption: a.caption,
+        device_id: a.device_id,
+        created_at: a.created_at,
+      })),
+    );
+  });
+
+  app.get("/api/records/:id/attachments/:attachmentId", requireUser, async (c) => {
+    const att = await attachments.getById(c.req.param("attachmentId"));
+    if (!att || att.record_id !== c.req.param("id")) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(att.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
+    });
+  });
+
   app.post("/api/records/:id/audit", requireUser, async (c) => {
     const recordId = c.req.param("id");
     if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);

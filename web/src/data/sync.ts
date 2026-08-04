@@ -25,6 +25,15 @@ export interface PushResult {
   conflict: boolean;
 }
 
+/** Server-side metadata for one photo attachment (SPEC §8), for cross-device backfill. */
+export interface AttachmentMeta {
+  id: string;
+  field_id: string;
+  caption: string;
+  device_id: string;
+  created_at: string;
+}
+
 export interface SyncLayer {
   /** Push a record. Resolves with whether the server reported a lock conflict (§8). */
   push(record: ChecklistRecord): Promise<PushResult>;
@@ -41,6 +50,13 @@ export interface SyncLayer {
   pushAudit(entry: AuditEntry): Promise<void>;
   /** Push a captured photo attachment (SPEC §8). Best-effort. */
   pushAttachment(attachment: Attachment): Promise<void>;
+  /**
+   * Read the server's photo list for a record, or null when unavailable/offline.
+   * Used to backfill photos captured on another device (§8). Best-effort.
+   */
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
+  /** Fetch one attachment's image bytes (with auth), or null. Best-effort. */
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
 }
 
 /**
@@ -70,6 +86,39 @@ export class PassthroughSync implements SyncLayer {
 
   async pushAttachment(_attachment: Attachment): Promise<void> {
     // No queue, no network — the photo is durable in Dexie.
+  }
+
+  async pullAttachments(_recordId: string): Promise<AttachmentMeta[] | null> {
+    // Local-only mode: there is no server to read from.
+    return null;
+  }
+
+  async pullAttachmentImage(_recordId: string, _attachmentId: string): Promise<Blob | null> {
+    return null;
+  }
+}
+
+/** Best-effort authenticated GET returning parsed JSON, or null on any failure. */
+async function getJson<T>(url: string, headers: Record<string, string>): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch (err) {
+    console.warn("attachment list failed", err);
+    return null;
+  }
+}
+
+/** Best-effort authenticated GET returning the response as a Blob, or null. */
+async function getBlob(url: string, headers: Record<string, string>): Promise<Blob | null> {
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch (err) {
+    console.warn("attachment image fetch failed", err);
+    return null;
   }
 }
 
@@ -184,6 +233,17 @@ export class ApiSync implements SyncLayer {
     } catch (err) {
       console.warn("attachment push failed (kept locally)", err);
     }
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return getJson(`${this.baseUrl}/api/records/${recordId}/attachments`, this.authHeader());
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/attachments/${attachmentId}`,
+      this.authHeader(),
+    );
   }
 }
 
@@ -363,5 +423,16 @@ export class ApiTransport implements Transport {
       console.warn("sync pull failed", err);
       return null;
     }
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return getJson(`${this.baseUrl}/api/records/${recordId}/attachments`, this.authHeader());
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/attachments/${attachmentId}`,
+      this.authHeader(),
+    );
   }
 }

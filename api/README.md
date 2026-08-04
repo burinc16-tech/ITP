@@ -32,6 +32,10 @@ by the single-use link token instead.
   (`{ id, field_id, caption, device_id, created_at, image }`); the image rides as a
   `data:` URL, is stored in R2 under `attachments/<record>/<id>`, and is only
   rewritten when the bytes change (a caption edit re-pushes the row, not the blob).
+- `GET /api/records/:id/attachments` *(auth)* — photo metadata for cross-device
+  backfill. `GET /api/records/:id/attachments/:attachmentId` *(auth)* — image bytes.
+  The remote signer reads the same photos via the token-gated `/api/sign/:token`
+  view and `/api/sign/:token/attachments/:id` (no account).
 - `POST /api/records/:id/sign-requests` *(auth, QA/QC)* — issue a link + email it.
   Returns `{ id, token, url, expires_at, emailed }`; only the token **hash** is stored.
 - `GET /api/sign/:token` *(public)* — open the link: returns the read-only record,

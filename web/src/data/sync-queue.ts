@@ -8,7 +8,7 @@ import type { OutboxRepo, OutboxEntry } from "./outbox";
 import type { RecordsRepo } from "./records-repo";
 import type { CapturedSignature } from "./signature";
 import type { SignaturesRepo } from "./signatures-repo";
-import type { PushResult, SyncLayer } from "./sync";
+import type { AttachmentMeta, PushResult, SyncLayer } from "./sync";
 
 /**
  * The raw network transport the queue drains against. Unlike the eager `ApiSync`
@@ -28,6 +28,10 @@ export interface Transport {
   pushAttachment(attachment: Attachment): Promise<void>;
   /** Best-effort read of the server's record copy, or null. */
   pull(id: string): Promise<ChecklistRecord | null>;
+  /** Best-effort read of a record's photo metadata, or null (§8 backfill). */
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
+  /** Best-effort fetch of one attachment's image bytes, or null. */
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
 }
 
 export interface QueuedSyncDeps {
@@ -110,6 +114,14 @@ export class QueuedSync implements SyncLayer {
 
   pull(id: string): Promise<ChecklistRecord | null> {
     return this.deps.transport.pull(id);
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return this.deps.transport.pullAttachments(recordId);
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return this.deps.transport.pullAttachmentImage(recordId, attachmentId);
   }
 
   /** Pending pushes not yet delivered — the §8 on-screen count. */

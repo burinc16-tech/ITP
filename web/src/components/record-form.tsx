@@ -281,9 +281,43 @@ export function RecordForm(props: {
     if (recordId) void refreshSignatures(recordId);
   }, [recordId, refreshSignatures]);
 
+  // On open, backfill photos captured on another device (§8): pull the server's
+  // list and, for any we don't hold locally, fetch the image (with auth) and store
+  // it, so the record's evidence is complete on this device too. Best-effort —
+  // offline or local-only mode just shows what's local. Then refresh thumbnails.
+  const backfillAttachments = useCallback(
+    async (id: string) => {
+      if (attachmentsRepo) {
+        const server = await sync.pullAttachments(id);
+        if (server) {
+          const local = new Set((await attachmentsRepo.listByRecord(id)).map((a) => a.id));
+          for (const meta of server) {
+            if (local.has(meta.id)) continue;
+            const image = await sync.pullAttachmentImage(id, meta.id);
+            if (!image) continue;
+            await attachmentsRepo.add(
+              createAttachment({
+                id: meta.id,
+                recordId: id,
+                fieldId: meta.field_id,
+                image,
+                mime: image.type,
+                caption: meta.caption,
+                deviceId: meta.device_id,
+                now: meta.created_at,
+              }),
+            );
+          }
+        }
+      }
+      await refreshAttachments(id);
+    },
+    [attachmentsRepo, sync, refreshAttachments],
+  );
+
   useEffect(() => {
-    if (recordId) void refreshAttachments(recordId);
-  }, [recordId, refreshAttachments]);
+    if (recordId) void backfillAttachments(recordId);
+  }, [recordId, backfillAttachments]);
 
   // Photo capture is a local write (§8): store the blob, enqueue the upload, then
   // refresh thumbnails. The blob is durable in Dexie and the queue drives the R2

@@ -51,6 +51,12 @@ class FakeTransport implements Transport {
   async pull(): Promise<ChecklistRecord | null> {
     return null;
   }
+  async pullAttachments(): Promise<null> {
+    return null;
+  }
+  async pullAttachmentImage(): Promise<Blob | null> {
+    return null;
+  }
 }
 
 function harness() {

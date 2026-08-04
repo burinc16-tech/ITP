@@ -32,6 +32,8 @@ describe("saveRecord", () => {
       pushSignature: vi.fn().mockResolvedValue(undefined),
       pushAudit: vi.fn().mockResolvedValue(undefined),
       pushAttachment: vi.fn().mockResolvedValue(undefined),
+      pullAttachments: vi.fn().mockResolvedValue(null),
+      pullAttachmentImage: vi.fn().mockResolvedValue(null),
     };
     const record = draft();
 
@@ -55,6 +57,8 @@ describe("saveRecord", () => {
       pushSignature: vi.fn().mockResolvedValue(undefined),
       pushAudit: vi.fn().mockResolvedValue(undefined),
       pushAttachment: vi.fn().mockResolvedValue(undefined),
+      pullAttachments: vi.fn().mockResolvedValue(null),
+      pullAttachmentImage: vi.fn().mockResolvedValue(null),
     };
     const record = draft();
 

@@ -138,6 +138,24 @@ describe("ApiTransport — evidence push", () => {
     await expect(new ApiTransport("http://api", "tok").pushAttachment(attachment)).rejects.toThrow("500");
   });
 
+  it("pulls the attachment list (best-effort; null on failure)", async () => {
+    const meta = [{ id: "at1", field_id: "ph_01", caption: "c", device_id: "d", created_at: "t" }];
+    stubFetch(vi.fn().mockResolvedValue(R(200, meta)));
+    await expect(new ApiTransport("http://api", "tok").pullAttachments("r1")).resolves.toEqual(meta);
+
+    stubFetch(vi.fn().mockResolvedValue(R(500)));
+    await expect(new ApiTransport("http://api", "tok").pullAttachments("r1")).resolves.toBeNull();
+  });
+
+  it("pulls an attachment image as a blob, null on failure", async () => {
+    const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    stubFetch(vi.fn().mockResolvedValue({ ok: true, status: 200, blob: async () => blob } as unknown as Response));
+    await expect(new ApiTransport("http://api", "tok").pullAttachmentImage("r1", "at1")).resolves.toBe(blob);
+
+    stubFetch(vi.fn().mockRejectedValue(new Error("offline")));
+    await expect(new ApiTransport("http://api", "tok").pullAttachmentImage("r1", "at1")).resolves.toBeNull();
+  });
+
   it("pull swallows a failure and returns null", async () => {
     stubFetch(vi.fn().mockResolvedValue(R(500)));
     await expect(new ApiTransport("http://api", "tok").pull("r1")).resolves.toBeNull();
