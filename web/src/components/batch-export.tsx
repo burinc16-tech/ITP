@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
+import type { AttachmentView } from "../data/attachment";
+import type { AttachmentsRepo } from "../data/attachments-repo";
 import { templateFor, type ChecklistRecord } from "../data/record";
 import type { RecordsRepo } from "../data/records-repo";
 import type { SignaturesRepo } from "../data/signatures-repo";
@@ -10,6 +12,7 @@ interface ExportRecord {
   record: ChecklistRecord;
   template: Template;
   signatures: Map<string, SignatureView>;
+  attachments: Map<string, AttachmentView[]>;
 }
 
 /**
@@ -25,11 +28,12 @@ interface ExportRecord {
 export function BatchExport(props: {
   repo: RecordsRepo;
   signaturesRepo: SignaturesRepo;
+  attachmentsRepo?: AttachmentsRepo;
   templates: Template[];
   ids: string[];
   onBack: () => void;
 }): ReactNode {
-  const { repo, signaturesRepo, templates, ids, onBack } = props;
+  const { repo, signaturesRepo, attachmentsRepo, templates, ids, onBack } = props;
   const [loaded, setLoaded] = useState<ExportRecord[] | null>(null);
   const [missing, setMissing] = useState(0);
 
@@ -60,7 +64,21 @@ export function BatchExport(props: {
             image_url: url,
           });
         }
-        out.push({ record, template, signatures });
+        const attachments = new Map<string, AttachmentView[]>();
+        for (const a of (await attachmentsRepo?.listByRecord(id)) ?? []) {
+          const url = URL.createObjectURL(a.image);
+          urls.push(url);
+          const view: AttachmentView = {
+            id: a.id,
+            field_id: a.field_id,
+            caption: a.caption,
+            image_url: url,
+          };
+          const list = attachments.get(a.field_id);
+          if (list) list.push(view);
+          else attachments.set(a.field_id, [view]);
+        }
+        out.push({ record, template, signatures, attachments });
       }
       if (!alive) {
         for (const url of urls) URL.revokeObjectURL(url);
@@ -73,7 +91,7 @@ export function BatchExport(props: {
       alive = false;
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [ids, repo, signaturesRepo, templates]);
+  }, [ids, repo, signaturesRepo, attachmentsRepo, templates]);
 
   const orientations = new Set(
     (loaded ?? []).map((l) => l.template.page.orientation),
@@ -109,7 +127,7 @@ export function BatchExport(props: {
       )}
 
       {loaded && !mixed &&
-        loaded.map(({ record, template, signatures }) => (
+        loaded.map(({ record, template, signatures, attachments }) => (
           <div key={record.id} className="batch-record">
             <PrintView
               template={template}
@@ -117,6 +135,7 @@ export function BatchExport(props: {
               status={record.status}
               serialNo={record.serial_no}
               signatures={signatures}
+              attachments={attachments}
             />
           </div>
         ))}

@@ -729,6 +729,7 @@ export function RecordForm(props: {
         status={record.status}
         serialNo={record.serial_no}
         signatures={signatures}
+        attachments={attachments}
       />
 
       {signingSlot && (

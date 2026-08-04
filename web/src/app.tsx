@@ -286,6 +286,7 @@ export function App(): ReactNode {
           <BatchExport
             repo={repo}
             signaturesRepo={signaturesRepo}
+            attachmentsRepo={attachmentsRepo}
             templates={TEMPLATES}
             ids={view.ids}
             onBack={() => setView({ kind: "register" })}
