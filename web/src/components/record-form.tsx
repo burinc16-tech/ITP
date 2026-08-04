@@ -38,6 +38,7 @@ import {
 import { fieldsComplete } from "../lib/completeness";
 import { buildContextSnapshot } from "../lib/context-snapshot";
 import { dataUrlToBlob } from "../lib/data-url";
+import { downscaleImage } from "../lib/downscale-image";
 import type { RecordValues } from "../lib/values";
 import { PrintView } from "./print-view";
 import { SaveBar, type SaveState } from "./save-bar";
@@ -326,11 +327,12 @@ export function RecordForm(props: {
     async (fieldId: string, file: Blob) => {
       const current = recordRef.current;
       if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
+      const image = await downscaleImage(file);
       const attachment = createAttachment({
         id: newId(),
         recordId: current.id,
         fieldId,
-        image: file,
+        image,
         deviceId: deviceId(),
         now: clock(),
       });
