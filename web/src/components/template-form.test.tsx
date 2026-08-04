@@ -20,12 +20,7 @@ function Harness(): ReactNode {
 describe("TemplateForm — rendering", () => {
   it("renders every section title from the template", () => {
     render(<Harness />);
-    for (const title of [
-      "TESTING EQUIPMENT",
-      "SET-UP",
-      "HEAT LOAD TEST",
-      "TEMPERATURE & HUMIDITY RECORD SHEET",
-    ]) {
+    for (const title of ["TESTING EQUIPMENT", "SET-UP", "HEAT LOAD TEST"]) {
       expect(
         screen.getByRole("heading", { name: new RegExp(title) }),
       ).toBeInTheDocument();
@@ -53,22 +48,12 @@ describe("TemplateForm — rendering", () => {
     expect(screen.getAllByRole("button", { name: "No" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "N.A." }).length).toBeGreaterThan(0);
   });
-
-  it("shows the reconstructed-section status note", () => {
-    render(<Harness />);
-    expect(screen.getByText(/RECONSTRUCTED/)).toBeInTheDocument();
-  });
 });
 
+// Numeric limit → Fail evaluation in the form is covered by the numeric Power
+// Turn-On template (power-turn-on.render.test.tsx); the heat load test has no
+// numeric-limit field once the reconstructed Section 4 is removed (Rev A).
 describe("TemplateForm — interaction", () => {
-  it("evaluates a numeric reading against its limit", async () => {
-    const user = userEvent.setup();
-    render(<Harness />);
-    const tempCells = screen.getAllByLabelText(/^Temperature row/);
-    await user.type(tempCells[0]!, "30"); // limit is max 26 → Fail
-    expect(screen.getByText("Fail")).toBeInTheDocument();
-  });
-
   it("requires a remark when a step is marked N/A", async () => {
     const user = userEvent.setup();
     render(<Harness />);
@@ -83,13 +68,13 @@ describe("TemplateForm — interaction", () => {
   it("adds a row to a dynamic table", async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    const before = screen.getAllByLabelText(/^Temperature row/).length;
-    expect(before).toBe(12);
+    // sec_1 (TESTING EQUIPMENT) is the template's only dynamic table: min_rows 4.
+    const before = screen.getAllByLabelText(/^Description row/).length;
+    expect(before).toBe(4);
 
-    // The temp/humidity sheet is the last section; use its Add row button.
     const addButtons = screen.getAllByRole("button", { name: /Add row/ });
     await user.click(addButtons[addButtons.length - 1]!);
 
-    expect(screen.getAllByLabelText(/^Temperature row/)).toHaveLength(13);
+    expect(screen.getAllByLabelText(/^Description row/)).toHaveLength(5);
   });
 });

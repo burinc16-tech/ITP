@@ -25,33 +25,32 @@ describe("heat-load-test.json — the authoritative Phase 1 template", () => {
     expect(result.success).toBe(true);
   });
 
-  it("preserves the four sections in document order", () => {
+  it("preserves the three sections in document order", () => {
     const t = parseTemplate(realTemplate);
-    expect(t.sections.map((s) => s.id)).toEqual([
-      "sec_1",
-      "sec_2",
-      "sec_3",
-      "sec_4",
-    ]);
+    // Matches the source form (1 Testing Equipment, 2 Set-up, 3 Heat Load Test);
+    // it has no Section 4 — the numbering skips to 5 Sign-off (Rev A decision).
+    expect(t.sections.map((s) => s.id)).toEqual(["sec_1", "sec_2", "sec_3"]);
   });
 
   it("classifies each section as the right shape", () => {
     const t: any = parseTemplate(realTemplate);
-    // sec_1 and sec_4 are dynamic tables (typed columns); sec_2/sec_3 are row lists.
+    // sec_1 is a dynamic table (typed columns); sec_2/sec_3 are row lists.
     expect(t.sections[0].type).toBe("dynamic_table");
     expect(Array.isArray(t.sections[0].columns)).toBe(true);
-    expect(t.sections[3].type).toBe("dynamic_table");
     expect(Array.isArray(t.sections[1].rows)).toBe(true);
     expect(t.sections[1].type).toBeUndefined();
   });
 
-  it("keeps the documented _note / _status annotations", () => {
+  it("carries no unresolved Rev A markers (all three decisions settled)", () => {
     const t: any = parseTemplate(realTemplate);
+    // The ⛔ blockers are resolved: cal_cert keeps its label with no _note, there
+    // is no reconstructed section, and the second signer is a plain 'Tested by'.
     const calCert = t.sections[0].columns.find((c: any) => c.id === "cal_cert");
-    expect(calCert._note).toMatch(/confirm/i);
-    expect(t.sections[3]._status).toMatch(/RECONSTRUCTED/);
-    const witness = t.footer.signatures.find((s: any) => s.id === "sig_witness");
-    expect(witness._note).toBeDefined();
+    expect(calCert.label).toBe("Cal. Cert No.");
+    expect(calCert._note).toBeUndefined();
+    expect(t.sections.every((s: any) => s._status === undefined)).toBe(true);
+    expect(t.footer.signatures.every((s: any) => s._note === undefined)).toBe(true);
+    expect(t.footer.signatures.map((s: any) => s.id)).toEqual(["sig_tested", "sig_tested_2"]);
   });
 
   it("carries the header, variables, instruments and footer through", () => {
@@ -143,8 +142,9 @@ describe("rejects malformed templates", () => {
 
   it("rejects a limit with neither min nor max", () => {
     const t = clone();
-    // sec_4 → temp column carries a { max: 26 } limit.
-    t.sections[3].columns[2].limit = {};
+    // Attach an empty limit to a sec_1 table column; the refinement rejects a
+    // limit object with neither bound, independent of the column's type.
+    t.sections[0].columns[2].limit = {};
     expect(safeParseTemplate(t).success).toBe(false);
   });
 

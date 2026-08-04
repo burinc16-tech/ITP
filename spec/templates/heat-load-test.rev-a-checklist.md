@@ -1,106 +1,63 @@
-# Heat Load Test template — confirm before Rev A
+# Heat Load Test template — Rev A decisions (SETTLED)
 
-Open questions on `heat-load-test.json` that must be settled before the template is
-issued as **Rev A**. Each traces to a `_status` / `_note` marker in the JSON or to a
-place where the conversion departs from the source paper form.
+The three ⛔ blockers on `heat-load-test.json` have been resolved against the source
+paper form (`…\AMK 2 and 3 - Intranet\reference\Heat_Load_Test_Report.html`), applying
+the governing rule *"matching the original wins over any improvement you might prefer"*
+(CLAUDE.md). The template is now clear of `_status` / `_note` markers and ready to issue
+as **Rev A**.
 
-- **Template:** `spec/templates/heat-load-test.json` (code `HLT`, currently Rev `A` draft)
-- **Source of truth:** `…\AMK 2 and 3 - Intranet\reference\Heat_Load_Test_Report.html`
-  (the accepted paper form; "matching the original wins")
-
-The three ⛔ items carry explicit markers in the JSON and block issuance. The ⚠️ items
-are lower-priority confirmations. The ✅ items were decided this build and are recorded
-here for the trail.
+- **Template:** `spec/templates/heat-load-test.json` (code `HLT`, Rev `A`)
+- **Source of truth:** the accepted paper form above
 
 ---
 
-## ⛔ 1. Section 4 — Temperature & Humidity Record Sheet is reconstructed
+## ✅ 1. Section 4 removed — it does not exist in the source
 
-`sec_4` was **invented during conversion** — it does not exist in the source HTML.
+**Decision: removed.** The source form has no Section 4 — its numbering runs 1, 2, 3,
+then **5 SIGN-OFF**. The invented `sec_4` (Temperature & Humidity Record Sheet) is
+deleted, and the `cross_ref: "sec_4"` on steps 3.4 / 3.9 is removed. Temperature is
+logged on the six **Humidity / Temp Data Recorders (HOBO MX)** listed in Section 1 and
+noted in each step's own remarks; there is no separate record sheet on the paper form.
 
-- **Source:** no Section 4. The source's own numbering skips it — sections run
-  1, 2, 3, then **5 SIGN-OFF** — and Heat-Load-Test steps **3.4** and **3.9** both say
-  "record the temperature", implying a sheet to record it in (`cross_ref: "sec_4"`).
-- **Template now:** a `dynamic_table` with columns **Time / Recorder ID / Temperature
-  (≤ 26 °C) / Relative Humidity (%) / Remarks**, `min_rows: 12`. All guessed.
-- **JSON marker:** `sec_4._status` — *"RECONSTRUCTED … Confirm the real layout before
-  issuing Rev A."*
+*Code impact (not "JSON-only"):* the removal cascaded to the print fixture and to tests
+in `template.test.ts`, `values.test.ts`, `template-form.test.tsx`, `print-view.test.tsx`,
+and `workflow.test.ts` (section counts, page counts, the reconstructed-status note, and
+the numeric-limit demo — the last now covered by the numeric Power Turn-On template).
 
-**Decide:**
-- [ ] Does a Section 4 recording sheet exist on the real/paper form?
-- [ ] If yes: its actual columns, row count, and any limits (is 26 °C the temperature
-      pass limit?).
-- [ ] If no: remove `sec_4` and repoint the `cross_ref` in steps 3.4 / 3.9.
+## ✅ 2. Right-hand signer — a second "Inspection / Tested by"
 
----
+**Decision: match the source.** Both sign-off columns are titled **"Inspection /
+Tested by"** on the paper form (left company locked to *Kenyon Pte Ltd*; right company
+free-text). The right slot is now `sig_tested_2`, role "Inspection / Tested by",
+`company_locked: false`, `required: false`, and **unstaged** — so it prints as a second
+tester column without gating the §6 workflow (an unstaged slot is not counted by
+`satisfiedStages`, and the witness/client stages go vacuous). The heat load test is not
+a consultant-witnessed form; the §6 witness / remote sign-off feature serves templates
+that do carry consultant sign-off (e.g. IDF Handover).
 
-## ⛔ 2. Right-hand signature role
+## ✅ 3. "Cal. Cert No." column — kept
 
-- **Source:** the sign-off has two columns, **both titled "Inspection / Tested by"**
-  (left company locked to *Kenyon Pte Ltd*; right company is a free input).
-- **Template now:** left = *Inspection / Tested by* (Kenyon, locked); right =
-  **"Witnessed by"** (company unlocked).
-- **JSON marker:** `footer.signatures[1]._note` — *"source form titled both columns
-  'Inspection / Tested by' — confirm the right-hand signer's role"*.
-
-**Decide:**
-- [ ] Is the second signer **Witnessed by** (consultant), a second **Tested by**, or
-      something else (e.g. *Checked by* / *Accepted by*)?
-- [ ] Confirm the right-hand **company** stays free-text (not locked to Kenyon).
+**Decision: keep the label.** The 30 mm column between QTY and Remarks has an empty
+header on the paper form. Labelling it **"Cal. Cert No."** only fills in a blank header
+on an already-present column (not a layout change a consultant would reject), and
+Section 1 (`link_to_instrument_register: true`) feeds the now-built calibration register,
+so cert numbers are meaningful.
 
 ---
 
-## ⛔ 3. "Cal. Cert No." column in Testing Equipment
+## ⚠️ Lower-priority confirmations (not Rev A blockers)
 
-- **Source:** Section 1 has an **unlabelled 30 mm column** between *QTY* and *Remarks*.
-- **Template now:** labelled **"Cal. Cert No."**, 30 mm (`sec_1` → `cal_cert`).
-- **JSON marker:** `sec_1.columns.cal_cert._note` — *"column was unlabelled in the
-  source form — confirm intent"*.
+These were noted alongside the ⛔ items and remain optional confirmations:
 
-**Decide:**
-- [ ] Is this column for calibration certificate numbers?
-- [ ] Keep the label "Cal. Cert No.", use a different label, or leave it blank to match
-      the source exactly?
+- **Instrument-register link:** `sec_1` feeds the calibration register — confirmed fine
+  as-is now that the register exists (Phase 5).
+- **Step wording fidelity:** the conversion tidied source grammar/typos and moved
+  project-specific values to `{{variables}}`. If step text must read *verbatim* to the
+  accepted paper form, that is a further edit — descriptions lock at Rev A (§5.1).
 
----
+## ✅ Decided during the original conversion (recorded for the trail)
 
-## ⚠️ 4. Instrument-register link (design intent, not layout)
-
-- `sec_1` carries `link_to_instrument_register: true`, and the template `instruments`
-  block is `{ required: true, min: 1, source_section: "sec_1" }`.
-- The instrument / calibration register itself is **Phase 5** (SPEC §4, §10).
-
-**Decide:**
-- [ ] Confirm the Testing Equipment table is intended to feed the calibration register
-      later. If so this is fine as-is (no Rev A blocker); if not, drop the flag.
-
-## ⚠️ 5. Step wording fidelity
-
-The conversion **tidied grammar/typos** from the source (e.g. source "loads banks",
-"Switch-off", "cut off" → cleaner wording; consistent °C). Project-specific values are
-now `{{variables}}` rather than hardcoded.
-
-**Decide:**
-- [ ] For evidence fidelity, is tidied wording acceptable, or must step text read
-      **verbatim** to the accepted paper form? (Descriptions are not editable per record,
-      so this locks in at Rev A — §5.1.)
-
----
-
-## ✅ Decided during this build (recorded for the trail)
-
-- **Orientation:** template originally said `portrait`; **corrected to `landscape`** to
-  match the source form + SPEC §7 (you confirmed landscape). CLAUDE.md's print note was
-  updated to match.
-- **Column widths:** reconciled to the source's exact mm — standard sections
-  `result 26 mm / remarks 55 mm`; `sec_1` remarks `55 mm`. (`num` col 10 mm, `Make/Model`
-  38 mm, `QTY` 26 mm, `Cal. Cert` 30 mm already matched.)
-
----
-
-### Note on the current app output
-
-The renderer, save path, and print view are **data-driven from this JSON**, so they
-already reflect items 1–3 as the template currently stands (Section 4 renders; the right
-signer prints "Witnessed by"; the column prints "Cal. Cert No."). Settling the items
-above is a **JSON edit only** — no code change — and the output updates automatically.
+- **Orientation:** corrected `portrait` → `landscape` to match the source + SPEC §7.
+- **Column widths:** reconciled to the source mm — standard sections `result 26 mm /
+  remarks 55 mm`; `sec_1` `num 10 mm / Make-Model 38 mm / QTY 26 mm / Cal. Cert 30 mm /
+  remarks 55 mm`.

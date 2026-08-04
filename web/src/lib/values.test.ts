@@ -54,35 +54,33 @@ describe("emptyValues", () => {
     expect(sec1[0]!.make_model).toBe("EH-ND11-A");
     expect(sec1[2]!.make_model).toBe(""); // padded row is blank
   });
-
-  it("pads a table with no prefilled rows to min_rows", () => {
-    expect(values.tables.sec_4).toHaveLength(12);
-  });
 });
 
 describe("table mutations", () => {
+  // sec_1 (TESTING EQUIPMENT) is the template's only dynamic table: min_rows 4,
+  // seeded with 2 prefilled rows padded to 4.
   it("adds a blank row", () => {
     const values = emptyValues(template);
-    const next = addTableRow(values, table("sec_4"));
-    expect(next.tables.sec_4).toHaveLength(13);
-    expect(values.tables.sec_4).toHaveLength(12); // original untouched
+    const next = addTableRow(values, table("sec_1"));
+    expect(next.tables.sec_1).toHaveLength(5);
+    expect(values.tables.sec_1).toHaveLength(4); // original untouched
   });
 
   it("removes a row but never below min_rows", () => {
     const values = emptyValues(template);
-    const atMin = removeTableRow(values, table("sec_4"), 0);
-    expect(atMin.tables.sec_4).toHaveLength(12); // refused
+    const atMin = removeTableRow(values, table("sec_1"), 0);
+    expect(atMin.tables.sec_1).toHaveLength(4); // refused
 
-    const grown = addTableRow(values, table("sec_4"));
-    const shrunk = removeTableRow(grown, table("sec_4"), 0);
-    expect(shrunk.tables.sec_4).toHaveLength(12); // allowed back down to min
+    const grown = addTableRow(values, table("sec_1"));
+    const shrunk = removeTableRow(grown, table("sec_1"), 0);
+    expect(shrunk.tables.sec_1).toHaveLength(4); // allowed back down to min
   });
 
   it("sets a cell immutably", () => {
     const values = emptyValues(template);
-    const next = setTableCell(values, "sec_4", 0, "temp", "27");
-    expect(next.tables.sec_4![0]!.temp).toBe("27");
-    expect(values.tables.sec_4![0]!.temp).toBe("");
+    const next = setTableCell(values, "sec_1", 3, "remarks", "27");
+    expect(next.tables.sec_1![3]!.remarks).toBe("27");
+    expect(values.tables.sec_1![3]!.remarks).toBe("");
   });
 });
 

@@ -303,8 +303,8 @@ that actually vary.
 > **The real Phase 1 template is `heat-load-test.json`**, converted from the existing
 > `Heat_Load_Test_Report.html`. The JSON above is an abbreviated illustration of the
 > schema; the converted file is the authoritative one and lives in `/spec/templates/`.
-> Two blocks in it are marked `_status` / `_note` and must be confirmed before Rev A
-> is issued (§5.1).
+> The three Rev A blockers it once carried (`_status` / `_note` markers) are now settled
+> against the source form — see `spec/templates/heat-load-test.rev-a-checklist.md`.
 
 ---
 
