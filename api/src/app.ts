@@ -81,6 +81,11 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   return true;
 }
 
+/** Sniff an image content type from its magic bytes (PNG vs JPEG). */
+function imageContentType(bytes: Uint8Array): string {
+  return bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : "image/jpeg";
+}
+
 export interface AppDeps {
   store: RecordStore;
   /** Sign-off stores; default to in-memory fakes so record-only tests need not pass them. */
@@ -535,12 +540,37 @@ export function createApp(deps: AppDeps) {
         id: await deterministicId(`audit:${r.req.id}:opened`),
       });
     }
+    const photos = await attachments.listByRecord(r.req.record_id);
     return c.json({
       record: r.record,
       slot: { slot_id: r.req.slot_id, role: r.req.role },
       recipient: { name: r.req.recipient_name, email: r.req.recipient_email },
       expires_at: r.req.expires_at,
       status: "opened",
+      // Metadata only — the signer fetches each image from the token-gated route
+      // below, so a large photo set doesn't bloat this JSON.
+      attachments: photos.map((a) => ({ id: a.id, field_id: a.field_id, caption: a.caption })),
+    });
+  });
+
+  // Serve one attachment's image bytes, gated by the same single-use token. The
+  // remote signer has no account, so this is how the sign page shows photo
+  // evidence (§6). The attachment must belong to the linked record.
+  app.get("/api/sign/:token/attachments/:attachmentId", async (c) => {
+    const r = await resolve(c.req.param("token"));
+    if (!r.ok) return c.json(r.body, r.status);
+    const att = await attachments.getById(c.req.param("attachmentId"));
+    if (!att || att.record_id !== r.req.record_id) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(att.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
     });
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createApp } from "./app";
 import { MemoryEmailSender, type EmailSender } from "./email";
 import {
+  MemoryAttachmentStore,
   MemoryAuditStore,
   MemoryRecordStore,
   MemorySessionStore,
@@ -48,6 +49,7 @@ async function harness(now?: () => string, email: EmailSender = new MemoryEmailS
   const signatures = new MemorySignatureStore();
   const audit = new MemoryAuditStore();
   const images = new MemorySignatureImageStore();
+  const attachments = new MemoryAttachmentStore();
   const users = new MemoryUserStore();
   const sessions = new MemorySessionStore();
   await seedSession(users, sessions, "qa_qc", "qa-token");
@@ -58,13 +60,14 @@ async function harness(now?: () => string, email: EmailSender = new MemoryEmailS
     signatures,
     audit,
     images,
+    attachments,
     users,
     sessions,
     email,
     signBaseUrl: "https://sign.example",
     now,
   });
-  return { app, store, signRequests, signatures, audit, images, email, users, sessions };
+  return { app, store, signRequests, signatures, audit, images, attachments, email, users, sessions };
 }
 
 async function seedRecord(store: MemoryRecordStore, updated_at = "2026-08-02T01:00:00.000Z") {
@@ -425,5 +428,60 @@ describe("remote sign-off — revoke", () => {
     const { body } = await issue(h.app);
     const res = await h.app.request(`/api/sign-requests/${body.id}/revoke`, { method: "POST" });
     expect(res.status).toBe(401);
+  });
+});
+
+describe("remote sign-off — photo evidence (§6, §8)", () => {
+  async function seedPhoto(h: Awaited<ReturnType<typeof harness>>) {
+    await h.images.put("attachments/r1/at1", new Uint8Array([137, 80, 1, 2]), "image/png");
+    await h.attachments.upsert({
+      id: "at1",
+      record_id: "r1",
+      field_id: "chk_3_1:photo",
+      kind: "photo",
+      image_key: "attachments/r1/at1",
+      caption: "north wall",
+      device_id: "d",
+      created_at: "t",
+    });
+  }
+
+  it("lists a record's photo metadata in the open view", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedPhoto(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}`);
+    const view = (await res.json()) as { attachments: { id: string; caption: string }[] };
+    expect(view.attachments).toEqual([{ id: "at1", field_id: "chk_3_1:photo", caption: "north wall" }]);
+  });
+
+  it("serves the image bytes through the token-gated route", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedPhoto(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}/attachments/at1`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([137, 80, 1, 2]));
+  });
+
+  it("404s an attachment that isn't on the linked record", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedPhoto(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}/attachments/ghost`);
+    expect(res.status).toBe(404);
+  });
+
+  it("refuses the image on an unknown token", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedPhoto(h);
+    await issue(h.app);
+    const res = await h.app.request(`/api/sign/deadbeef/attachments/at1`);
+    expect(res.status).toBe(404);
   });
 });

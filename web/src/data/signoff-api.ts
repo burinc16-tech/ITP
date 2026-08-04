@@ -21,6 +21,8 @@ export interface SignLinkView {
   recipient: { name: string | null; email: string };
   expires_at: string;
   status: string;
+  /** Photo metadata; each image is fetched from the token-gated route (§6, §8). */
+  attachments?: { id: string; field_id: string; caption: string }[];
 }
 
 /** Why a link can't be used. `error` is the catch-all (network/5xx/unexpected). */

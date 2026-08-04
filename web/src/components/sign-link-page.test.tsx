@@ -3,10 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { parseTemplate } from "@schema";
 import heatLoadRaw from "../../../spec/templates/heat-load-test.json";
+import idfRaw from "../../../spec/templates/idf-handover.json";
 import { createDraft } from "../data/record";
 import { SignLinkPage } from "./sign-link-page";
 
 const heatLoad = parseTemplate(heatLoadRaw);
+const idf = parseTemplate(idfRaw);
 
 const record = {
   ...createDraft(heatLoad, { id: "r1", now: "2026-08-02T00:00:00.000Z", createdBy: "u" }),
@@ -59,5 +61,25 @@ describe("SignLinkPage", () => {
     const f = vi.fn().mockResolvedValue(R(410, { error: "expired" }));
     render(<SignLinkPage token="tok" baseUrl="http://api" templates={[heatLoad]} fetchImpl={f} />);
     expect(await screen.findByText(/has expired/)).toBeInTheDocument();
+  });
+
+  it("shows photo evidence via the token-gated image URL", async () => {
+    const idfRecord = {
+      ...createDraft(idf, { id: "r2", now: "2026-08-04T00:00:00.000Z", createdBy: "u" }),
+      status: "completed" as const,
+    };
+    const idfView = {
+      record: idfRecord,
+      slot: { slot_id: "sig_pm", role: "Project Manager" },
+      recipient: { name: "Pat", email: "pat@c.example" },
+      expires_at: "2026-08-11T00:00:00.000Z",
+      status: "opened",
+      attachments: [{ id: "at1", field_id: "chk_3_1:photo", caption: "north wall" }],
+    };
+    const f = vi.fn().mockResolvedValue(R(200, idfView));
+    render(<SignLinkPage token="tok" baseUrl="http://api" templates={[idf]} fetchImpl={f} />);
+
+    const img = await screen.findByAltText("north wall");
+    expect(img).toHaveAttribute("src", "http://api/api/sign/tok/attachments/at1");
   });
 });
