@@ -1,0 +1,1385 @@
+{
+  "code": "IDF",
+  "title": "IDF Handover Checklist",
+  "rev": "A",
+  "discipline": "ICT / Structured Cabling",
+  "category": "ITR",
+  "page": {
+    "size": "A4",
+    "orientation": "portrait"
+  },
+  "source": "spec/IDF_Handover_Checklist.html (Rev 10, 12 January 2019)",
+  "header": {
+    "title": "1. General Project Information",
+    "fields": [
+      {
+        "id": "project_name",
+        "label": "Project Name",
+        "type": "text",
+        "source": "project.name"
+      },
+      {
+        "id": "project_address",
+        "label": "Project Address",
+        "type": "text"
+      },
+      {
+        "id": "project_type",
+        "label": "Project Type",
+        "type": "dropdown",
+        "options": [
+          "Expansion",
+          "Relocation",
+          "Reconfiguration",
+          "Refurbishment",
+          "Reinstatement"
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "id": "preparer",
+      "no": "2",
+      "title": "Preparer Details",
+      "type": "field_group",
+      "fields": [
+        {
+          "id": "prep_name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "id": "prep_position",
+          "label": "Position",
+          "type": "text"
+        },
+        {
+          "id": "prep_company",
+          "label": "Company",
+          "type": "text"
+        },
+        {
+          "id": "prep_email",
+          "label": "Email",
+          "type": "email"
+        },
+        {
+          "id": "prep_contact",
+          "label": "Contact No.",
+          "type": "tel"
+        }
+      ]
+    },
+    {
+      "id": "checklist",
+      "no": "3",
+      "title": "Checklist",
+      "columns": {
+        "result": {
+          "label": "Status"
+        },
+        "remarks": {
+          "label": "Remarks"
+        }
+      },
+      "rows": [
+        {
+          "id": "chk_3_1",
+          "no": "3-1",
+          "type": "status",
+          "description": "Dust free",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_2",
+          "no": "3-2",
+          "type": "status",
+          "description": "Permanent power",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_3",
+          "no": "3-3",
+          "type": "status",
+          "description": "Permanent A/C working",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_4",
+          "no": "3-4",
+          "type": "status",
+          "description": "Permanent door installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_5",
+          "no": "3-5",
+          "type": "status",
+          "description": "MDF / IDF is lockable and secure",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_6",
+          "no": "3-6",
+          "type": "status",
+          "description": "Door sweep installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_7",
+          "no": "3-7",
+          "type": "status",
+          "description": "Door closer installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_8",
+          "no": "3-8",
+          "type": "status",
+          "description": "Sticky mat installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_9",
+          "no": "3-9",
+          "type": "status",
+          "description": "Negative Air pressure vestibule installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_10",
+          "no": "3-10",
+          "type": "status",
+          "description": "Room have positive air pressure",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_11",
+          "no": "3-11",
+          "type": "status",
+          "description": "Pre-Action fire suppression system installed (MDF only)",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_12",
+          "no": "3-12",
+          "type": "status",
+          "description": "EZ Path conduit sleeves installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_13",
+          "no": "3-13",
+          "type": "status",
+          "description": "Telecommunication Main Grounding Bus Bar (TMGB) installed and all racks and ladder rack grounded.",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_14",
+          "no": "3-14",
+          "type": "status",
+          "description": "Racks installed, bolted to the floor, and verified level",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_15",
+          "no": "3-15",
+          "type": "status",
+          "description": "4 post rack depth is adjusted 32\" between rails.",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_16",
+          "no": "3-16",
+          "type": "status",
+          "description": "Rack labelled (per rack elevations) front/back/top/bottom",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_17",
+          "no": "3-17",
+          "type": "status",
+          "description": "Backboard installed on all walls",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_18",
+          "no": "3-18",
+          "type": "status",
+          "description": "Patch panels installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_19",
+          "no": "3-19",
+          "type": "status",
+          "description": "Power outlets (IT and Convenience) live",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_20",
+          "no": "3-20",
+          "type": "status",
+          "description": "PDUs installed and live",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_21",
+          "no": "3-21",
+          "type": "status",
+          "description": "100% copper punch down completed on patch panels",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_22",
+          "no": "3-22",
+          "type": "status",
+          "description": "100% fiber terminations complete and labeled",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_23",
+          "no": "3-23",
+          "type": "status",
+          "description": "UPS racked, cabled and live (no red lights)",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_24",
+          "no": "3-24",
+          "type": "status",
+          "description": "Emergency Power Off (EPO) switch installed (For whole-room UPS only)",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_3_25",
+          "no": "3-25",
+          "type": "status",
+          "description": "Overhead ladder rack and fiber guide installed",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        }
+      ]
+    },
+    {
+      "id": "photos_confirming",
+      "no": "4",
+      "title": "Photos Confirming",
+      "page_break_before": true,
+      "columns": {
+        "result": {
+          "label": "Status"
+        },
+        "remarks": {
+          "label": "Remarks"
+        }
+      },
+      "rows": [
+        {
+          "id": "chk_4_1",
+          "no": "4-1",
+          "type": "status",
+          "description": "Air conditioning thermostat control with 75F/23C temperature settings",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_2",
+          "no": "4-2",
+          "type": "status",
+          "description": "Door closer, sweep and sticky mat",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_3",
+          "no": "4-3",
+          "type": "status",
+          "description": "Negative air pressure vestibule",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_4",
+          "no": "4-4",
+          "type": "status",
+          "description": "Installed grounding busbar",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_5",
+          "no": "4-5",
+          "type": "status",
+          "description": "Wide shot, all racks, from front face",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_6",
+          "no": "4-6",
+          "type": "status",
+          "description": "Wide shot, all rack, from back face",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_7",
+          "no": "4-7",
+          "type": "status",
+          "description": "Wide shot of the whole room, best possible angle",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_8",
+          "no": "4-8",
+          "type": "status",
+          "description": "Single rack shot, front face, top/middle/bottom",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_9",
+          "no": "4-9",
+          "type": "status",
+          "description": "Single rack shot, back face, top/middle/bottom",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_10",
+          "no": "4-10",
+          "type": "status",
+          "description": "Detailed shot of each PDU to verify proper PDU's have been installed, power on and have no warning lights.",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_11",
+          "no": "4-11",
+          "type": "status",
+          "description": "Power outlets at top of rack, with enough details to determine plug types",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_12",
+          "no": "4-12",
+          "type": "status",
+          "description": "Shot of the backboard with the circuit drops, etc.",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_13",
+          "no": "4-13",
+          "type": "status",
+          "description": "UPS – Powered on",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_14",
+          "no": "4-14",
+          "type": "status",
+          "description": "Grounding wire installation to racks and ladder rack",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_15",
+          "no": "4-15",
+          "type": "status",
+          "description": "EZ-Path penetrations into MDF/IDF",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        },
+        {
+          "id": "chk_4_16",
+          "no": "4-16",
+          "type": "status",
+          "description": "Picture of “2U Port Panel (OOB Pass-Thru)”",
+          "states": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "outcome": "pass"
+            },
+            {
+              "value": "no",
+              "label": "No",
+              "outcome": "fail"
+            },
+            {
+              "value": "na",
+              "label": "NA",
+              "outcome": "na"
+            },
+            {
+              "value": "in_progress",
+              "label": "In Progress",
+              "outcome": "fail"
+            }
+          ],
+          "remarks": true,
+          "photo": true
+        }
+      ]
+    },
+    {
+      "id": "signoff",
+      "no": "5",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "page_break_before": true,
+      "signatures": [
+        {
+          "id": "sig_vendor",
+          "role": "Vendor",
+          "company_default": "New Revolution",
+          "required": true,
+          "stage": "contractor"
+        },
+        {
+          "id": "sig_gc",
+          "role": "General Contractor",
+          "company_default": "Kenyon Pte Ltd",
+          "required": true,
+          "stage": "check"
+        },
+        {
+          "id": "sig_pm",
+          "role": "Project Manager",
+          "company_default": "JLL",
+          "required": false,
+          "stage": "witness"
+        },
+        {
+          "id": "sig_rse",
+          "role": "RSE Approver",
+          "required": false,
+          "stage": "client"
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "no": "6",
+      "title": "Notes",
+      "type": "field_group",
+      "fields": [
+        {
+          "id": "notes_text",
+          "label": "Notes",
+          "type": "textarea"
+        }
+      ]
+    }
+  ]
+}
