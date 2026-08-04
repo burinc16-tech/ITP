@@ -14,6 +14,7 @@ import {
 import { OutstandingList } from "./components/outstanding-list";
 import { RecordForm } from "./components/record-form";
 import { Register } from "./components/register";
+import { AttachmentsRepo } from "./data/attachments-repo";
 import { AuditRepo } from "./data/audit-repo";
 import { AuthClient, loadStoredToken, storeToken, type Session } from "./data/auth";
 import { ChecklistDb } from "./data/db";
@@ -50,6 +51,7 @@ const signaturesRepo = new SignaturesRepo(db);
 const auditRepo = new AuditRepo(db);
 const registryRepo = new RegistryRepo(db);
 const instrumentsRepo = new InstrumentsRepo(db);
+const attachmentsRepo = new AttachmentsRepo(db);
 const outboxRepo = new OutboxRepo(db);
 // Push to the Worker API when configured (VITE_API_URL), else stay local-only.
 const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
@@ -297,6 +299,7 @@ export function App(): ReactNode {
             signaturesRepo={signaturesRepo}
             auditRepo={auditRepo}
             registryRepo={registryRepo}
+            attachmentsRepo={attachmentsRepo}
             sync={sync}
             role={role}
             signoff={signoff}

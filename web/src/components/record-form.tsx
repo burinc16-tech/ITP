@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Signature, Template } from "@schema";
+import { createAttachment, type AttachmentView } from "../data/attachment";
+import type { AttachmentsRepo } from "../data/attachments-repo";
 import { createAuditEntry } from "../data/audit";
 import type { AuditRepo } from "../data/audit-repo";
 import { getDeviceId } from "../data/device";
@@ -66,6 +68,8 @@ export function RecordForm(props: {
   signaturesRepo: SignaturesRepo;
   auditRepo: AuditRepo;
   registryRepo: RegistryRepo;
+  /** Photo attachment store (§8). Optional so tests can omit it; the app supplies it. */
+  attachmentsRepo?: AttachmentsRepo;
   sync: SyncLayer;
   role: Role;
   /** Remote sign-off client (QA/QC issue links). Null when the API isn't configured. */
@@ -88,6 +92,7 @@ export function RecordForm(props: {
     signaturesRepo,
     auditRepo,
     registryRepo,
+    attachmentsRepo,
     sync,
     role,
     signoff,
@@ -116,9 +121,14 @@ export function RecordForm(props: {
   // A save that the server refused because the record is locked (§8). Shown
   // prominently and unconditionally — it can happen during any autosave.
   const [conflictNote, setConflictNote] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Map<string, AttachmentView[]>>(
+    () => new Map(),
+  );
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // Object URLs backing the on-screen signature images, revoked on refresh/unmount.
   const imageUrls = useRef<string[]>([]);
+  // Object URLs backing the on-screen photo thumbnails, revoked on refresh/unmount.
+  const photoUrls = useRef<string[]>([]);
 
   // Latest record and values, read by the debounced autosave without a stale
   // closure. Autosave persists whatever is current, so overlapping saves (e.g.
@@ -223,11 +233,107 @@ export function RecordForm(props: {
     [signaturesRepo],
   );
 
+  // Revoke any outstanding photo thumbnail URLs when the form unmounts.
+  useEffect(
+    () => () => {
+      for (const url of photoUrls.current) URL.revokeObjectURL(url);
+      photoUrls.current = [];
+    },
+    [],
+  );
+
+  // Load the record's photos, turning each stored blob into a thumbnail URL
+  // grouped by the field it evidences, revoking the previous batch first.
+  const refreshAttachments = useCallback(
+    async (id: string) => {
+      if (!attachmentsRepo) return;
+      const rows = await attachmentsRepo.listByRecord(id);
+      for (const url of photoUrls.current) URL.revokeObjectURL(url);
+      const urls: string[] = [];
+      const map = new Map<string, AttachmentView[]>();
+      for (const a of rows) {
+        const url = URL.createObjectURL(a.image);
+        urls.push(url);
+        const view: AttachmentView = {
+          id: a.id,
+          field_id: a.field_id,
+          caption: a.caption,
+          image_url: url,
+        };
+        const list = map.get(a.field_id);
+        if (list) list.push(view);
+        else map.set(a.field_id, [view]);
+      }
+      photoUrls.current = urls;
+      setAttachments(map);
+    },
+    [attachmentsRepo],
+  );
+
   // Load signatures once the record is known (and only when its id changes).
   const recordId = record?.id;
   useEffect(() => {
     if (recordId) void refreshSignatures(recordId);
   }, [recordId, refreshSignatures]);
+
+  useEffect(() => {
+    if (recordId) void refreshAttachments(recordId);
+  }, [recordId, refreshAttachments]);
+
+  // Photo capture is a local write: store the blob, then refresh thumbnails. The
+  // record referencing it and the R2 upload are the sync layer's job (§8) — a
+  // later task. Gated by field-editability so a locked record can't gain photos.
+  const handleAddPhoto = useCallback(
+    async (fieldId: string, file: Blob) => {
+      const current = recordRef.current;
+      if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
+      await attachmentsRepo.add(
+        createAttachment({
+          id: newId(),
+          recordId: current.id,
+          fieldId,
+          image: file,
+          deviceId: deviceId(),
+          now: clock(),
+        }),
+      );
+      await refreshAttachments(current.id);
+    },
+    [attachmentsRepo, newId, deviceId, clock, refreshAttachments],
+  );
+
+  // Recaption in place — persisted, but without recreating the object URLs (which
+  // would flicker every thumbnail on each keystroke).
+  const handleCaptionPhoto = useCallback(
+    async (id: string, caption: string) => {
+      const current = recordRef.current;
+      if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
+      setAttachments((prev) => {
+        const next = new Map(prev);
+        for (const [field, list] of next) {
+          const i = list.findIndex((p) => p.id === id);
+          if (i >= 0) {
+            const copy = list.slice();
+            copy[i] = { ...copy[i]!, caption };
+            next.set(field, copy);
+          }
+        }
+        return next;
+      });
+      await attachmentsRepo.setCaption(id, caption);
+    },
+    [attachmentsRepo],
+  );
+
+  const handleRemovePhoto = useCallback(
+    async (id: string) => {
+      const current = recordRef.current;
+      if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
+      await attachmentsRepo.remove(id);
+      await refreshAttachments(current.id);
+    },
+    [attachmentsRepo, refreshAttachments],
+  );
 
   // When a record is rejected, surface its reason from the audit trail (§6).
   const recordStatus = record?.status;
@@ -607,6 +713,10 @@ export function RecordForm(props: {
           onChange={editable ? handleChange : noop}
           signatures={signatures}
           onSign={handleSign}
+          attachments={attachments}
+          onAddPhoto={handleAddPhoto}
+          onCaptionPhoto={handleCaptionPhoto}
+          onRemovePhoto={handleRemovePhoto}
           locked={!editable}
           canSign={canSign}
           newId={newId}

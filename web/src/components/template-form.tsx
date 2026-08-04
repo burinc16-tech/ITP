@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Signature, Template } from "@schema";
+import type { AttachmentView } from "../data/attachment";
 import type { SignatureView } from "../data/signature";
 import type { RecordValues } from "../lib/values";
 import { FormProvider } from "./form-context";
@@ -20,11 +21,28 @@ export function TemplateForm(props: {
   onChange: (next: RecordValues) => void;
   signatures?: Map<string, SignatureView>;
   onSign?: (slot: Signature) => void;
+  attachments?: Map<string, AttachmentView[]>;
+  onAddPhoto?: (fieldId: string, file: Blob) => void;
+  onCaptionPhoto?: (id: string, caption: string) => void;
+  onRemovePhoto?: (id: string) => void;
   locked?: boolean;
   canSign?: boolean;
   newId?: () => string;
 }): ReactNode {
-  const { template, values, onChange, signatures, onSign, locked, canSign, newId } = props;
+  const {
+    template,
+    values,
+    onChange,
+    signatures,
+    onSign,
+    attachments,
+    onAddPhoto,
+    onCaptionPhoto,
+    onRemovePhoto,
+    locked,
+    canSign,
+    newId,
+  } = props;
   return (
     <FormProvider
       template={template}
@@ -32,6 +50,10 @@ export function TemplateForm(props: {
       onChange={onChange}
       signatures={signatures}
       onSign={onSign}
+      attachments={attachments}
+      onAddPhoto={onAddPhoto}
+      onCaptionPhoto={onCaptionPhoto}
+      onRemovePhoto={onRemovePhoto}
       locked={locked}
       canSign={canSign}
       newId={newId}
