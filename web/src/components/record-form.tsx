@@ -129,6 +129,8 @@ export function RecordForm(props: {
   const imageUrls = useRef<string[]>([]);
   // Object URLs backing the on-screen photo thumbnails, revoked on refresh/unmount.
   const photoUrls = useRef<string[]>([]);
+  // Debounce timers for re-pushing a photo caption, keyed by attachment id.
+  const captionTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Latest record and values, read by the debounced autosave without a stale
   // closure. Autosave persists whatever is current, so overlapping saves (e.g.
@@ -233,14 +235,17 @@ export function RecordForm(props: {
     [signaturesRepo],
   );
 
-  // Revoke any outstanding photo thumbnail URLs when the form unmounts.
-  useEffect(
-    () => () => {
+  // Revoke any outstanding photo thumbnail URLs and cancel pending caption
+  // pushes when the form unmounts.
+  useEffect(() => {
+    const timers = captionTimers.current;
+    return () => {
       for (const url of photoUrls.current) URL.revokeObjectURL(url);
       photoUrls.current = [];
-    },
-    [],
-  );
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
 
   // Load the record's photos, turning each stored blob into a thumbnail URL
   // grouped by the field it evidences, revoking the previous batch first.
@@ -280,30 +285,31 @@ export function RecordForm(props: {
     if (recordId) void refreshAttachments(recordId);
   }, [recordId, refreshAttachments]);
 
-  // Photo capture is a local write: store the blob, then refresh thumbnails. The
-  // record referencing it and the R2 upload are the sync layer's job (§8) — a
-  // later task. Gated by field-editability so a locked record can't gain photos.
+  // Photo capture is a local write (§8): store the blob, enqueue the upload, then
+  // refresh thumbnails. The blob is durable in Dexie and the queue drives the R2
+  // upload. Gated by field-editability so a locked record can't gain photos.
   const handleAddPhoto = useCallback(
     async (fieldId: string, file: Blob) => {
       const current = recordRef.current;
       if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
-      await attachmentsRepo.add(
-        createAttachment({
-          id: newId(),
-          recordId: current.id,
-          fieldId,
-          image: file,
-          deviceId: deviceId(),
-          now: clock(),
-        }),
-      );
+      const attachment = createAttachment({
+        id: newId(),
+        recordId: current.id,
+        fieldId,
+        image: file,
+        deviceId: deviceId(),
+        now: clock(),
+      });
+      await attachmentsRepo.add(attachment);
+      await sync.pushAttachment(attachment);
       await refreshAttachments(current.id);
     },
-    [attachmentsRepo, newId, deviceId, clock, refreshAttachments],
+    [attachmentsRepo, sync, newId, deviceId, clock, refreshAttachments],
   );
 
   // Recaption in place — persisted, but without recreating the object URLs (which
-  // would flicker every thumbnail on each keystroke).
+  // would flicker every thumbnail on each keystroke). The re-upload is debounced
+  // so rapid typing pushes once, not per keystroke.
   const handleCaptionPhoto = useCallback(
     async (id: string, caption: string) => {
       const current = recordRef.current;
@@ -321,8 +327,19 @@ export function RecordForm(props: {
         return next;
       });
       await attachmentsRepo.setCaption(id, caption);
+      const existing = captionTimers.current.get(id);
+      if (existing) clearTimeout(existing);
+      captionTimers.current.set(
+        id,
+        setTimeout(() => {
+          void (async () => {
+            const updated = await attachmentsRepo.get(id);
+            if (updated) await sync.pushAttachment(updated);
+          })();
+        }, autosaveMs),
+      );
     },
-    [attachmentsRepo],
+    [attachmentsRepo, sync, autosaveMs],
   );
 
   const handleRemovePhoto = useCallback(

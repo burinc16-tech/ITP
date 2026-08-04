@@ -14,6 +14,8 @@ React link page, transactional email, and real auth are later tasks (2b+).
 - `api/wrangler.toml` — bindings (D1 `DB`, R2 `SIGNATURES`, `API_SECRET`).
 - `db/migrations/0001_init.sql` — base schema.
 - `db/migrations/0002_signoff.sql` — sign-off columns (`slot_id`, signer evidence).
+- `db/migrations/0003_auth.sql` — users + sessions.
+- `db/migrations/0004_attachments.sql` — photo attachments (bytes in R2, metadata in D1).
 
 ## Endpoints
 
@@ -26,6 +28,10 @@ by the single-use link token instead.
   Send `Authorization: Bearer <token>` on privileged calls.
 - `POST /api/auth/logout` *(auth)* · `GET /api/auth/me` *(auth)*.
 - `POST /api/records` · `GET /api/records/:id` *(auth)* — record sync (LWW on `updated_at`).
+- `POST /api/records/:id/attachments` *(auth)* — photo sync (§8). Upsert by client id
+  (`{ id, field_id, caption, device_id, created_at, image }`); the image rides as a
+  `data:` URL, is stored in R2 under `attachments/<record>/<id>`, and is only
+  rewritten when the bytes change (a caption edit re-pushes the row, not the blob).
 - `POST /api/records/:id/sign-requests` *(auth, QA/QC)* — issue a link + email it.
   Returns `{ id, token, url, expires_at, emailed }`; only the token **hash** is stored.
 - `GET /api/sign/:token` *(public)* — open the link: returns the read-only record,

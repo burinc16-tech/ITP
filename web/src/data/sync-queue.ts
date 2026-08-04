@@ -1,3 +1,5 @@
+import type { Attachment } from "./attachment";
+import type { AttachmentsRepo } from "./attachments-repo";
 import type { AuditEntry } from "./audit";
 import { isoClock } from "./record";
 import type { ChecklistRecord } from "./record";
@@ -22,6 +24,8 @@ export interface Transport {
   pushSignature(signature: CapturedSignature): Promise<void>;
   /** Insert-once an audit entry (throws on network failure). */
   pushAudit(entry: AuditEntry): Promise<void>;
+  /** Upsert a photo attachment (throws on network failure). */
+  pushAttachment(attachment: Attachment): Promise<void>;
   /** Best-effort read of the server's record copy, or null. */
   pull(id: string): Promise<ChecklistRecord | null>;
 }
@@ -32,6 +36,7 @@ export interface QueuedSyncDeps {
   records: RecordsRepo;
   signatures: SignaturesRepo;
   audit: AuditRepo;
+  attachments: AttachmentsRepo;
   clock?: () => string;
   /**
    * Fired with the record id when a queued record push is refused as a lock
@@ -97,6 +102,12 @@ export class QueuedSync implements SyncLayer {
     this.kick();
   }
 
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    await this.deps.outbox.enqueue("attachment", attachment.id, this.clock());
+    this.changed();
+    this.kick();
+  }
+
   pull(id: string): Promise<ChecklistRecord | null> {
     return this.deps.transport.pull(id);
   }
@@ -154,6 +165,12 @@ export class QueuedSync implements SyncLayer {
         const audit = await this.deps.audit.get(entry.target_id);
         if (!audit) return "gone";
         await this.deps.transport.pushAudit(audit);
+        return "ok";
+      }
+      case "attachment": {
+        const attachment = await this.deps.attachments.get(entry.target_id);
+        if (!attachment) return "gone";
+        await this.deps.transport.pushAttachment(attachment);
         return "ok";
       }
     }

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { parseTemplate } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
+import { createAttachment, type Attachment } from "./attachment";
+import { AttachmentsRepo } from "./attachments-repo";
 import { createAuditEntry, type AuditEntry } from "./audit";
 import { AuditRepo } from "./audit-repo";
 import { ChecklistDb } from "./db";
@@ -19,6 +21,7 @@ class FakeTransport implements Transport {
   readonly records: string[] = [];
   readonly signatures: string[] = [];
   readonly audits: string[] = [];
+  readonly attachments: string[] = [];
   failNext = 0;
   readonly conflictIds = new Set<string>();
 
@@ -41,6 +44,10 @@ class FakeTransport implements Transport {
     this.maybeFail();
     this.audits.push(a.id);
   }
+  async pushAttachment(a: Attachment): Promise<void> {
+    this.maybeFail();
+    this.attachments.push(a.id);
+  }
   async pull(): Promise<ChecklistRecord | null> {
     return null;
   }
@@ -51,6 +58,7 @@ function harness() {
   const records = new RecordsRepo(db);
   const signatures = new SignaturesRepo(db);
   const audit = new AuditRepo(db);
+  const attachments = new AttachmentsRepo(db);
   const outbox = new OutboxRepo(db);
   const transport = new FakeTransport();
   const conflicts: string[] = [];
@@ -66,6 +74,7 @@ function harness() {
     records,
     signatures,
     audit,
+    attachments,
     clock,
     autoDrain: false,
     onConflict: (id) => conflicts.push(id),
@@ -77,6 +86,7 @@ function harness() {
     records,
     signatures,
     audit,
+    attachments,
     outbox,
     transport,
     queue,
@@ -221,6 +231,26 @@ describe("QueuedSync", () => {
     await h.queue.drain(); // reschedule → change #2
     expect(h.changes()).toBe(2);
     expect(await h.queue.pendingCount()).toBe(1);
+  });
+
+  it("delivers a queued photo attachment", async () => {
+    const h = harness();
+    const r = draft(h.clock());
+    await h.records.upsert(r);
+    const attachment = createAttachment({
+      id: uuidv7(),
+      recordId: r.id,
+      fieldId: "ph_01",
+      image: new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" }),
+      deviceId: "d",
+      now: h.clock(),
+    });
+    await h.attachments.add(attachment);
+    await h.queue.pushAttachment(attachment);
+
+    await h.queue.drain();
+    expect(h.transport.attachments).toEqual([attachment.id]);
+    expect(await h.queue.pendingCount()).toBe(0);
   });
 
   it("coalesces repeated record pushes into a single delivery", async () => {

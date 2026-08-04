@@ -1,3 +1,4 @@
+import type { Attachment } from "./attachment";
 import type { AuditEntry } from "./audit";
 import type { ChecklistRecord } from "./record";
 import type { CapturedSignature } from "./signature";
@@ -38,6 +39,8 @@ export interface SyncLayer {
   pushSignature(signature: CapturedSignature): Promise<void>;
   /** Push an audit entry the client authored (SPEC §9). Best-effort. */
   pushAudit(entry: AuditEntry): Promise<void>;
+  /** Push a captured photo attachment (SPEC §8). Best-effort. */
+  pushAttachment(attachment: Attachment): Promise<void>;
 }
 
 /**
@@ -63,6 +66,10 @@ export class PassthroughSync implements SyncLayer {
 
   async pushAudit(_entry: AuditEntry): Promise<void> {
     // No queue, no network — the entry is durable in Dexie.
+  }
+
+  async pushAttachment(_attachment: Attachment): Promise<void> {
+    // No queue, no network — the photo is durable in Dexie.
   }
 }
 
@@ -165,6 +172,32 @@ export class ApiSync implements SyncLayer {
       console.warn("audit push failed (kept locally)", err);
     }
   }
+
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    try {
+      const image = await blobToDataUrl(attachment.image);
+      await fetch(`${this.baseUrl}/api/records/${attachment.record_id}/attachments`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(attachmentBody(attachment, image)),
+      });
+    } catch (err) {
+      console.warn("attachment push failed (kept locally)", err);
+    }
+  }
+}
+
+/** JSON body for an attachment push — the image rides as a `data:` URL. */
+function attachmentBody(attachment: Attachment, image: string): Record<string, unknown> {
+  return {
+    id: attachment.id,
+    field_id: attachment.field_id,
+    caption: attachment.caption,
+    mime: attachment.mime,
+    device_id: attachment.device_id,
+    created_at: attachment.created_at,
+    image,
+  };
 }
 
 /**
@@ -303,6 +336,19 @@ export class ApiTransport implements Transport {
       body: JSON.stringify(entry),
     });
     classifyResponse(res, "audit push");
+  }
+
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    const image = await blobToDataUrl(attachment.image);
+    const res = await fetch(
+      `${this.baseUrl}/api/records/${attachment.record_id}/attachments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(attachmentBody(attachment, image)),
+      },
+    );
+    classifyResponse(res, "attachment push");
   }
 
   async pull(id: string): Promise<ChecklistRecord | null> {

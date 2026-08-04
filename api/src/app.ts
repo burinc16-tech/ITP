@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { MiddlewareHandler } from "hono";
 import type {
+  AttachmentRow,
+  AttachmentStore,
   AuditRow,
   AuditStore,
   IncomingRecord,
@@ -17,6 +19,7 @@ import type {
 } from "./store";
 import {
   CLOSED_REQUEST_STATUSES,
+  MemoryAttachmentStore,
   MemoryAuditStore,
   MemorySessionStore,
   MemorySignatureImageStore,
@@ -85,6 +88,8 @@ export interface AppDeps {
   signatures?: SignatureStore;
   audit?: AuditStore;
   images?: SignatureImageStore;
+  /** Photo attachment metadata store (§8); image bytes reuse `images` (R2). */
+  attachments?: AttachmentStore;
   /** Auth stores (task 4). Default to in-memory fakes; seed a user to log in. */
   users?: UserStore;
   sessions?: SessionStore;
@@ -107,6 +112,7 @@ export function createApp(deps: AppDeps) {
   const signatures = deps.signatures ?? new MemorySignatureStore();
   const audit = deps.audit ?? new MemoryAuditStore();
   const images = deps.images ?? new MemorySignatureImageStore();
+  const attachments = deps.attachments ?? new MemoryAttachmentStore();
   const users = deps.users ?? new MemoryUserStore();
   const sessions = deps.sessions ?? new MemorySessionStore();
   const email = deps.email ?? new MemoryEmailSender();
@@ -303,6 +309,57 @@ export function createApp(deps: AppDeps) {
     await images.put(imageKey, bytes, contentType);
     await signatures.add(row);
     return c.json({ applied: true }, 201);
+  });
+
+  // --- Sync push: photo attachments (SPEC §4, §8) --------------------------
+  // Upsert by client id (last-write-wins), so a recaption re-pushes the row. The
+  // image bytes reuse the R2 store; the blob is only rewritten when it actually
+  // changes, making a caption-only re-push cheap. Photos are editable draft data,
+  // not append-only evidence, so this is an upsert — not the signature insert-once.
+
+  app.post("/api/records/:id/attachments", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+
+    let body: {
+      id?: string; field_id?: string; caption?: string;
+      device_id?: string; created_at?: string; image?: string;
+    };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body.id || !body.field_id || !body.device_id || !body.created_at) {
+      return c.json({ error: "invalid attachment" }, 400);
+    }
+    let bytes: Uint8Array;
+    let contentType: string;
+    try {
+      ({ bytes, contentType } = decodeImage(body.image ?? ""));
+    } catch {
+      return c.json({ error: "a photo image is required" }, 400);
+    }
+
+    const imageKey = `attachments/${recordId}/${body.id}`;
+    // Only rewrite the R2 blob when the bytes differ from what's stored.
+    const existing = await attachments.getById(body.id);
+    const stored = existing ? await images.get(existing.image_key) : null;
+    if (!stored || !bytesEqual(stored, bytes)) {
+      await images.put(imageKey, bytes, contentType);
+    }
+    const row: AttachmentRow = {
+      id: body.id,
+      record_id: recordId,
+      field_id: body.field_id,
+      kind: "photo",
+      image_key: existing?.image_key ?? imageKey,
+      caption: body.caption ?? "",
+      device_id: body.device_id,
+      created_at: body.created_at,
+    };
+    await attachments.upsert(row);
+    return c.json({ applied: true });
   });
 
   app.post("/api/records/:id/audit", requireUser, async (c) => {

@@ -71,6 +71,7 @@ const queuedSync = apiUrl
       records: repo,
       signatures: signaturesRepo,
       audit: auditRepo,
+      attachments: attachmentsRepo,
       onConflict: publishConflict,
       onChange: publishPending,
     })

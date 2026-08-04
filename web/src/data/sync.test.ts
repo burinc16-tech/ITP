@@ -36,6 +36,17 @@ const signature = {
   image: pngBlob,
 } as unknown as CapturedSignature;
 const audit = { id: "a1", record_id: "r1", action: "complete" } as unknown as AuditEntry;
+const attachment = {
+  id: "at1",
+  record_id: "r1",
+  field_id: "ph_01",
+  kind: "photo",
+  image: pngBlob,
+  mime: "image/png",
+  caption: "north wall",
+  device_id: "d",
+  created_at: "t",
+} as unknown as import("./attachment").Attachment;
 
 describe("ApiTransport — record push", () => {
   it("returns the server's applied/conflict on a 2xx", async () => {
@@ -108,6 +119,23 @@ describe("ApiTransport — evidence push", () => {
   it("throws on a 404 (parent record not synced yet) so the queue retries", async () => {
     stubFetch(vi.fn().mockResolvedValue(R(404)));
     await expect(new ApiTransport("http://api", "tok").pushAudit(audit)).rejects.toThrow("404");
+  });
+
+  it("posts an attachment with its image as a data URL and metadata, resolves on 2xx", async () => {
+    const f = vi.fn().mockResolvedValue(R(200, { applied: true }));
+    stubFetch(f);
+    await expect(new ApiTransport("http://api", "tok").pushAttachment(attachment)).resolves.toBeUndefined();
+    const [url, init] = f.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://api/api/records/r1/attachments");
+    const sent = JSON.parse(init.body as string);
+    expect(sent.field_id).toBe("ph_01");
+    expect(sent.caption).toBe("north wall");
+    expect(sent.image).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("throws on a retryable attachment push failure", async () => {
+    stubFetch(vi.fn().mockResolvedValue(R(500)));
+    await expect(new ApiTransport("http://api", "tok").pushAttachment(attachment)).rejects.toThrow("500");
   });
 
   it("pull swallows a failure and returns null", async () => {
