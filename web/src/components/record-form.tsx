@@ -23,7 +23,7 @@ import {
 } from "../data/signature";
 import type { SignaturesRepo } from "../data/signatures-repo";
 import type { SignoffClient } from "../data/signoff-api";
-import type { SyncLayer } from "../data/sync";
+import { subscribeConflicts, type SyncLayer } from "../data/sync";
 import { uuidv7 } from "../data/uuidv7";
 import {
   fieldsEditable as statusFieldsEditable,
@@ -294,6 +294,17 @@ export function RecordForm(props: {
       setSave({ status: "saved", at: server.updated_at });
     },
     [sync, repo],
+  );
+
+  // A queued push resolves optimistically, so a lock conflict surfaces later,
+  // during a drain, via the conflict bus (§8). If it's for the record on screen,
+  // reconcile to the server copy just as the synchronous save path would.
+  useEffect(
+    () =>
+      subscribeConflicts((id) => {
+        if (id === recordRef.current?.id) void reconcileConflict(id);
+      }),
+    [reconcileConflict],
   );
 
   // Persist the current record + latest values through the local-first path.

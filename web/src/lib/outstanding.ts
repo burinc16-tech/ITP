@@ -31,6 +31,9 @@ export interface OutstandingItem extends OutstandingRow {
   rev: number;
   serial_no: string | null;
   status: RecordStatus;
+  /** Scope of the source record, so the list can group and filter per project (§6). */
+  project_id: string | null;
+  equipment_id: string | null;
 }
 
 /** Whether a standard row's stored value evaluates to Fail. */
@@ -129,6 +132,8 @@ export function outstandingItems(
         rev: record.rev,
         serial_no: record.serial_no,
         status: record.status,
+        project_id: record.project_id,
+        equipment_id: record.equipment_id,
       });
     }
   }

@@ -124,7 +124,7 @@ export type TokenSource = string | (() => string | null);
 /**
  * Privileged issue/revoke client (QA/QC). Holds the API base + the signed-in
  * user's session token (task 4). The record must already be synced to the server
- * (ApiSync pushes on save) for issue to find it.
+ * (the sync queue pushes on save) for issue to find it.
  */
 export class SignoffClient {
   constructor(

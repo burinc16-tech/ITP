@@ -54,6 +54,7 @@ function harness() {
   const outbox = new OutboxRepo(db);
   const transport = new FakeTransport();
   const conflicts: string[] = [];
+  let changes = 0;
   let t = 0;
   const clock = () => new Date(1_700_000_000_000 + t).toISOString();
   const advance = (ms: number) => {
@@ -68,8 +69,22 @@ function harness() {
     clock,
     autoDrain: false,
     onConflict: (id) => conflicts.push(id),
+    onChange: () => {
+      changes += 1;
+    },
   });
-  return { records, signatures, audit, outbox, transport, queue, conflicts, advance, clock };
+  return {
+    records,
+    signatures,
+    audit,
+    outbox,
+    transport,
+    queue,
+    conflicts,
+    advance,
+    clock,
+    changes: () => changes,
+  };
 }
 
 function draft(now: string): ChecklistRecord {
@@ -182,6 +197,30 @@ describe("QueuedSync", () => {
     await h.queue.drain();
     expect(h.transport.signatures).toEqual([sig.id]);
     expect(h.transport.audits).toEqual([entry.id]);
+  });
+
+  it("fires onChange on enqueue and on delivery, so the indicator can re-read", async () => {
+    const h = harness();
+    const r = draft(h.clock());
+    await h.records.upsert(r);
+
+    await h.queue.push(r);
+    expect(h.changes()).toBe(1); // enqueue
+
+    await h.queue.drain();
+    expect(h.changes()).toBe(2); // delivery (entry removed)
+  });
+
+  it("fires onChange when a failed push is rescheduled", async () => {
+    const h = harness();
+    const r = draft(h.clock());
+    await h.records.upsert(r);
+    await h.queue.push(r); // change #1
+
+    h.transport.failNext = 1;
+    await h.queue.drain(); // reschedule → change #2
+    expect(h.changes()).toBe(2);
+    expect(await h.queue.pendingCount()).toBe(1);
   });
 
   it("coalesces repeated record pushes into a single delivery", async () => {

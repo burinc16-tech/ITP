@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
 import { TEMPLATES } from "./templates";
 import { BatchExport } from "./components/batch-export";
+import { CalibrationRegister } from "./components/calibration-register";
 import { Dashboard } from "./components/dashboard";
 import { EquipmentTree } from "./components/equipment-tree";
 import { Login } from "./components/login";
@@ -10,11 +11,13 @@ import {
   type NewRecordPrefill,
   type NewRecordScope,
 } from "./components/new-record-dialog";
+import { OutstandingList } from "./components/outstanding-list";
 import { RecordForm } from "./components/record-form";
 import { Register } from "./components/register";
 import { AuditRepo } from "./data/audit-repo";
 import { AuthClient, loadStoredToken, storeToken, type Session } from "./data/auth";
 import { ChecklistDb } from "./data/db";
+import { InstrumentsRepo } from "./data/instruments-repo";
 import { RegistryRepo } from "./data/registry-repo";
 import {
   createDraft,
@@ -22,10 +25,19 @@ import {
   STUB_USER,
   type ChecklistRecord,
 } from "./data/record";
+import { OutboxRepo } from "./data/outbox";
 import { RecordsRepo } from "./data/records-repo";
 import { ACTING_ROLES, ROLE_LABELS, type Role } from "./data/roles";
 import { SignaturesRepo } from "./data/signatures-repo";
-import { ApiSync, PassthroughSync, type SyncLayer } from "./data/sync";
+import {
+  ApiTransport,
+  PassthroughSync,
+  publishConflict,
+  publishPending,
+  type SyncLayer,
+} from "./data/sync";
+import { QueuedSync } from "./data/sync-queue";
+import { SyncStatus } from "./components/sync-status";
 import { uuidv7 } from "./data/uuidv7";
 import { SignoffClient } from "./data/signoff-api";
 import "./styles.css";
@@ -37,6 +49,8 @@ const repo = new RecordsRepo(db);
 const signaturesRepo = new SignaturesRepo(db);
 const auditRepo = new AuditRepo(db);
 const registryRepo = new RegistryRepo(db);
+const instrumentsRepo = new InstrumentsRepo(db);
+const outboxRepo = new OutboxRepo(db);
 // Push to the Worker API when configured (VITE_API_URL), else stay local-only.
 const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
 // Current session token, read by the sync/signoff clients on every call so it
@@ -44,7 +58,22 @@ const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
 let sessionToken: string | null = null;
 const getToken = (): string | null => sessionToken;
 const authClient = apiUrl ? new AuthClient(apiUrl) : null;
-const sync: SyncLayer = apiUrl ? new ApiSync(apiUrl, getToken) : new PassthroughSync();
+// Durable offline sync (SPEC §8): every write goes to Dexie, is enqueued in the
+// outbox, and drained oldest-first with backoff behind the SyncLayer boundary
+// (hard rule #1). A lock conflict surfaces later during a drain, so it's routed
+// through the conflict bus rather than the save's synchronous return.
+const queuedSync = apiUrl
+  ? new QueuedSync({
+      transport: new ApiTransport(apiUrl, getToken),
+      outbox: outboxRepo,
+      records: repo,
+      signatures: signaturesRepo,
+      audit: auditRepo,
+      onConflict: publishConflict,
+      onChange: publishPending,
+    })
+  : null;
+const sync: SyncLayer = queuedSync ?? new PassthroughSync();
 // Remote sign-off issue/revoke client (QA/QC). Only when the API is configured —
 // the record must be synced to the server before a link can be issued.
 const signoff = apiUrl ? new SignoffClient(apiUrl, getToken) : null;
@@ -53,14 +82,18 @@ type View =
   | { kind: "register" }
   | { kind: "dashboard" }
   | { kind: "equipment" }
+  | { kind: "calibration" }
+  | { kind: "outstanding" }
   | { kind: "batch"; ids: string[] }
   | { kind: "record"; id: string; template: Template };
 
-const NAV_VIEWS = ["register", "dashboard", "equipment"] as const;
+const NAV_VIEWS = ["register", "dashboard", "outstanding", "equipment", "calibration"] as const;
 const NAV_LABELS: Record<(typeof NAV_VIEWS)[number], string> = {
   register: "Register",
   dashboard: "Dashboard",
+  outstanding: "Outstanding",
   equipment: "Equipment",
+  calibration: "Calibration",
 };
 
 export function App(): ReactNode {
@@ -101,6 +134,17 @@ export function App(): ReactNode {
     return () => {
       alive = false;
     };
+  }, []);
+
+  // Flush the durable outbox on startup (anything left unsynced from a previous
+  // session) and whenever the browser regains connectivity. Enqueues during a
+  // session self-kick their own drain; these cover the boot and reconnect gaps.
+  useEffect(() => {
+    if (!queuedSync) return;
+    void queuedSync.drain();
+    const onOnline = () => void queuedSync.drain();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
   }, []);
 
   const handleLogout = async () => {
@@ -159,6 +203,7 @@ export function App(): ReactNode {
           <p className="app-bar-meta">Kenyon Pte Ltd — Testing &amp; Commissioning</p>
         </div>
         <div className="app-bar-controls no-print">
+          {queuedSync && <SyncStatus source={queuedSync} />}
           {NAV_VIEWS.some((v) => v === view.kind) && (
             <nav className="app-nav">
               {NAV_VIEWS.map((v) => (
@@ -226,6 +271,15 @@ export function App(): ReactNode {
               })
             }
           />
+        ) : view.kind === "outstanding" ? (
+          <OutstandingList
+            repo={repo}
+            registryRepo={registryRepo}
+            templates={TEMPLATES}
+            onOpen={openRecord}
+          />
+        ) : view.kind === "calibration" ? (
+          <CalibrationRegister repo={instrumentsRepo} />
         ) : view.kind === "batch" ? (
           <BatchExport
             repo={repo}

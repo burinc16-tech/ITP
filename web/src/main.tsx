@@ -35,3 +35,18 @@ createRoot(root).render(
     <Root />
   </StrictMode>,
 );
+
+// Register the app-shell service worker so the tool boots offline (SPEC §8).
+// Production only (a dev-mode SW fights Vite's HMR), and never for a remote
+// signer's /sign/:token visit — that page is online-only and needs no shell.
+if (
+  import.meta.env.PROD &&
+  "serviceWorker" in navigator &&
+  !signToken(window.location.pathname)
+) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("service worker registration failed", err);
+    });
+  });
+}

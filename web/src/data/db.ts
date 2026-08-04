@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { AuditEntry } from "./audit";
+import type { Instrument } from "./instrument";
 import type { OutboxEntry } from "./outbox";
 import type { ChecklistRecord } from "./record";
 import type { Equipment, Project, SystemNode } from "./registry";
@@ -24,6 +25,8 @@ export class ChecklistDb extends Dexie {
   equipment!: Table<Equipment, string>;
   /** Phase 5 sync outbox: one pending push per entity, drained oldest-first (§8). */
   outbox!: Table<OutboxEntry, string>;
+  /** Calibration register: test instruments and cert expiry (§10 screen 9). */
+  instruments!: Table<Instrument, string>;
 
   constructor(name = "itp-itr") {
     super(name);
@@ -64,6 +67,18 @@ export class ChecklistDb extends Dexie {
       systems: "id, project_id, parent_system_id",
       equipment: "id, project_id, system_id, tag",
       outbox: "id, kind, enqueued_at, next_attempt_at",
+    });
+    // Calibration register (§10 screen 9). `cal_due_date` indexed so the register
+    // can surface soonest-expiring instruments first.
+    this.version(7).stores({
+      records: "id, status, template_version_id, updated_at, supersedes",
+      signatures: "id, record_id, slot_id",
+      audit_log: "id, record_id, at",
+      projects: "id, code",
+      systems: "id, project_id, parent_system_id",
+      equipment: "id, project_id, system_id, tag",
+      outbox: "id, kind, enqueued_at, next_attempt_at",
+      instruments: "id, serial_no, cal_due_date",
     });
   }
 }

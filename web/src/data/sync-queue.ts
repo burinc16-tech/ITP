@@ -45,6 +45,12 @@ export interface QueuedSyncDeps {
    * off to drive `drain()` deterministically.
    */
   autoDrain?: boolean;
+  /**
+   * Fired whenever the pending set may have changed — an enqueue, a delivery, or
+   * a reschedule. The app wires this to the "pending unsynced" indicator (§8) so
+   * it re-reads `pendingCount` without polling.
+   */
+  onChange?: () => void;
 }
 
 type DeliverOutcome = "ok" | "conflict" | "gone";
@@ -74,17 +80,20 @@ export class QueuedSync implements SyncLayer {
 
   async push(record: ChecklistRecord): Promise<PushResult> {
     await this.deps.outbox.enqueue("record", record.id, this.clock());
+    this.changed();
     this.kick();
     return { conflict: false };
   }
 
   async pushSignature(signature: CapturedSignature): Promise<void> {
     await this.deps.outbox.enqueue("signature", signature.id, this.clock());
+    this.changed();
     this.kick();
   }
 
   async pushAudit(entry: AuditEntry): Promise<void> {
     await this.deps.outbox.enqueue("audit", entry.id, this.clock());
+    this.changed();
     this.kick();
   }
 
@@ -115,8 +124,10 @@ export class QueuedSync implements SyncLayer {
           const outcome = await this.deliver(entry);
           if (outcome === "conflict") this.deps.onConflict?.(entry.target_id);
           await this.deps.outbox.remove(entry.id);
+          this.changed();
         } catch (err) {
           await this.deps.outbox.reschedule(entry, now, errText(err));
+          this.changed();
           break;
         }
       }
@@ -151,4 +162,18 @@ export class QueuedSync implements SyncLayer {
   private kick(): void {
     if (this.autoDrain) void this.drain().catch(() => {});
   }
+
+  private changed(): void {
+    this.deps.onChange?.();
+  }
+}
+
+/**
+ * What the on-screen pending indicator (SPEC §8) needs from the sync layer: the
+ * current count and a way to retry now. QueuedSync satisfies it; local-only mode
+ * has no queue, so the indicator simply isn't rendered.
+ */
+export interface SyncStatusSource {
+  pendingCount(): Promise<number>;
+  drain(): Promise<void>;
 }

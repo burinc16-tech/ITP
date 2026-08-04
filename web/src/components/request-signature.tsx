@@ -7,7 +7,7 @@ import type { IssuedRequest, SignoffClient } from "../data/signoff-api";
  * In-app "Request remote signature" panel (SPEC §6 path B, QA/QC side). Lets QA/QC
  * issue a tokenized link for one of the record's signature slots to an external
  * signer, then shows the link to copy (email delivery is a later task). The record
- * must already be synced to the server — ApiSync pushes it on save.
+ * must already be synced to the server — the sync queue pushes it on save.
  *
  * Only rendered when the API is configured (a `client` is present) and the acting
  * role is QA/QC; the parent decides that.

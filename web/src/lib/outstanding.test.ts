@@ -70,4 +70,14 @@ describe("outstandingItems", () => {
     const items = outstandingItems([rev1, rev2], templates);
     expect(items).toHaveLength(0);
   });
+
+  it("carries the record's project and equipment scope for per-project grouping (§6)", () => {
+    const scoped = record(
+      { status: "completed", project_id: "proj-1", equipment_id: "equip-1" },
+      true,
+    );
+    const [item] = outstandingItems([scoped], templates);
+    expect(item?.project_id).toBe("proj-1");
+    expect(item?.equipment_id).toBe("equip-1");
+  });
 });
