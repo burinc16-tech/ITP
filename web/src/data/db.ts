@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { AuditEntry } from "./audit";
+import type { OutboxEntry } from "./outbox";
 import type { ChecklistRecord } from "./record";
 import type { Equipment, Project, SystemNode } from "./registry";
 import type { CapturedSignature } from "./signature";
@@ -21,6 +22,8 @@ export class ChecklistDb extends Dexie {
   projects!: Table<Project, string>;
   systems!: Table<SystemNode, string>;
   equipment!: Table<Equipment, string>;
+  /** Phase 5 sync outbox: one pending push per entity, drained oldest-first (§8). */
+  outbox!: Table<OutboxEntry, string>;
 
   constructor(name = "itp-itr") {
     super(name);
@@ -50,6 +53,17 @@ export class ChecklistDb extends Dexie {
       projects: "id, code",
       systems: "id, project_id, parent_system_id",
       equipment: "id, project_id, system_id, tag",
+    });
+    // Phase 5 sync outbox (§8). `enqueued_at` indexed for oldest-first draining,
+    // `next_attempt_at` for backoff gating.
+    this.version(6).stores({
+      records: "id, status, template_version_id, updated_at, supersedes",
+      signatures: "id, record_id, slot_id",
+      audit_log: "id, record_id, at",
+      projects: "id, code",
+      systems: "id, project_id, parent_system_id",
+      equipment: "id, project_id, system_id, tag",
+      outbox: "id, kind, enqueued_at, next_attempt_at",
     });
   }
 }

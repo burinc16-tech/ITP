@@ -44,6 +44,11 @@ export class AuditRepo {
     await this.db.audit_log.add(entry);
   }
 
+  /** One entry by id, or undefined — used by the sync queue to load a push. */
+  async get(id: string): Promise<AuditEntry | undefined> {
+    return this.db.audit_log.get(id);
+  }
+
   /** All entries for a record, oldest first. */
   async listByRecord(recordId: string): Promise<AuditEntry[]> {
     const rows = await this.db.audit_log
