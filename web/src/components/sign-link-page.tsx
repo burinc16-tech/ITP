@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
+import type { AttachmentView } from "../data/attachment";
 import { templateFor } from "../data/record";
 import { formatSignedAt } from "../data/signature";
 import {
@@ -175,6 +176,18 @@ export function SignLinkPage(props: {
 
   const ready = png !== null && name.trim().length > 0;
 
+  // Each photo's image is fetched from the token-gated route — the signer has no
+  // account, so the URL itself carries the credential (§6, §8).
+  const photos = new Map<string, AttachmentView[]>();
+  const apiBase = baseUrl.replace(/\/$/, "");
+  for (const a of view.attachments ?? []) {
+    const image_url = `${apiBase}/api/sign/${token}/attachments/${a.id}`;
+    const entry: AttachmentView = { id: a.id, field_id: a.field_id, caption: a.caption, image_url };
+    const list = photos.get(a.field_id);
+    if (list) list.push(entry);
+    else photos.set(a.field_id, [entry]);
+  }
+
   return (
     <Shell>
       <div className="sign-page-intro">
@@ -192,6 +205,7 @@ export function SignLinkPage(props: {
           values={values}
           status={view.record.status}
           serialNo={view.record.serial_no ?? null}
+          attachments={photos}
         />
       </div>
 

@@ -35,17 +35,17 @@ function ctx(over: Partial<WorkflowContext> = {}): WorkflowContext {
 describe("satisfiedStages", () => {
   it("treats a stage with no slots as satisfied, and one with unsigned slots as not", () => {
     const none = satisfiedStages(template, new Set());
-    // heat-load has a contractor and a witness slot, no check/client slots.
+    // heat-load has one contractor slot; the second Tested-by is unstaged, so the
+    // check/witness/client stages have no slots and are satisfied vacuously.
     expect(none.has("check")).toBe(true);
+    expect(none.has("witness")).toBe(true);
     expect(none.has("client")).toBe(true);
     expect(none.has("contractor")).toBe(false);
-    expect(none.has("witness")).toBe(false);
   });
 
   it("marks a stage satisfied once all its slots are signed", () => {
     const s = satisfiedStages(template, new Set(["sig_tested"]));
-    expect(s.has("contractor")).toBe(true);
-    expect(s.has("witness")).toBe(false);
+    expect(s.has("contractor")).toBe(true); // the sole contractor slot is signed
   });
 });
 

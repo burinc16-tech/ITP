@@ -21,6 +21,8 @@ export interface SignLinkView {
   recipient: { name: string | null; email: string };
   expires_at: string;
   status: string;
+  /** Photo metadata; each image is fetched from the token-gated route (§6, §8). */
+  attachments?: { id: string; field_id: string; caption: string }[];
 }
 
 /** Why a link can't be used. `error` is the catch-all (network/5xx/unexpected). */
@@ -124,7 +126,7 @@ export type TokenSource = string | (() => string | null);
 /**
  * Privileged issue/revoke client (QA/QC). Holds the API base + the signed-in
  * user's session token (task 4). The record must already be synced to the server
- * (ApiSync pushes on save) for issue to find it.
+ * (the sync queue pushes on save) for issue to find it.
  */
 export class SignoffClient {
   constructor(

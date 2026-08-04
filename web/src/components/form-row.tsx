@@ -4,6 +4,7 @@ import { setRowRemarks, setRowValue } from "../lib/values";
 import { Description } from "./description";
 import { FieldControl } from "./field-control";
 import { useForm } from "./form-context";
+import { PhotoField } from "./photo-field";
 
 /** One checklist step: number, description, result control, and remarks. */
 export function FormRow(props: {
@@ -45,30 +46,28 @@ export function FormRow(props: {
 
       <div className="form-row-result">
         <span className="form-row-label">{resultLabel}</span>
-        <FieldControl
-          type={row.type}
-          value={rowValue.value}
-          onChange={(v) => onChange(setRowValue(values, row.id, v))}
-          id={`row-${row.id}`}
-          ariaLabel={`${resultLabel} — ${row.no ?? row.id}`}
-          unit={row.unit}
-          options={row.options}
-          limit={row.limit}
-          labels={row.labels}
-          states={row.states}
-        />
+        {row.type === "photo" ? (
+          <PhotoField fieldId={row.id} label={`Photos — ${row.no ?? row.id}`} />
+        ) : (
+          <FieldControl
+            type={row.type}
+            value={rowValue.value}
+            onChange={(v) => onChange(setRowValue(values, row.id, v))}
+            id={`row-${row.id}`}
+            ariaLabel={`${resultLabel} — ${row.no ?? row.id}`}
+            unit={row.unit}
+            options={row.options}
+            limit={row.limit}
+            labels={row.labels}
+            states={row.states}
+          />
+        )}
       </div>
 
-      {row.photo && (
+      {row.photo && row.type !== "photo" && (
         <div className="form-row-photo">
           <span className="form-row-label">Photos</span>
-          <FieldControl
-            type="photo"
-            value=""
-            onChange={() => {}}
-            id={`row-${row.id}-photo`}
-            ariaLabel={`Photos — ${row.no ?? row.id}`}
-          />
+          <PhotoField fieldId={`${row.id}:photo`} label={`Photos — ${row.no ?? row.id}`} />
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Section, Template } from "@schema";
+import type { AttachmentView } from "../data/attachment";
 import type { RecordStatus } from "../data/record";
 import type { SignatureView } from "../data/signature";
 import { buildVarMap } from "../lib/interpolate";
@@ -45,8 +46,9 @@ export function PrintView(props: {
   status: RecordStatus;
   serialNo: string | null;
   signatures?: Map<string, SignatureView>;
+  attachments?: Map<string, AttachmentView[]>;
 }): ReactNode {
-  const { template, values, status, serialNo } = props;
+  const { template, values, status, serialNo, attachments } = props;
   const signatures = props.signatures ?? NO_SIGNATURES;
   const vars = buildVarMap(template.variables, values.variables);
 
@@ -74,6 +76,7 @@ export function PrintView(props: {
               values={values}
               vars={vars}
               signatures={signatures}
+              attachments={attachments}
               interstitial={
                 pageIdx === 0 && secIdx === 0 ? (
                   <PrintInfoBlock template={template} values={values} />

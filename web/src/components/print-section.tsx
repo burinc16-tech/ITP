@@ -8,10 +8,12 @@ import {
   type DynamicTableSection,
   type FieldGroupSection,
   type MatrixSection,
+  type Row,
   type Section,
   type SignOffSection,
   type StandardSection,
 } from "@schema";
+import type { AttachmentView } from "../data/attachment";
 import type { SignatureView } from "../data/signature";
 import type { VarMap } from "../lib/interpolate";
 import { formatFieldValue } from "../lib/print-format";
@@ -25,14 +27,17 @@ import { PrintSignatureGrid } from "./print-sign-off";
  * Shape is driven by the template — every section type renders here, nothing
  * form-specific is hardcoded.
  */
+const NO_ATTACHMENTS: Map<string, AttachmentView[]> = new Map();
+
 export function PrintSection(props: {
   section: Section;
   values: RecordValues;
   vars: VarMap;
   signatures?: Map<string, SignatureView>;
+  attachments?: Map<string, AttachmentView[]>;
   interstitial?: ReactNode;
 }): ReactNode {
-  const { section, values, vars, signatures, interstitial } = props;
+  const { section, values, vars, signatures, attachments, interstitial } = props;
   return (
     <>
       <h1 className="print-section-title">
@@ -44,7 +49,7 @@ export function PrintSection(props: {
         <p className="print-note">{section._status}</p>
       ) : null}
       {interstitial}
-      {renderBody(section, values, vars, signatures)}
+      {renderBody(section, values, vars, signatures, attachments ?? NO_ATTACHMENTS)}
     </>
   );
 }
@@ -53,7 +58,8 @@ function renderBody(
   section: Section,
   values: RecordValues,
   vars: VarMap,
-  signatures?: Map<string, SignatureView>,
+  signatures: Map<string, SignatureView> | undefined,
+  attachments: Map<string, AttachmentView[]>,
 ): ReactNode {
   if (isDynamicTableSection(section))
     return <DynamicTable section={section} values={values} />;
@@ -64,8 +70,14 @@ function renderBody(
   if (isSignOffSection(section))
     return <SignOffBlock section={section} captured={signatures} />;
   if (isStandardSection(section))
-    return <StandardTable section={section} values={values} vars={vars} />;
+    return <StandardTable section={section} values={values} vars={vars} attachments={attachments} />;
   return null;
+}
+
+/** Captured photos for a row: a `photo` row keys on its id, a `photo:true` add-on on `${id}:photo`. */
+function photosForRow(row: Row, attachments: Map<string, AttachmentView[]>): AttachmentView[] {
+  const key = row.type === "photo" ? row.id : row.photo ? `${row.id}:photo` : null;
+  return key ? attachments.get(key) ?? [] : [];
 }
 
 function DynamicTable(props: {
@@ -186,8 +198,9 @@ function StandardTable(props: {
   section: StandardSection;
   values: RecordValues;
   vars: VarMap;
+  attachments: Map<string, AttachmentView[]>;
 }): ReactNode {
-  const { section, values, vars } = props;
+  const { section, values, vars, attachments } = props;
   const cols = section.columns;
   const added = values.added[section.id] ?? [];
   let lastGroup: string | undefined;
@@ -216,6 +229,7 @@ function StandardTable(props: {
               </tr>
             ) : null;
           lastGroup = row.group ?? lastGroup;
+          const photos = photosForRow(row, attachments);
           return (
             <Fragment key={row.id}>
               {groupRow}
@@ -237,6 +251,21 @@ function StandardTable(props: {
                 </td>
                 <td className="print-remarks">{rowValue.remarks}</td>
               </tr>
+              {photos.length > 0 && (
+                <tr className="print-photo-row">
+                  <td className="print-c" />
+                  <td colSpan={3}>
+                    <div className="print-photos">
+                      {photos.map((photo) => (
+                        <figure key={photo.id} className="print-photo">
+                          <img src={photo.image_url} alt={photo.caption || row.description} />
+                          {photo.caption && <figcaption>{photo.caption}</figcaption>}
+                        </figure>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
             </Fragment>
           );
         })}

@@ -520,6 +520,75 @@ input[readonly] {
   margin-top: 0.4rem;
 }
 
+/* Photo capture (SPEC §8) */
+.photo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.photo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.photo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 140px;
+}
+.photo-thumb {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.photo-caption-input {
+  width: 100%;
+}
+.photo-caption {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.photo-remove {
+  align-self: start;
+}
+/* The file input is visually hidden; the label is the touch target. */
+.photo-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch);
+  padding: 0 1rem;
+  align-self: start;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.photo-add input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.photo-add:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.photo-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* Page break between template pages */
 .page-break {
   margin: 1.5rem 0;
@@ -854,6 +923,140 @@ input[readonly] {
   font-size: 0.8rem;
 }
 
+/* Outstanding-items list (SPEC §6, §11 Phase 5) */
+.outstanding {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.outstanding-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: end;
+  justify-content: space-between;
+}
+.outstanding-head h2 {
+  margin: 0;
+}
+.outstanding-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.outstanding-group-title {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.outstanding-desc {
+  display: block;
+}
+.outstanding-remark {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.outstanding-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.outstanding-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Calibration register (SPEC §10 screen 9) */
+.cal-register {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.cal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cal-warning {
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--fail-bg);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fail-bg);
+  font-weight: 600;
+}
+.cal-counts {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cal-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+.cal-badge.is-valid {
+  color: var(--pass-bg);
+}
+.cal-badge.is-due_soon {
+  color: var(--na-bg);
+}
+.cal-badge.is-expired {
+  color: var(--fail-bg);
+}
+.cal-form {
+  align-items: end;
+}
+.cal-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.cal-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cal-table th,
+.cal-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.cal-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: var(--bg);
+}
+.cal-row.is-expired td {
+  background: color-mix(in srgb, var(--fail-bg) 8%, var(--surface));
+}
+.cal-due-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.cal-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 /* Status workflow bar (SPEC §6) */
 .status-bar-row {
   display: flex;
@@ -949,6 +1152,46 @@ input[readonly] {
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+/* Pending-unsynced indicator (SPEC §8). A pill: green when clear, amber with a
+ * count while pushes wait, red-ish when offline. As a retry button it keeps the
+ * 44px touch target; as plain status it stays compact. */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--muted);
+}
+button.sync-status {
+  min-height: var(--touch);
+  cursor: pointer;
+}
+.sync-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.sync-status.is-synced {
+  color: var(--pass-bg);
+  border-color: var(--pass-bg);
+}
+.sync-status.is-pending {
+  color: var(--na-bg);
+  border-color: var(--na-bg);
+}
+.sync-status.is-offline {
+  color: var(--fail-bg);
+  border-color: var(--fail-bg);
 }
 
 /* Locked form — fields read-only past draft; sign-off stays interactive */

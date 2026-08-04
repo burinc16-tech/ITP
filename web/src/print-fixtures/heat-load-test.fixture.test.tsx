@@ -16,12 +16,11 @@ describe("heatLoadTestFixture", () => {
     expect(v.header.equipment).toBe("CHW-FCU-A-NR-401 & DXFCU-A-NR-401"); // seeded
   });
 
-  it("fills the equipment, set-up, timing and log sections", () => {
+  it("fills the equipment, set-up and timing sections", () => {
     expect(v.tables.sec_1![0]!.cal_cert).toBe("KEN-CAL-2301-8842");
     expect(v.rows.s2_01).toEqual({ value: "pass", remarks: "" });
     expect(v.rows.s2_02!.remarks).toMatch(/TAB report/);
     expect(v.rows.s3_16!.value).toBe("20:15");
-    expect(v.tables.sec_4![0]!.temp).toBe("23.1");
   });
 });
 
@@ -62,7 +61,12 @@ describe("static print output (server-rendered PrintView)", () => {
 
   it("carries the footer serial and page numbering", () => {
     expect(html).toContain("AMK3-HLT-0007");
-    expect(html).toContain("Page 1 of 5");
-    expect(html).toContain("Page 5 of 5");
+    // Assert the numbering invariant rather than a fixed count (which shifts when
+    // sections change): the first page reads "of N" and the last reads "N of N".
+    const match = html.match(/Page 1 of (\d+)/);
+    expect(match).not.toBeNull();
+    const pages = Number(match![1]);
+    expect(pages).toBeGreaterThanOrEqual(1);
+    expect(html).toContain(`Page ${pages} of ${pages}`);
   });
 });

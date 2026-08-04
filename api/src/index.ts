@@ -1,6 +1,7 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { createApp } from "./app";
 import {
+  D1AttachmentStore,
   D1AuditStore,
   D1RecordStore,
   D1SessionStore,
@@ -37,6 +38,7 @@ export default {
       signatures: new D1SignatureStore(env.DB),
       audit: new D1AuditStore(env.DB),
       images: new R2SignatureImageStore(env.SIGNATURES),
+      attachments: new D1AttachmentStore(env.DB),
       users: new D1UserStore(env.DB),
       sessions: new D1SessionStore(env.DB),
       email,

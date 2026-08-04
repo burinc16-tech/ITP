@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { MiddlewareHandler } from "hono";
 import type {
+  AttachmentRow,
+  AttachmentStore,
   AuditRow,
   AuditStore,
   IncomingRecord,
@@ -17,6 +19,7 @@ import type {
 } from "./store";
 import {
   CLOSED_REQUEST_STATUSES,
+  MemoryAttachmentStore,
   MemoryAuditStore,
   MemorySessionStore,
   MemorySignatureImageStore,
@@ -78,6 +81,11 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   return true;
 }
 
+/** Sniff an image content type from its magic bytes (PNG vs JPEG). */
+function imageContentType(bytes: Uint8Array): string {
+  return bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : "image/jpeg";
+}
+
 export interface AppDeps {
   store: RecordStore;
   /** Sign-off stores; default to in-memory fakes so record-only tests need not pass them. */
@@ -85,6 +93,8 @@ export interface AppDeps {
   signatures?: SignatureStore;
   audit?: AuditStore;
   images?: SignatureImageStore;
+  /** Photo attachment metadata store (§8); image bytes reuse `images` (R2). */
+  attachments?: AttachmentStore;
   /** Auth stores (task 4). Default to in-memory fakes; seed a user to log in. */
   users?: UserStore;
   sessions?: SessionStore;
@@ -107,6 +117,7 @@ export function createApp(deps: AppDeps) {
   const signatures = deps.signatures ?? new MemorySignatureStore();
   const audit = deps.audit ?? new MemoryAuditStore();
   const images = deps.images ?? new MemorySignatureImageStore();
+  const attachments = deps.attachments ?? new MemoryAttachmentStore();
   const users = deps.users ?? new MemoryUserStore();
   const sessions = deps.sessions ?? new MemorySessionStore();
   const email = deps.email ?? new MemoryEmailSender();
@@ -305,6 +316,91 @@ export function createApp(deps: AppDeps) {
     return c.json({ applied: true }, 201);
   });
 
+  // --- Sync push: photo attachments (SPEC §4, §8) --------------------------
+  // Upsert by client id (last-write-wins), so a recaption re-pushes the row. The
+  // image bytes reuse the R2 store; the blob is only rewritten when it actually
+  // changes, making a caption-only re-push cheap. Photos are editable draft data,
+  // not append-only evidence, so this is an upsert — not the signature insert-once.
+
+  app.post("/api/records/:id/attachments", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+
+    let body: {
+      id?: string; field_id?: string; caption?: string;
+      device_id?: string; created_at?: string; image?: string;
+    };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body.id || !body.field_id || !body.device_id || !body.created_at) {
+      return c.json({ error: "invalid attachment" }, 400);
+    }
+    let bytes: Uint8Array;
+    let contentType: string;
+    try {
+      ({ bytes, contentType } = decodeImage(body.image ?? ""));
+    } catch {
+      return c.json({ error: "a photo image is required" }, 400);
+    }
+
+    const imageKey = `attachments/${recordId}/${body.id}`;
+    // Only rewrite the R2 blob when the bytes differ from what's stored.
+    const existing = await attachments.getById(body.id);
+    const stored = existing ? await images.get(existing.image_key) : null;
+    if (!stored || !bytesEqual(stored, bytes)) {
+      await images.put(imageKey, bytes, contentType);
+    }
+    const row: AttachmentRow = {
+      id: body.id,
+      record_id: recordId,
+      field_id: body.field_id,
+      kind: "photo",
+      image_key: existing?.image_key ?? imageKey,
+      caption: body.caption ?? "",
+      device_id: body.device_id,
+      created_at: body.created_at,
+    };
+    await attachments.upsert(row);
+    return c.json({ applied: true });
+  });
+
+  // Read a record's photos on another signed-in device (§8): list the metadata,
+  // then fetch each image. `<img src>` can't send a bearer, so the client fetches
+  // the bytes with auth and backfills them into its local store.
+  app.get("/api/records/:id/attachments", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+    const rows = await attachments.listByRecord(recordId);
+    return c.json(
+      rows.map((a) => ({
+        id: a.id,
+        field_id: a.field_id,
+        caption: a.caption,
+        device_id: a.device_id,
+        created_at: a.created_at,
+      })),
+    );
+  });
+
+  app.get("/api/records/:id/attachments/:attachmentId", requireUser, async (c) => {
+    const att = await attachments.getById(c.req.param("attachmentId"));
+    if (!att || att.record_id !== c.req.param("id")) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(att.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
+    });
+  });
+
   app.post("/api/records/:id/audit", requireUser, async (c) => {
     const recordId = c.req.param("id");
     if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
@@ -478,12 +574,37 @@ export function createApp(deps: AppDeps) {
         id: await deterministicId(`audit:${r.req.id}:opened`),
       });
     }
+    const photos = await attachments.listByRecord(r.req.record_id);
     return c.json({
       record: r.record,
       slot: { slot_id: r.req.slot_id, role: r.req.role },
       recipient: { name: r.req.recipient_name, email: r.req.recipient_email },
       expires_at: r.req.expires_at,
       status: "opened",
+      // Metadata only — the signer fetches each image from the token-gated route
+      // below, so a large photo set doesn't bloat this JSON.
+      attachments: photos.map((a) => ({ id: a.id, field_id: a.field_id, caption: a.caption })),
+    });
+  });
+
+  // Serve one attachment's image bytes, gated by the same single-use token. The
+  // remote signer has no account, so this is how the sign page shows photo
+  // evidence (§6). The attachment must belong to the linked record.
+  app.get("/api/sign/:token/attachments/:attachmentId", async (c) => {
+    const r = await resolve(c.req.param("token"));
+    if (!r.ok) return c.json(r.body, r.status);
+    const att = await attachments.getById(c.req.param("attachmentId"));
+    if (!att || att.record_id !== r.req.record_id) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(att.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
     });
   });
 

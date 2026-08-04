@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ITP/ITR Checklists">
+  <rect width="512" height="512" rx="96" fill="#0b5cc7"/>
+  <!-- clipboard body, kept within the maskable safe zone -->
+  <rect x="140" y="128" width="232" height="272" rx="24" fill="#ffffff"/>
+  <rect x="212" y="104" width="88" height="48" rx="16" fill="#0b5cc7"/>
+  <!-- three checklist rows with ticks -->
+  <g fill="none" stroke="#17803d" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M176 214l20 20 34-40"/>
+    <path d="M176 288l20 20 34-40"/>
+    <path d="M176 362l20 20 34-40"/>
+  </g>
+  <g fill="#b9c1cc">
+    <rect x="256" y="206" width="88" height="20" rx="10"/>
+    <rect x="256" y="280" width="88" height="20" rx="10"/>
+    <rect x="256" y="354" width="88" height="20" rx="10"/>
+  </g>
+</svg>

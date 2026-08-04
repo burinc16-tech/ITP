@@ -1,3 +1,5 @@
+import type { Attachment } from "./attachment";
+import type { AttachmentsRepo } from "./attachments-repo";
 import type { AuditEntry } from "./audit";
 import { isoClock } from "./record";
 import type { ChecklistRecord } from "./record";
@@ -6,7 +8,7 @@ import type { OutboxRepo, OutboxEntry } from "./outbox";
 import type { RecordsRepo } from "./records-repo";
 import type { CapturedSignature } from "./signature";
 import type { SignaturesRepo } from "./signatures-repo";
-import type { PushResult, SyncLayer } from "./sync";
+import type { AttachmentMeta, PushResult, SyncLayer } from "./sync";
 
 /**
  * The raw network transport the queue drains against. Unlike the eager `ApiSync`
@@ -22,8 +24,14 @@ export interface Transport {
   pushSignature(signature: CapturedSignature): Promise<void>;
   /** Insert-once an audit entry (throws on network failure). */
   pushAudit(entry: AuditEntry): Promise<void>;
+  /** Upsert a photo attachment (throws on network failure). */
+  pushAttachment(attachment: Attachment): Promise<void>;
   /** Best-effort read of the server's record copy, or null. */
   pull(id: string): Promise<ChecklistRecord | null>;
+  /** Best-effort read of a record's photo metadata, or null (§8 backfill). */
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
+  /** Best-effort fetch of one attachment's image bytes, or null. */
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
 }
 
 export interface QueuedSyncDeps {
@@ -32,6 +40,7 @@ export interface QueuedSyncDeps {
   records: RecordsRepo;
   signatures: SignaturesRepo;
   audit: AuditRepo;
+  attachments: AttachmentsRepo;
   clock?: () => string;
   /**
    * Fired with the record id when a queued record push is refused as a lock
@@ -45,6 +54,12 @@ export interface QueuedSyncDeps {
    * off to drive `drain()` deterministically.
    */
   autoDrain?: boolean;
+  /**
+   * Fired whenever the pending set may have changed — an enqueue, a delivery, or
+   * a reschedule. The app wires this to the "pending unsynced" indicator (§8) so
+   * it re-reads `pendingCount` without polling.
+   */
+  onChange?: () => void;
 }
 
 type DeliverOutcome = "ok" | "conflict" | "gone";
@@ -74,22 +89,39 @@ export class QueuedSync implements SyncLayer {
 
   async push(record: ChecklistRecord): Promise<PushResult> {
     await this.deps.outbox.enqueue("record", record.id, this.clock());
+    this.changed();
     this.kick();
     return { conflict: false };
   }
 
   async pushSignature(signature: CapturedSignature): Promise<void> {
     await this.deps.outbox.enqueue("signature", signature.id, this.clock());
+    this.changed();
     this.kick();
   }
 
   async pushAudit(entry: AuditEntry): Promise<void> {
     await this.deps.outbox.enqueue("audit", entry.id, this.clock());
+    this.changed();
+    this.kick();
+  }
+
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    await this.deps.outbox.enqueue("attachment", attachment.id, this.clock());
+    this.changed();
     this.kick();
   }
 
   pull(id: string): Promise<ChecklistRecord | null> {
     return this.deps.transport.pull(id);
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return this.deps.transport.pullAttachments(recordId);
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return this.deps.transport.pullAttachmentImage(recordId, attachmentId);
   }
 
   /** Pending pushes not yet delivered — the §8 on-screen count. */
@@ -115,8 +147,10 @@ export class QueuedSync implements SyncLayer {
           const outcome = await this.deliver(entry);
           if (outcome === "conflict") this.deps.onConflict?.(entry.target_id);
           await this.deps.outbox.remove(entry.id);
+          this.changed();
         } catch (err) {
           await this.deps.outbox.reschedule(entry, now, errText(err));
+          this.changed();
           break;
         }
       }
@@ -145,10 +179,30 @@ export class QueuedSync implements SyncLayer {
         await this.deps.transport.pushAudit(audit);
         return "ok";
       }
+      case "attachment": {
+        const attachment = await this.deps.attachments.get(entry.target_id);
+        if (!attachment) return "gone";
+        await this.deps.transport.pushAttachment(attachment);
+        return "ok";
+      }
     }
   }
 
   private kick(): void {
     if (this.autoDrain) void this.drain().catch(() => {});
   }
+
+  private changed(): void {
+    this.deps.onChange?.();
+  }
+}
+
+/**
+ * What the on-screen pending indicator (SPEC §8) needs from the sync layer: the
+ * current count and a way to retry now. QueuedSync satisfies it; local-only mode
+ * has no queue, so the indicator simply isn't rendered.
+ */
+export interface SyncStatusSource {
+  pendingCount(): Promise<number>;
+  drain(): Promise<void>;
 }

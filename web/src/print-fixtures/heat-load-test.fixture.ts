@@ -53,23 +53,6 @@ export function heatLoadTestFixture(template: Template): RecordValues {
     v.rows[id] = { value, remarks };
   }
 
-  // Section 4 — temperature & humidity log (the reconstructed section).
-  const readings: Array<[string, string, string, string, string]> = [
-    ["10:30", "HOBO-01", "23.1", "48", ""],
-    ["11:00", "HOBO-01", "23.4", "47", ""],
-    ["12:00", "HOBO-01", "24.2", "46", ""],
-    ["13:00", "HOBO-01", "24.9", "45", ""],
-    ["14:00", "HOBO-01", "25.6", "44", ""],
-    ["14:55", "HOBO-01", "23.0", "47", "Set point reached"],
-  ];
-  readings.forEach(([time, logger, temp, rh, remarks], i) => {
-    setCell(v.tables.sec_4, i, "time", time);
-    setCell(v.tables.sec_4, i, "logger", logger);
-    setCell(v.tables.sec_4, i, "temp", temp);
-    setCell(v.tables.sec_4, i, "rh", rh);
-    setCell(v.tables.sec_4, i, "remarks", remarks);
-  });
-
   return v;
 }
 

@@ -11,7 +11,7 @@ import type { ChecklistDb } from "./db";
  * pending push (the drain reads its latest version); insert-once evidence has a
  * unique target id, so each signature/audit entry gets its own row.
  */
-export type OutboxKind = "record" | "signature" | "audit";
+export type OutboxKind = "record" | "signature" | "audit" | "attachment";
 
 export interface OutboxEntry {
   /** `${kind}:${target_id}` — deterministic, so re-enqueue coalesces. */

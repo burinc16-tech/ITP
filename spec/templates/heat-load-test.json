@@ -44,7 +44,7 @@
         { "id": "description", "label": "Description",   "type": "textarea", "width": "auto" },
         { "id": "make_model",  "label": "Make / Model",  "type": "text",     "width": "38mm", "align": "center" },
         { "id": "qty",         "label": "QTY",           "type": "text",     "width": "26mm", "align": "center" },
-        { "id": "cal_cert",    "label": "Cal. Cert No.", "type": "text",     "width": "30mm", "_note": "column was unlabelled in the source form — confirm intent" },
+        { "id": "cal_cert",    "label": "Cal. Cert No.", "type": "text",     "width": "30mm" },
         { "id": "remarks",     "label": "Remarks",       "type": "text",     "width": "55mm" }
       ],
       "prefilled_rows": [
@@ -87,8 +87,7 @@
         { "id": "s3_03", "no": "3",  "type": "duration", "remarks": "textarea",
           "description": "Restoration of **{{fcu_chw}}** keypad temperature set point back to {{setpoint}}°C to enable cooling to Network Room." },
         { "id": "s3_04", "no": "4",  "type": "duration", "remarks": "textarea",
-          "description": "Record the temperature ({{fcu_chw}}) **turn on and {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_chw}}.)",
-          "cross_ref": "sec_4" },
+          "description": "Record the temperature ({{fcu_chw}}) **turn on and {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_chw}}.)" },
         { "id": "s3_05", "no": "5",  "type": "duration", "remarks": "textarea",
           "description": "When temperature reaches {{setpoint}}°C, reset Hi temperature while {{fcu_dx}} automatically cuts off." },
         { "id": "s3_06", "no": "6",  "type": "duration", "remarks": "textarea",
@@ -98,8 +97,7 @@
         { "id": "s3_08", "no": "8",  "type": "duration", "remarks": "textarea",
           "description": "Put **{{fcu_dx}}** keypad set point to **{{disable_temp}}°C** to disable cooling, DX FCU Hi temperature set point {{hi_temp}}°C, {{fcu_chw}} to confirm kick in." },
         { "id": "s3_09", "no": "9",  "type": "duration", "remarks": "textarea",
-          "description": "Record the temperature (**{{fcu_dx}}**) **turn on c/w {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_dx}}.)",
-          "cross_ref": "sec_4" },
+          "description": "Record the temperature (**{{fcu_dx}}**) **turn on c/w {{load_kw}} kW heater running ({{run_hours}} hours).** (Room temperature setting {{setpoint}}°C for {{fcu_dx}}.)" },
         { "id": "s3_10", "no": "10", "type": "duration", "remarks": "textarea",
           "description": "Restoration of **{{fcu_dx}}** keypad temperature set point back to {{setpoint}}°C to enable cooling to Network Room." },
         { "id": "s3_11", "no": "11", "type": "duration", "remarks": "textarea",
@@ -115,23 +113,6 @@
         { "id": "s3_16", "no": "16", "type": "duration", "remarks": "textarea",
           "description": "End of test." }
       ]
-    },
-
-    {
-      "id": "sec_4",
-      "no": "4",
-      "title": "TEMPERATURE & HUMIDITY RECORD SHEET",
-      "_status": "RECONSTRUCTED — section 4 is absent from the source HTML, but steps 4 and 9 refer to it. Confirm the real layout before issuing Rev A.",
-      "type": "dynamic_table",
-      "min_rows": 12,
-      "auto_number": true,
-      "columns": [
-        { "id": "time",     "label": "Time",              "type": "time" },
-        { "id": "logger",   "label": "Recorder ID",       "type": "text" },
-        { "id": "temp",     "label": "Temperature",       "type": "number", "unit": "°C", "limit": { "max": 26 } },
-        { "id": "rh",       "label": "Relative Humidity", "type": "number", "unit": "%" },
-        { "id": "remarks",  "label": "Remarks",           "type": "text" }
-      ]
     }
   ],
 
@@ -143,8 +124,7 @@
     "layout": "two_column",
     "signatures": [
       { "id": "sig_tested",   "role": "Inspection / Tested by", "company_default": "Kenyon Pte Ltd", "company_locked": true,  "required": true, "stage": "contractor" },
-      { "id": "sig_witness",  "role": "Witnessed by",           "company_locked": false, "required": false, "stage": "witness",
-        "_note": "source form titled both columns 'Inspection / Tested by' — confirm the right-hand signer's role" }
+      { "id": "sig_tested_2", "role": "Inspection / Tested by", "company_locked": false, "required": false }
     ]
   }
 }

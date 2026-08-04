@@ -176,6 +176,35 @@
   width: 10mm;
 }
 
+/* Captured photos, printed as a sub-row beneath the checklist item (SPEC §6). */
+.print-photo-row td {
+  background: #fff;
+  padding-top: 1mm;
+  padding-bottom: 2mm;
+}
+.print-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3mm;
+}
+.print-photo {
+  margin: 0;
+  width: 45mm;
+  break-inside: avoid;
+}
+.print-photo img {
+  width: 45mm;
+  height: 34mm;
+  object-fit: cover;
+  border: 0.3mm solid #999;
+}
+.print-photo figcaption {
+  font-size: 2.6mm;
+  color: #333;
+  margin-top: 0.6mm;
+  text-align: left;
+}
+
 /* Row group heading within a standard section */
 .print-group-row td {
   background: #e7ecf5;

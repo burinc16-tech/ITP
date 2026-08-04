@@ -1,0 +1,79 @@
+{
+  "code": "WCC",
+  "title": "Wall Closure First Fix Inspection Checklist",
+  "rev": "A",
+  "discipline": "Architectural / M&E",
+  "category": "ITR",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Wall_Closure_First_Fix_Inspection_Checklist.html",
+  "header": {
+    "title": "Wall Closure First Fix Inspection Checklist",
+    "fields": [
+      { "id": "project", "label": "Project", "type": "text", "source": "project.name" },
+      { "id": "level_area", "label": "Level / Area", "type": "text" }
+    ]
+  },
+  "sections": [
+    {
+      "id": "checklist",
+      "title": "Inspection Checklist",
+      "columns": { "result": { "label": "Status" }, "remarks": { "label": "Remarks" } },
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [
+          { "value": "yes", "label": "Yes", "outcome": "pass" },
+          { "value": "na", "label": "NA", "outcome": "na" },
+          { "value": "no", "label": "No", "outcome": "fail" }
+        ],
+        "remarks": true,
+        "editable_no": true,
+        "editable_group": true
+      },
+      "rows": [
+        { "id": "chk_arch_1", "no": "1", "group": "Architectural", "type": "status", "remarks": true,
+          "description": "Rockwool installation acceptable",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_arch_2", "no": "2", "group": "Architectural", "type": "status", "remarks": true,
+          "description": "C-channel horizon / vertical installation is acceptable",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_arch_3", "no": "3", "group": "Architectural", "type": "status", "remarks": true,
+          "description": "All penetrations has been sealed off for acoustic purpose.",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_me_1", "no": "4", "group": "M&E", "type": "status", "remarks": true,
+          "description": "M&E conduit has been installed and proper support.",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_me_2", "no": "5", "group": "M&E", "type": "status", "remarks": true,
+          "description": "Socket outlets are porper install and earthed",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_me_3", "no": "6", "group": "M&E", "type": "status", "remarks": true,
+          "description": "Lighting switch is install at correct location and high",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_me_4", "no": "7", "group": "M&E", "type": "status", "remarks": true,
+          "description": "ACMV equipments e.g. Thermostat, toggle switches and CO2 Sensers are install at corret location and hight",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] },
+        { "id": "chk_me_5", "no": "8", "group": "M&E", "type": "status", "remarks": true,
+          "description": "IT socket and security card readers and push buttons are install at correct location and high.",
+          "states": [ { "value": "yes", "label": "Yes", "outcome": "pass" }, { "value": "na", "label": "NA", "outcome": "na" }, { "value": "no", "label": "No", "outcome": "fail" } ] }
+      ]
+    },
+    {
+      "id": "defects",
+      "title": "Defects List (if any)",
+      "type": "dynamic_table",
+      "auto_number": true,
+      "min_rows": 9,
+      "columns": [
+        { "id": "defect", "label": "Defect", "type": "text" }
+      ]
+    }
+  ],
+  "footer": {
+    "title": "Sign-off",
+    "signatures": [
+      { "id": "sig_checked",    "role": "Checked by",   "company_default": "Kenyon Pte Ltd", "required": true,  "stage": "contractor" },
+      { "id": "sig_rto",        "role": "Witnessed by", "company_default": "RTO",             "required": false, "stage": "witness" },
+      { "id": "sig_consultant", "role": "Witnessed by", "company_default": "Consultant",      "required": false, "stage": "client" }
+    ]
+  }
+}

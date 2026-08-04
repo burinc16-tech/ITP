@@ -1,6 +1,8 @@
+import type { Attachment } from "./attachment";
 import type { AuditEntry } from "./audit";
 import type { ChecklistRecord } from "./record";
 import type { CapturedSignature } from "./signature";
+import type { Transport } from "./sync-queue";
 
 /**
  * The boundary between local writes and the API (SPEC §8, hard rule #1). The
@@ -23,6 +25,15 @@ export interface PushResult {
   conflict: boolean;
 }
 
+/** Server-side metadata for one photo attachment (SPEC §8), for cross-device backfill. */
+export interface AttachmentMeta {
+  id: string;
+  field_id: string;
+  caption: string;
+  device_id: string;
+  created_at: string;
+}
+
 export interface SyncLayer {
   /** Push a record. Resolves with whether the server reported a lock conflict (§8). */
   push(record: ChecklistRecord): Promise<PushResult>;
@@ -37,6 +48,15 @@ export interface SyncLayer {
   pushSignature(signature: CapturedSignature): Promise<void>;
   /** Push an audit entry the client authored (SPEC §9). Best-effort. */
   pushAudit(entry: AuditEntry): Promise<void>;
+  /** Push a captured photo attachment (SPEC §8). Best-effort. */
+  pushAttachment(attachment: Attachment): Promise<void>;
+  /**
+   * Read the server's photo list for a record, or null when unavailable/offline.
+   * Used to backfill photos captured on another device (§8). Best-effort.
+   */
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
+  /** Fetch one attachment's image bytes (with auth), or null. Best-effort. */
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
 }
 
 /**
@@ -62,6 +82,43 @@ export class PassthroughSync implements SyncLayer {
 
   async pushAudit(_entry: AuditEntry): Promise<void> {
     // No queue, no network — the entry is durable in Dexie.
+  }
+
+  async pushAttachment(_attachment: Attachment): Promise<void> {
+    // No queue, no network — the photo is durable in Dexie.
+  }
+
+  async pullAttachments(_recordId: string): Promise<AttachmentMeta[] | null> {
+    // Local-only mode: there is no server to read from.
+    return null;
+  }
+
+  async pullAttachmentImage(_recordId: string, _attachmentId: string): Promise<Blob | null> {
+    return null;
+  }
+}
+
+/** Best-effort authenticated GET returning parsed JSON, or null on any failure. */
+async function getJson<T>(url: string, headers: Record<string, string>): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch (err) {
+    console.warn("attachment list failed", err);
+    return null;
+  }
+}
+
+/** Best-effort authenticated GET returning the response as a Blob, or null. */
+async function getBlob(url: string, headers: Record<string, string>): Promise<Blob | null> {
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch (err) {
+    console.warn("attachment image fetch failed", err);
+    return null;
   }
 }
 
@@ -163,5 +220,219 @@ export class ApiSync implements SyncLayer {
     } catch (err) {
       console.warn("audit push failed (kept locally)", err);
     }
+  }
+
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    try {
+      const image = await blobToDataUrl(attachment.image);
+      await fetch(`${this.baseUrl}/api/records/${attachment.record_id}/attachments`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(attachmentBody(attachment, image)),
+      });
+    } catch (err) {
+      console.warn("attachment push failed (kept locally)", err);
+    }
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return getJson(`${this.baseUrl}/api/records/${recordId}/attachments`, this.authHeader());
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/attachments/${attachmentId}`,
+      this.authHeader(),
+    );
+  }
+}
+
+/** JSON body for an attachment push — the image rides as a `data:` URL. */
+function attachmentBody(attachment: Attachment, image: string): Record<string, unknown> {
+  return {
+    id: attachment.id,
+    field_id: attachment.field_id,
+    caption: attachment.caption,
+    mime: attachment.mime,
+    device_id: attachment.device_id,
+    created_at: attachment.created_at,
+    image,
+  };
+}
+
+/**
+ * Late lock-conflict bus. QueuedSync discovers a lock conflict (§8) during a
+ * drain — long after the originating save returned `{ conflict: false }` — so it
+ * can't tell the caller synchronously. The queue publishes the record id here and
+ * whichever RecordForm is showing that record subscribes and reconciles to the
+ * server copy. Kept framework-agnostic so the data layer stays UI-free.
+ */
+export type ConflictListener = (recordId: string) => void;
+const conflictListeners = new Set<ConflictListener>();
+
+/** Broadcast a record id whose queued push was refused as a lock conflict. */
+export function publishConflict(recordId: string): void {
+  for (const listener of conflictListeners) listener(recordId);
+}
+
+/** Subscribe to late lock-conflicts; returns an unsubscribe. */
+export function subscribeConflicts(listener: ConflictListener): () => void {
+  conflictListeners.add(listener);
+  return () => {
+    conflictListeners.delete(listener);
+  };
+}
+
+/**
+ * Outbox-changed bus. QueuedSync fires this whenever the pending set may have
+ * changed — an enqueue, a delivery, or a reschedule — so the on-screen "pending
+ * unsynced" indicator (SPEC §8) can re-read the count without polling. Also
+ * framework-agnostic, so the data layer carries no UI dependency.
+ */
+export type PendingListener = () => void;
+const pendingListeners = new Set<PendingListener>();
+
+/** Signal that the outbox changed; the indicator re-reads its count. */
+export function publishPending(): void {
+  for (const listener of pendingListeners) listener();
+}
+
+/** Subscribe to outbox changes; returns an unsubscribe. */
+export function subscribePending(listener: PendingListener): () => void {
+  pendingListeners.add(listener);
+  return () => {
+    pendingListeners.delete(listener);
+  };
+}
+
+/**
+ * Non-2xx statuses the queue must stop retrying: the request reached the server
+ * and replaying it won't change the outcome — a malformed body (400), or an
+ * append-only entry whose fingerprint will never match the stored one (409
+ * evidence conflict, §12). Rescheduling these forever would poison the outbox,
+ * since the drain stops at the first still-failing entry (head-of-line). Every
+ * other failure — offline, 401 (token refresh), 404 (parent record not synced
+ * yet), 5xx — throws so the queue retries with backoff.
+ */
+const TERMINAL_STATUSES: ReadonlySet<number> = new Set([400, 409]);
+
+/**
+ * Classify a transport response. Returns "delivered" on 2xx; "terminal" on a
+ * non-retryable status (logged, so the caller drops the entry rather than
+ * looping); throws otherwise so the queue reschedules with backoff.
+ */
+function classifyResponse(res: Response, what: string): "delivered" | "terminal" {
+  if (res.ok) return "delivered";
+  if (TERMINAL_STATUSES.has(res.status)) {
+    console.error(`${what} rejected (${res.status}) — dropping from the sync queue`);
+    return "terminal";
+  }
+  throw new Error(`${what} failed: ${res.status}`);
+}
+
+/**
+ * The network transport the Phase 5 queue (QueuedSync) drains against. Same
+ * Worker endpoints as ApiSync, but with the opposite error contract: every
+ * method **throws on a retryable failure** (offline, 401/404/5xx) so the queue
+ * knows the push didn't land and reschedules it. A resolved call means the write
+ * is durably on the server (or terminally rejected and safe to drop) — never a
+ * silently-swallowed offline. Auth is the session token getter, as with ApiSync.
+ */
+export class ApiTransport implements Transport {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly token: TokenSource,
+  ) {}
+
+  private authHeader(): Record<string, string> {
+    const token = resolveToken(this.token);
+    return token ? { authorization: `Bearer ${token}` } : {};
+  }
+
+  async pushRecord(record: ChecklistRecord): Promise<{ applied: boolean; conflict: boolean }> {
+    const res = await fetch(`${this.baseUrl}/api/records`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...this.authHeader() },
+      body: JSON.stringify(record),
+    });
+    if (classifyResponse(res, "record push") === "terminal") {
+      return { applied: false, conflict: false };
+    }
+    const body = (await res.json().catch(() => ({}))) as {
+      applied?: boolean;
+      conflict?: boolean;
+    };
+    return { applied: body.applied !== false, conflict: body.conflict === true };
+  }
+
+  async pushSignature(signature: CapturedSignature): Promise<void> {
+    const image = await blobToDataUrl(signature.image);
+    const res = await fetch(
+      `${this.baseUrl}/api/records/${signature.record_id}/signatures`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify({
+          id: signature.id,
+          slot_id: signature.slot_id,
+          role: signature.role,
+          name: signature.name,
+          company: signature.company,
+          method: signature.method,
+          signed_by_user: signature.signed_by_user,
+          device_id: signature.device_id,
+          signed_at: signature.signed_at,
+          image,
+        }),
+      },
+    );
+    classifyResponse(res, "signature push");
+  }
+
+  async pushAudit(entry: AuditEntry): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/records/${entry.record_id}/audit`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...this.authHeader() },
+      body: JSON.stringify(entry),
+    });
+    classifyResponse(res, "audit push");
+  }
+
+  async pushAttachment(attachment: Attachment): Promise<void> {
+    const image = await blobToDataUrl(attachment.image);
+    const res = await fetch(
+      `${this.baseUrl}/api/records/${attachment.record_id}/attachments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(attachmentBody(attachment, image)),
+      },
+    );
+    classifyResponse(res, "attachment push");
+  }
+
+  async pull(id: string): Promise<ChecklistRecord | null> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/records/${id}`, {
+        headers: this.authHeader(),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as ChecklistRecord;
+    } catch (err) {
+      // Pull is best-effort (SPEC §8) — a failed read just means no reconcile now.
+      console.warn("sync pull failed", err);
+      return null;
+    }
+  }
+
+  pullAttachments(recordId: string): Promise<AttachmentMeta[] | null> {
+    return getJson(`${this.baseUrl}/api/records/${recordId}/attachments`, this.authHeader());
+  }
+
+  pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/attachments/${attachmentId}`,
+      this.authHeader(),
+    );
   }
 }

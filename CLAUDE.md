@@ -44,10 +44,19 @@ evidence-conflict tripwire; `accepted`/`rejected` records can't be clobbered by
 client last-write-wins, and the client warns and reconciles on a refused push;
 remote sign-off writes are idempotent under a concurrent double-submit.
 
-Still to build in Phase 5 — the offline **machinery**: the durable sync queue
-(retry/backoff, oldest-first, and a pending-unsynced indicator), service-worker/PWA
-precaching, the calibration register, and the outstanding-items list (§8, §10, §11).
-SPEC §12 refers to this queue as future work — **don't assume it exists yet.**
+The offline **machinery** is now built and under test: the durable sync queue
+(`data/outbox.ts`, `data/sync-queue.ts` — retry/backoff, oldest-first, coalescing)
+with an app-level heartbeat that retries entries whose backoff has elapsed
+(`app.tsx`) and a pending-unsynced indicator (`components/sync-status.tsx`);
+service-worker/PWA precaching (`pwa.test.ts`, `sw.behavior.test.ts`); the
+calibration register (`components/calibration-register.tsx`); and the
+outstanding-items list (`components/outstanding-list.tsx`, `lib/outstanding.ts`).
+All three §12 templates plus the heat load test are converted (`/spec/templates`).
+
+What remains before Phase 5 closes (§11 — each phase ends with real use on a live
+project): (1) settle the three ⛔ Rev A decisions for `heat-load-test.json` against
+the paper form (see `spec/templates/heat-load-test.rev-a-checklist.md` — JSON edits
+only, no code); (2) validate offline fill → sync on a live job.
 
 ## Hard rules
 

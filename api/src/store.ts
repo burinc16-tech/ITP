@@ -49,9 +49,9 @@ export interface RecordStore {
    * second reject on the same token is blocked upstream (`resolve()` → 409 closed),
    * so this never double-fires. It is a dumb setter with no `updated_at` guard, but
    * it is always called with a fresh server `now()` and is never client-replayed.
-   * The one residual hazard is Phase 5 conflict policy, not this method: a client
-   * record upsert with a newer `updated_at` can still last-write-wins over a
-   * server-set "rejected" (§8 protects only "accepted"). Tracked separately.
+   * The status it writes is one of the locked set below, so a later client upsert
+   * carrying a newer `updated_at` can no longer last-write-wins over the server-set
+   * "rejected" — `upsert` treats it as a conflict, not an overwrite (§8).
    */
   setStatus(id: string, status: string, updatedAt: string): Promise<void>;
 }
@@ -251,6 +251,25 @@ export interface SignatureImageStore {
   get(key: string): Promise<Uint8Array | null>;
 }
 
+/** A persisted photo attachment (SPEC §4, §8). Image bytes live in R2 (image_key). */
+export interface AttachmentRow {
+  id: string;
+  record_id: string;
+  field_id: string;
+  kind: string;
+  image_key: string;
+  caption: string;
+  device_id: string;
+  created_at: string;
+}
+
+export interface AttachmentStore {
+  /** Upsert by client id (last-write-wins) — a caption edit re-pushes the row. */
+  upsert(row: AttachmentRow): Promise<void>;
+  getById(id: string): Promise<AttachmentRow | null>;
+  listByRecord(recordId: string): Promise<AttachmentRow[]>;
+}
+
 // --- D1 / R2 implementations ----------------------------------------------
 
 const SIGREQ_COLUMNS =
@@ -402,6 +421,48 @@ export class R2SignatureImageStore implements SignatureImageStore {
   }
 }
 
+const ATTACHMENT_COLUMNS =
+  "id, record_id, field_id, kind, image_key, caption, device_id, created_at";
+
+export class D1AttachmentStore implements AttachmentStore {
+  constructor(private readonly db: D1Database) {}
+
+  async upsert(a: AttachmentRow): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT OR REPLACE INTO attachments (${ATTACHMENT_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        a.id,
+        a.record_id,
+        a.field_id,
+        a.kind,
+        a.image_key,
+        a.caption,
+        a.device_id,
+        a.created_at,
+      )
+      .run();
+  }
+
+  async getById(id: string): Promise<AttachmentRow | null> {
+    const row = await this.db
+      .prepare(`SELECT ${ATTACHMENT_COLUMNS} FROM attachments WHERE id = ?`)
+      .bind(id)
+      .first<AttachmentRow>();
+    return row ?? null;
+  }
+
+  async listByRecord(recordId: string): Promise<AttachmentRow[]> {
+    const res = await this.db
+      .prepare(`SELECT ${ATTACHMENT_COLUMNS} FROM attachments WHERE record_id = ?`)
+      .bind(recordId)
+      .all<AttachmentRow>();
+    return res.results ?? [];
+  }
+}
+
 // --- In-memory fakes (tests) ----------------------------------------------
 
 export class MemorySignatureRequestStore implements SignatureRequestStore {
@@ -461,6 +522,20 @@ export class MemorySignatureImageStore implements SignatureImageStore {
   }
   async get(key: string): Promise<Uint8Array | null> {
     return this.map.get(key)?.data ?? null;
+  }
+}
+
+export class MemoryAttachmentStore implements AttachmentStore {
+  readonly rows = new Map<string, AttachmentRow>();
+  async upsert(row: AttachmentRow): Promise<void> {
+    this.rows.set(row.id, { ...row }); // last-write-wins
+  }
+  async getById(id: string): Promise<AttachmentRow | null> {
+    const r = this.rows.get(id);
+    return r ? { ...r } : null;
+  }
+  async listByRecord(recordId: string): Promise<AttachmentRow[]> {
+    return [...this.rows.values()].filter((r) => r.record_id === recordId);
   }
 }
 

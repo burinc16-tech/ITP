@@ -2,8 +2,8 @@ import type { Role } from "./roles";
 
 /**
  * Client for email/password auth (SPEC §3, task 4). Talks to the Worker's
- * `/api/auth/*` endpoints; the returned bearer token is what ApiSync and the
- * SignoffClient send on privileged calls (it replaced the old shared secret).
+ * `/api/auth/*` endpoints; the returned bearer token is what the sync layer and
+ * the SignoffClient send on privileged calls (it replaced the old shared secret).
  * `fetch` is injectable for tests.
  */
 
