@@ -1,0 +1,73 @@
+{
+  "code": "SPF",
+  "title": "Sanitary Pipe Flood Test",
+  "rev": "A",
+  "discipline": "Plumbing & Sanitary",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Sanitary_Pipe_Flood_Test_Form.html (9 July 2012, Rev 1)",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "client",   "label": "Client",   "type": "text", "source": "project.client", "readonly": true },
+      { "id": "location", "label": "Location", "type": "text", "source": "equipment.location" },
+      { "id": "from",     "label": "From",     "type": "text", "required": true },
+      { "id": "to",       "label": "To",       "type": "text", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "flood_test",
+      "title": "Flood Test Readings",
+      "type": "standard",
+      "_note": "Item numbers follow the paper form, which starts at 2 — items From / To are the unnumbered rows above, carried here as header fields. The source prints Date and Time in one row (items 3 and 5); a checklist row carries a single control, so each is split into a dated row and a timed continuation row rather than adding form-specific rendering (Hard Rule #4). Design Pressure and the two pressure readings are text, not number: the paper form is filled with words as often as figures (\"NA\", \"Refer to attached test photo\").",
+      "columns": {
+        "result":  { "label": "Readings" },
+        "remarks": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "design_pressure", "no": "2", "type": "text", "description": "Design Pressure" },
+
+        { "id": "commence_date", "no": "3", "type": "date", "description": "Date — commencement of test" },
+        { "id": "commence_time",             "type": "time", "description": "Time — commencement of test" },
+
+        { "id": "pressure_commence", "no": "4", "type": "text", "description": "Pressure at commencement of Test" },
+
+        { "id": "end_date", "no": "5", "type": "date", "description": "Date — end of test" },
+        { "id": "end_time",             "type": "time", "description": "Time — end of test" },
+
+        { "id": "pressure_end", "no": "6", "type": "text", "description": "Pressure at end of Test", "photo": true,
+          "_note": "Photos attach here because the paper form's own reading is routinely \"Refer to attached test photo\". The print row appears only when photos exist, so a record without them matches the source page." },
+
+        { "id": "overall_result", "type": "status", "description": "Pass / Fail",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "fields": [
+        { "id": "remarks",          "label": "Remarks",                     "type": "textarea" },
+        { "id": "instruments_used", "label": "Remarks / Instruments Used",  "type": "text" }
+      ],
+      "_note": "Two fields because the paper form carries two: a free Remarks box and the ruled REMARKS / INSTRUMENTS USED line beneath it. The instruments line stays free text — the source form does not tabulate calibrated instruments the way the Power Turn-on form does, so no `instruments` block is declared."
+    }
+  ],
+
+  "footer": {
+    "title": "Sign-off",
+    "signatures": [
+      { "id": "sig_tested",       "role": "Tested By",       "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true,  "stage": "contractor" },
+      { "id": "sig_witnessed",    "role": "Witnessed By",    "required": false, "stage": "witness" },
+      { "id": "sig_acknowledged", "role": "Acknowledged By", "required": false, "stage": "client" }
+    ]
+  }
+}

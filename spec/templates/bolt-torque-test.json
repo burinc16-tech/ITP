@@ -1,0 +1,73 @@
+{
+  "code": "BTT",
+  "title": "Bolt Torque Test",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Bolt_Torque_Test.html",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",  "label": "Project",  "type": "text", "source": "project.name", "readonly": true },
+      { "id": "panel_id", "label": "Panel ID", "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "location", "label": "Location", "type": "text", "source": "equipment.location" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "torque",
+      "title": "Bolt Torque Test",
+      "type": "dynamic_table",
+      "min_rows": 8,
+      "_note": "Eight rows to match the printed grid; the engineer adds more as needed. The source file ships five rows of one project's connections (\"From GSB-2 to EMSB-2 (M22)\") and a torque band in the next cell — that is record data, not template wording, so nothing is prefilled here (SPEC §5.1). Both text columns are `textarea`: the source renders them two rows tall and they are filled with a phrase, not a value (\"Between 80 Nm to 108 Nm (Setting at 95 Nm)\").",
+      "columns": [
+        { "id": "bolt_size", "label": "Metric Bolt Size (coarse thread)", "type": "textarea", "width": "34%" },
+        { "id": "torque",    "label": "Bolt Torque", "unit": "Nm",         "type": "textarea", "width": "28%" },
+        { "id": "result",    "label": "Pass / Fail", "type": "pass_fail_na", "width": "13%", "align": "center",
+          "_note": "`pass_fail_na`, not `status`: a flat dynamic table's cells are rendered without the column's `states`, so a status column would draw no buttons at all. The built-in words are Pass / Fail / N/A against the source form's Passed / Failed / N/A." },
+        { "id": "remarks",   "label": "Remarks", "type": "textarea", "width": "25%" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "title": "Test Instrument / Tools",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "min_rows": 2,
+      "columns": [
+        { "id": "function",   "label": "Function",         "type": "text", "width": "25%" },
+        { "id": "make_model", "label": "Make / Model",     "type": "text", "width": "25%" },
+        { "id": "serial_no",  "label": "Serial No",        "type": "text", "width": "25%" },
+        { "id": "cal_cert",   "label": "Calibration Cert", "type": "text", "width": "25%" }
+      ],
+      "prefilled_rows": [
+        { "function": "Torque Test" }
+      ]
+    },
+
+    {
+      "id": "remark",
+      "title": "Remark",
+      "type": "field_group",
+      "fields": [
+        { "id": "remark", "label": "Remark", "type": "textarea" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "title": "Sign-off",
+    "signatures": [
+      { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true,  "stage": "contractor" },
+      { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+    ]
+  }
+}

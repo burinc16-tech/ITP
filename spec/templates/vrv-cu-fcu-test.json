@@ -1,0 +1,60 @@
+{
+  "code": "VRV",
+  "title": "VRV CU / FCU Test Form",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "spec/VRV_CU_FCU_Test_Form.html (Rev 0)",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",  "label": "Project",   "type": "text", "source": "project.name", "readonly": true },
+      { "id": "location", "label": "Location",  "type": "text", "source": "equipment.location", "required": true },
+      { "id": "date",     "label": "Test Date", "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "units",
+      "title": "VRV CU / FCU Test Results",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 6,
+      "auto_number": true,
+      "number_label": "Item",
+      "_note": "Scope is `location`, not `equipment`: one sheet covers every condensing and fan coil unit serving a room — the source lists a CU and its FCU together under \"AMK3 Level 2 Network Room\" — so the record belongs to the room, with each unit a row.\n\nSix rows to match the printed grid; the source ships two filled and four blank. Nothing is prefilled: the units on the source sheet are one project's data, not template wording (SPEC §5.1).\n\nLandscape like the source. Measured with all six rows filled: the grid is 268.8mm inside 269mm of printable width — an exact fit — and 143.7mm of a 158mm body, leaving room for about one more row before it spills. The sign-off is the top-level `footer` and takes the page PrintView gives it; in the flow it measured 82.1mm and put the page 82.4mm over.\n\n`font_size` is declared for the on-screen form only — print-section.tsx does not read it, so the printed grid is print.css's 10pt whatever this says.",
+      "columns": [
+        { "id": "brand",      "label": "Brand",       "type": "text", "width": "9%" },
+        { "id": "equip_no",   "label": "Equip. No.",  "type": "text", "width": "13%" },
+        { "id": "cu_model",   "label": "CU Model",    "type": "text", "width": "11%" },
+        { "id": "fcu_model",  "label": "FCU Model",   "type": "text", "width": "11%" },
+        { "id": "press_low",  "label": "CU Low",      "type": "text", "unit": "psi", "width": "7%", "align": "center",
+          "_note": "Text, not number: an FCU row has no CU pressure and the source is filled \"-\"." },
+        { "id": "press_high", "label": "CU High",     "type": "text", "unit": "psi", "width": "7%", "align": "center" },
+        { "id": "current_l1", "label": "Current L1",  "type": "number", "unit": "A", "width": "7%", "align": "center",
+          "_note": "The source packs one cell with either a single figure (single-phase FCU) or three stacked lines L1= / L2= / L3= (three-phase CU). Split into three columns: a flat table renders one control per cell, and three separate readings are three values regardless. A single-phase unit fills L1 only, which is also how it reads back out." },
+        { "id": "current_l2", "label": "Current L2",  "type": "number", "unit": "A", "width": "7%", "align": "center" },
+        { "id": "current_l3", "label": "Current L3",  "type": "number", "unit": "A", "width": "7%", "align": "center" },
+        { "id": "voltage",    "label": "Voltage",     "type": "number", "unit": "V", "width": "7%", "align": "center" },
+        { "id": "power",      "label": "Rated Power", "type": "number", "unit": "kW", "width": "7%", "align": "center",
+          "_note": "Number with a kW unit; the source is typed \"3.23kw\" with the unit inline, which the unit column now carries." },
+        { "id": "remarks",    "label": "Remarks",     "type": "text", "width": "12%",
+          "_note": "`text`, matching the source's single-line remarks input. (It was tried as a `textarea` on the theory that it drove row height; measured, it made no difference — row height comes from the cell padding, not the control.)" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "title": "Acknowledgement",
+    "signatures": [
+      { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+      { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_client",   "role": "Witnessed By", "required": false, "stage": "client" }
+    ]
+  }
+}

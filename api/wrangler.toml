@@ -7,7 +7,7 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "itp-itr"
-database_id = "local-placeholder"
+database_id = "14612e8f-1dfb-4ee9-806d-59bbc57f761b"
 migrations_dir = "../db/migrations"
 
 # R2 holds the signature PNGs (signatures.image_key). Miniflare emulates R2
@@ -25,4 +25,9 @@ bucket_name = "itp-itr-signatures"
 #   wrangler secret put RESEND_API_KEY
 #   EMAIL_FROM must be a From on a domain verified in Resend.
 [vars]
+# Public base URL of the frontend that serves the /sign/:token page (it runs on
+# this PC behind the Cloudflare tunnel at itp.full-defects.com). Used to build the
+# emailed/issued signing links; without it, links fall back to the Worker's own
+# origin (…workers.dev), which does NOT serve the /sign page.
+SIGN_BASE_URL = "https://itp.full-defects.com"
 # EMAIL_FROM = "Kenyon T&C <no-reply@your-domain>"

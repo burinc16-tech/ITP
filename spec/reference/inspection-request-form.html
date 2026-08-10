@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inspection Request Form (M&amp;E)</title>
+<style>
+  /* ── Base reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    background: #e8e8e8;
+    color: #000;
+  }
+
+  /* ── A4 page wrapper ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 12mm auto;
+    background: #fff;
+    padding: 10mm 12mm 10mm 12mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    position: relative;
+  }
+
+  /* ── Print ── */
+  @media print {
+    html, body { background: #fff; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0;
+      padding: 10mm 12mm 10mm 12mm;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .no-print { display: none !important; }
+    input, textarea, select {
+      border: none !important;
+      background: transparent !important;
+      outline: none !important;
+    }
+    .sig-pad-wrapper canvas { border: 1px solid #999 !important; }
+    .result-box { border: 1.5px solid #000 !important; }
+  }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 13pt;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    border-bottom: 2.5px solid #000;
+    padding-bottom: 4px;
+  }
+
+  /* ── Tables ── */
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  td, th {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: middle;
+    font-size: 9pt;
+    line-height: 1.3;
+  }
+
+  /* ── Inputs ── */
+  input[type="text"], input[type="date"], textarea, select {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #555;
+    background: #fffde7;
+    font-size: 9pt;
+    font-family: inherit;
+    padding: 1px 2px;
+    outline: none;
+    color: #000;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+    background: #fff9c4;
+    border-bottom: 1.5px solid #1565C0;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* ── Checkbox rows ── */
+  .cb-cell { text-align: center; vertical-align: middle; width: 30px; }
+  .cb-label { font-weight: bold; font-size: 9pt; vertical-align: middle; }
+  input[type="checkbox"] {
+    width: 15px; height: 15px;
+    cursor: pointer;
+    accent-color: #1565C0;
+  }
+
+  /* ── Header logo area ── */
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .logo-left img { height: 42px; }
+  .logo-right img { height: 36px; }
+
+  /* ── Section label ── */
+  .field-label {
+    font-weight: bold;
+    white-space: nowrap;
+    font-size: 9pt;
+    color: #222;
+  }
+  .field-label-sm {
+    font-size: 8.5pt;
+    color: #444;
+    white-space: nowrap;
+  }
+
+  /* ── Declaration block ── */
+  .declaration {
+    font-size: 8.5pt;
+    line-height: 1.45;
+    text-align: justify;
+    padding: 4px 6px;
+    background: #f9f9f9;
+  }
+
+  /* ── Signature pad ── */
+  .sig-pad-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    background: #fafafa;
+  }
+  .sig-mirror {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .sig-pad-wrapper canvas {
+    position: relative;
+    z-index: 2;
+    border: 1px dashed #999;
+    cursor: crosshair;
+    display: block;
+    width: 100%;
+    height: 120px;
+    background: transparent;
+    touch-action: none;
+  }
+  .sig-controls {
+    position: absolute;
+    top: 2px; right: 4px;
+    display: flex; gap: 4px;
+  }
+  .sig-controls button {
+    font-size: 7pt;
+    padding: 1px 5px;
+    cursor: pointer;
+    border: 1px solid #aaa;
+    background: #fff;
+    border-radius: 3px;
+    opacity: 0.8;
+  }
+  .sig-controls button:hover { opacity: 1; background: #eee; }
+
+  /* ── Result boxes ── */
+  .result-row { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 3px 0; }
+  .result-box {
+    display: flex; align-items: center; gap: 5px;
+    border: 1.5px solid #555; border-radius: 4px;
+    padding: 3px 10px; cursor: pointer; font-size: 9pt;
+    user-select: none; transition: background 0.15s;
+    font-weight: bold;
+  }
+  .result-box input[type="radio"] { accent-color: #1565C0; width: 14px; height: 14px; }
+  .result-box.pass { border-color: #2e7d32; }
+  .result-box.pass:has(input:checked) { background: #e8f5e9; }
+  .result-box.fail { border-color: #c62828; }
+  .result-box.fail:has(input:checked) { background: #ffebee; }
+  .result-box.conditional { border-color: #e65100; }
+  .result-box.conditional:has(input:checked) { background: #fff3e0; }
+
+  /* ── Print button ── */
+  .print-btn {
+    display: block; margin: 8px auto 0; padding: 8px 28px;
+    background: #1565C0; color: #fff; border: none; border-radius: 5px;
+    font-size: 11pt; cursor: pointer; font-weight: bold; letter-spacing: 0.3px;
+  }
+  .print-btn:hover { background: #0d47a1; }
+
+  .save-btn {
+    display: inline-block; margin: 8px 6px 0; padding: 8px 28px;
+    background: #2e7d32; color: #fff; border: none; border-radius: 5px;
+    font-size: 11pt; cursor: pointer; font-weight: bold; letter-spacing: 0.3px;
+  }
+  .save-btn:hover { background: #1b5e20; }
+  .print-btn { display: inline-block; margin: 8px 6px 0; }
+
+  /* ── Section divider ── */
+  .section-title {
+    font-size: 8pt; font-weight: bold; background: #e3f2fd;
+    padding: 2px 5px; letter-spacing: 0.3px; border-bottom: 1px solid #90caf9;
+  }
+
+  /* ── Utility ── */
+  .nowrap { white-space: nowrap; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+
+  /* ── Auto-save badge ── */
+  #autosave-status {
+    position: fixed; top: 6px; right: 10px; z-index: 999;
+    font-size: 8pt; color: #1b5e20; background: #e8f5e9;
+    border: 1px solid #a5d6a7; border-radius: 12px;
+    padding: 2px 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
+  #autosave-status:empty { display: none; }
+  .clear-btn {
+    display: inline-block; margin: 8px 6px 0; padding: 8px 18px;
+    background: #c62828; color: #fff; border: none; border-radius: 5px;
+    font-size: 11pt; cursor: pointer; font-weight: bold; letter-spacing: 0.3px;
+  }
+  .clear-btn:hover { background: #8e0000; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header-row">
+    <div class="logo-left">
+      <img src="data:image/jpeg;base64,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" alt="Company Logo">
+    </div>
+    <div style="flex:1; text-align:center;">
+      <h1>Inspection Request Form (M&amp;E)</h1>
+    </div>
+    <div class="logo-right">
+      <img src="data:image/png;base64,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" alt="Logo">
+    </div>
+  </div>
+
+  <!-- ══ PROJECT INFO ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:22%"><col style="width:43%">
+      <col style="width:15%"><col style="width:20%">
+    </colgroup>
+    <tbody><tr>
+      <td class="field-label">Project:</td>
+      <td colspan="3"><input type="text" id="project" value="Apple AMK2&amp;3 BOH &amp; Infra Structure"></td>
+    </tr>
+    <tr>
+      <td class="field-label">Contractor:</td>
+      <td><input type="text" id="contractor" value="Kenyon"></td>
+      <td class="field-label">IRF No.:</td>
+      <td><input type="text" id="irf_no" placeholder="e.g. IRF-001" value=""></td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ DISCIPLINE ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:5%"><col style="width:12%">
+      <col style="width:5%"><col style="width:14%">
+      <col style="width:5%"><col style="width:16%">
+      <col style="width:5%"><col style="width:10%">
+      <col style="width:5%"><col style="width:23%">
+    </colgroup>
+    <tbody><tr>
+      <td class="cb-cell" style="border-top:1.5px solid #000; border-left:1.5px solid #000;">
+        <input type="checkbox" id="cb_acmv">
+      </td>
+      <td class="cb-label" style="border-top:1.5px solid #000;">ACMV</td>
+      <td class="cb-cell" style="border-top:1.5px solid #000;">
+        <input type="checkbox" id="cb_elec">
+      </td>
+      <td class="cb-label" style="border-top:1.5px solid #000;">Electrical</td>
+      <td class="cb-cell" style="border-top:1.5px solid #000;">
+        <input type="checkbox" id="cb_fire">
+      </td>
+      <td class="cb-label" style="border-top:1.5px solid #000;">Fire Protection</td>
+      <td class="cb-cell" style="border-top:1.5px solid #000;">
+        <input type="checkbox" id="cb_ps">
+      </td>
+      <td class="cb-label" style="border-top:1.5px solid #000;">P&amp;S</td>
+      <td class="cb-cell" style="border-top:1.5px solid #000;">
+        <input type="checkbox" id="cb_other">
+      </td>
+      <td style="border-top:1.5px solid #000;">
+        <span class="field-label-sm">Other:</span>
+        <input type="text" id="other_specify" placeholder="Please specify" disabled="" value="">
+      </td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ FORM DETAILS ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:17%"><col style="width:46%">
+      <col style="width:13%"><col style="width:24%">
+    </colgroup>
+    <tbody><tr>
+      <td class="field-label">Drawing No.:</td>
+      <td><input type="text" id="drawing_no" value="Please refer to the attachment"></td>
+      <td class="field-label">Floor:</td>
+      <td><input type="text" id="floor" value="Level 6&amp;7"></td>
+    </tr>
+    <tr>
+      <td class="field-label">Area:</td>
+      <td><input type="text" id="area" value="AMK2&amp;3"></td>
+      <td class="field-label">Date:</td>
+      <td><input type="date" id="insp_date" value="2026-06-11"></td>
+    </tr>
+    <tr>
+      <td class="field-label nowrap">Activity:</td>
+      <td colspan="3"><input type="text" id="activity" value="(Infra) Ductwork Leakage Test for AHU-A-B102 AMK3 L2"></td>
+    </tr>
+    <tr>
+      <td class="field-label">Ref.:</td>
+      <td colspan="3"><input type="text" id="ref_no" value="APPLE-ACMV-101"></td>
+    </tr>
+    <tr>
+      <td class="field-label nowrap" style="vertical-align:top; padding-top:5px;">Scope / Remarks:</td>
+      <td colspan="3"><textarea id="scope" rows="3" placeholder="Describe scope of inspection / remarks..."></textarea></td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ DECLARATION ══ -->
+  <table style="margin-bottom:4px;">
+    <tbody><tr>
+      <td class="declaration">
+        We, the Main Contractor / Contractor / Nominated Sub-Contractor / Sub-Contractor have already carried out Preliminary Inspections of the works to ensure that they are in accordance with the Specification, Scope of Works, and Contract documentation requirements and that the works are complete and ready for Inspection.
+      </td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ PRELIMINARY INSPECTION SIGN-OFF ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:25%"><col style="width:40%"><col style="width:15%"><col style="width:20%">
+    </colgroup>
+    <tbody><tr>
+      <td class="field-label section-title" colspan="4">CONTRACTOR SIGN-OFF</td>
+    </tr>
+    <tr>
+      <td class="field-label">Inspected By:</td>
+      <td><input type="text" id="prelim_by" value="Burin" placeholder="Name"></td>
+      <td class="field-label">Date:</td>
+      <td><input type="date" id="prelim_date" value="2026-07-03"></td>
+    </tr>
+    <tr>
+      <td class="field-label" style="vertical-align:top; padding-top:4px;">Signature:</td>
+      <td colspan="3" style="padding:4px;">
+        <div class="sig-pad-wrapper">
+          <img class="sig-mirror" id="sig_prelim_mirror" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwkAAABGCAYAAACHfdioAAABcUlEQVR4Xu3ZsQ0AMAzDsOb/p7sFVW8gJ78geA4AAMBjdgEAAIgEAADg50kAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAuDxeAEeM1X6NAAAAAElFTkSuQmCC">
+          <canvas id="sig_prelim" height="120" width="777"></canvas>
+          <div class="sig-controls no-print">
+            <button onclick="clearSig('sig_prelim','sig_prelim_mirror')">Clear</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ INSPECTION RESULT ══ -->
+  <table style="margin-bottom:4px;">
+    <tbody><tr>
+      <td class="section-title bold" colspan="4">INSPECTION RESULT</td>
+    </tr>
+    <tr>
+      <td colspan="4" style="padding: 6px 4px;">
+        <div class="result-row">
+          <label class="result-box pass">
+            <input type="radio" name="result" value="pass">
+            ✅ PASS
+          </label>
+          <label class="result-box fail">
+            <input type="radio" name="result" value="fail">
+            ❌ FAIL
+          </label>
+          <label class="result-box conditional">
+            <input type="radio" name="result" value="conditional">
+            ⚠️ CONDITIONAL PASS
+          </label>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="field-label nowrap" style="vertical-align:top; padding-top:5px;">Comments:</td>
+      <td colspan="3"><textarea id="result_comments" rows="5" placeholder="Inspector comments / conditions / defects noted..."></textarea></td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ INSPECTOR / ENGINEER SIGN-OFF ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:25%"><col style="width:40%"><col style="width:15%"><col style="width:20%">
+    </colgroup>
+    <tbody><tr>
+      <td class="section-title bold" colspan="4">INSPECTOR / ENGINEER SIGN-OFF</td>
+    </tr>
+    <tr>
+      <td class="field-label">Inspected By:</td>
+      <td><input type="text" id="insp_by" placeholder="Name / Designation" value=""></td>
+      <td class="field-label">Date:</td>
+      <td><input type="date" id="insp_signoff_date" value="2026-07-03"></td>
+    </tr>
+    <tr>
+      <td class="field-label" style="vertical-align:top; padding-top:4px;">Signature:</td>
+      <td colspan="3" style="padding:4px;">
+        <div class="sig-pad-wrapper">
+          <img class="sig-mirror" id="sig_insp_mirror" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwkAAABGCAYAAACHfdioAAABcUlEQVR4Xu3ZsQ0AMAzDsOb/p7sFVW8gJ78geA4AAMBjdgEAAIgEAADg50kAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAuDxeAEeM1X6NAAAAAElFTkSuQmCC">
+          <canvas id="sig_insp" height="120" width="777"></canvas>
+          <div class="sig-controls no-print">
+            <button onclick="clearSig('sig_insp','sig_insp_mirror')">Clear</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ ACTION BUTTONS ══ -->
+  <div class="no-print" style="text-align:center; margin-top:6px;">
+    <button class="save-btn" onclick="saveAs()">💾 Save As (HTML)</button>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF (A4)</button>
+    <button class="clear-btn" onclick="clearAllData()">🗑 Clear Form</button>
+  </div>
+
+</div><!-- /page -->
+
+<span id="autosave-status" class="no-print" title="Everything you type or sign is saved automatically in this browser"></span>
+
+<script>
+/* ─── Signature Pad ─── */
+function initSigPad(id, mirrorId) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const mirror = document.getElementById(mirrorId);
+
+  function syncMirror() {
+    try { mirror.src = canvas.toDataURL('image/png'); } catch (e) {}
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width = rect.width * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.putImageData(img, 0, 0);
+    ctx.strokeStyle = '#1a237e';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches) {
+      return [e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top];
+    }
+    return [e.clientX - rect.left, e.clientY - rect.top];
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    [lastX, lastY] = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    [lastX, lastY] = [x, y];
+  }
+
+  function stopDraw(e) {
+    if (!drawing) return;
+    drawing = false;
+    ctx.beginPath();
+    syncMirror();
+    scheduleAutosave();
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive: false});
+  canvas.addEventListener('touchmove', draw, {passive: false});
+  canvas.addEventListener('touchend', stopDraw);
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  ctx.strokeStyle = '#1a237e';
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+function clearSig(id, mirrorId) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  const mirror = document.getElementById(mirrorId);
+  if (mirror) mirror.removeAttribute('src');
+  scheduleAutosave();
+}
+
+/* ─── Persist live field values into HTML attributes ───
+   A browser's "Save Page As → Webpage, Complete" serializes the
+   current DOM's attributes, not the live JS .value/.checked
+   properties. Without this, a filled-in form would save blank. */
+function makeFieldPersistent(el) {
+  const tag = el.tagName.toLowerCase();
+  const type = (el.getAttribute('type') || '').toLowerCase();
+
+  if (tag === 'textarea') {
+    const sync = () => { el.textContent = el.value; };
+    el.addEventListener('input', sync);
+    sync();
+  } else if (tag === 'input' && type === 'checkbox') {
+    const sync = () => {
+      if (el.checked) el.setAttribute('checked', ''); else el.removeAttribute('checked');
+    };
+    el.addEventListener('change', sync);
+    sync();
+  } else if (tag === 'input' && type === 'radio') {
+    const sync = () => {
+      document.getElementsByName(el.name).forEach(r => {
+        if (r.checked) r.setAttribute('checked', ''); else r.removeAttribute('checked');
+      });
+    };
+    el.addEventListener('change', sync);
+  } else if (tag === 'input') {
+    const sync = () => { el.setAttribute('value', el.value); };
+    el.addEventListener('input', sync);
+    el.addEventListener('change', sync);
+  } else if (tag === 'select') {
+    const sync = () => {
+      Array.from(el.options).forEach(o => {
+        if (o.selected) o.setAttribute('selected', ''); else o.removeAttribute('selected');
+      });
+    };
+    el.addEventListener('change', sync);
+    sync();
+  }
+}
+
+window.addEventListener('load', () => {
+  initSigPad('sig_prelim', 'sig_prelim_mirror');
+  initSigPad('sig_insp', 'sig_insp_mirror');
+
+  document.querySelectorAll('input, textarea, select').forEach(makeFieldPersistent);
+
+  // Restore auto-saved data (if any) before applying defaults
+  const savedData = loadAutosave();
+  if (savedData) {
+    applyAutosave(savedData);
+    setSavedStamp(savedData.__t, '✓ Restored auto-saved data — ');
+  }
+
+  // Set today as default date for sign-off (only if empty, so reopened saves keep their dates)
+  const today = new Date().toISOString().split('T')[0];
+  const prelimDate = document.getElementById('prelim_date');
+  const inspDate = document.getElementById('insp_signoff_date');
+  if (!prelimDate.value) { prelimDate.value = today; prelimDate.setAttribute('value', today); }
+  if (!inspDate.value) { inspDate.value = today; inspDate.setAttribute('value', today); }
+
+  // Restore "other" enabled state based on the checkbox (for reopened saves)
+  const otherSpecify = document.getElementById('other_specify');
+  const cbOther = document.getElementById('cb_other');
+  cbOther.addEventListener('change', function() {
+    otherSpecify.disabled = !this.checked;
+    if (!this.checked) {
+      otherSpecify.value = '';
+      otherSpecify.setAttribute('value', '');
+    }
+  });
+  otherSpecify.disabled = !cbOther.checked;
+});
+
+/* ─── Print: flatten signatures into static images ─── */
+window.addEventListener('beforeprint', () => {
+  ['sig_prelim','sig_insp'].forEach(id => {
+    const canvas = document.getElementById(id);
+    canvas.style.borderStyle = 'solid';
+  });
+});
+
+/* ─── Save As: bake current values into the DOM, then download ─── */
+function saveAs() {
+  // 1. Force every field to write its current value into its HTML attributes
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    const tag = el.tagName.toLowerCase();
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    if (tag === 'textarea') {
+      el.textContent = el.value;
+    } else if (tag === 'input' && (type === 'checkbox' || type === 'radio')) {
+      if (el.checked) el.setAttribute('checked', ''); else el.removeAttribute('checked');
+    } else if (tag === 'input') {
+      el.setAttribute('value', el.value);
+    } else if (tag === 'select') {
+      Array.from(el.options).forEach(o => {
+        if (o.selected) o.setAttribute('selected', ''); else o.removeAttribute('selected');
+      });
+    }
+  });
+
+  // 2. Snapshot both signature canvases into their mirror images
+  [['sig_prelim','sig_prelim_mirror'], ['sig_insp','sig_insp_mirror']].forEach(([cid, mid]) => {
+    const canvas = document.getElementById(cid);
+    const mirror = document.getElementById(mid);
+    try {
+      const data = canvas.toDataURL('image/png');
+      mirror.setAttribute('src', data);
+    } catch (e) {}
+  });
+
+  // 3. Serialize the whole document
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+
+  // 4. Build a helpful filename from IRF No. (or fall back to a timestamp)
+  const irf = (document.getElementById('irf_no').value || '').trim().replace(/[^\w\-]+/g, '_');
+  const stamp = new Date().toISOString().slice(0,10);
+  const name = 'Inspection_Request_Form' + (irf ? '_' + irf : '') + '_' + stamp + '.html';
+
+  // 5. Trigger the download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+/* ═══════════════════════════════════════════════
+   AUTO-SAVE — every keystroke, tick and signature
+   stroke is persisted to this browser's
+   localStorage and restored on the next open.
+═══════════════════════════════════════════════ */
+/* Keyed per file path, so different copies of the form
+   don't overwrite each other's auto-saved data. */
+const AUTOSAVE_KEY = 'irf_autosave:' + location.pathname;
+let _asT = null;
+
+function sigIsBlank(cv) {
+  try {
+    const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 3; i < d.length; i += 4) { if (d[i] !== 0) return false; }
+    return true;
+  } catch (e) { return true; }
+}
+
+function collectAutosave() {
+  const d = { fields: {}, checks: {}, radios: {}, sigs: {} };
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    if (type === 'checkbox') { if (el.id) d.checks[el.id] = el.checked; }
+    else if (type === 'radio') { if (el.checked && el.name) d.radios[el.name] = el.value; }
+    else if (el.id) d.fields[el.id] = el.value;
+  });
+  ['sig_prelim', 'sig_insp'].forEach(cid => {
+    const cv = document.getElementById(cid);
+    if (cv && !sigIsBlank(cv)) {
+      try { d.sigs[cid] = cv.toDataURL('image/png'); } catch (e) {}
+    }
+  });
+  return d;
+}
+
+function applyAutosave(d) {
+  if (!d) return;
+
+  Object.entries(d.fields || {}).forEach(([k, v]) => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    el.value = v;
+    if (el.tagName.toLowerCase() === 'textarea') el.textContent = v;
+    else if (el.tagName.toLowerCase() === 'input') el.setAttribute('value', v);
+  });
+
+  Object.entries(d.checks || {}).forEach(([k, v]) => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    el.checked = v;
+    if (v) el.setAttribute('checked', ''); else el.removeAttribute('checked');
+  });
+
+  Object.entries(d.radios || {}).forEach(([name, val]) => {
+    document.getElementsByName(name).forEach(r => {
+      r.checked = (r.value === val);
+      if (r.checked) r.setAttribute('checked', ''); else r.removeAttribute('checked');
+    });
+  });
+
+  /* Keep the "Other:" text box enabled state in sync with its checkbox */
+  const cbOther = document.getElementById('cb_other');
+  const otherSpecify = document.getElementById('other_specify');
+  if (cbOther && otherSpecify) otherSpecify.disabled = !cbOther.checked;
+
+  /* Redraw signatures (stretched to the pad's current pixel size, so a
+     different zoom / devicePixelRatio at restore time still fits) */
+  Object.entries(d.sigs || {}).forEach(([cid, url]) => {
+    const cv = document.getElementById(cid);
+    const mirror = document.getElementById(cid + '_mirror');
+    if (!cv || !url || url === 'data:,') return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = cv.getContext('2d');
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      ctx.restore();
+      if (mirror) { try { mirror.src = cv.toDataURL('image/png'); } catch (e) {} }
+    };
+    img.src = url;
+  });
+}
+
+function scheduleAutosave() {
+  clearTimeout(_asT);
+  _asT = setTimeout(autosaveNow, 500);   // debounce: save 0.5s after last change
+}
+
+function autosaveNow() {
+  clearTimeout(_asT); _asT = null;
+  try {
+    const d = collectAutosave();
+    d.__t = new Date().toISOString();
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(d));
+    setSavedStamp(d.__t);
+  } catch (e) {
+    const el = document.getElementById('autosave-status');
+    if (el) el.textContent = '⚠ auto-save unavailable';
+  }
+}
+
+function loadAutosave() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function setSavedStamp(iso, prefix) {
+  const el = document.getElementById('autosave-status');
+  if (!el) return;
+  if (!iso) { el.textContent = ''; return; }
+  const t = new Date(iso);
+  el.textContent = (prefix || '') + '💾 Auto-saved ' + (isNaN(t) ? '' : t.toLocaleString());
+}
+
+function clearAllData() {
+  if (!confirm('Clear the auto-saved data? The form will reload with its original contents.')) return;
+  clearTimeout(_asT); _asT = null;
+  try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+  location.reload();
+}
+
+/* Any typed text, date, tick or dropdown change triggers a save */
+document.addEventListener('input',  scheduleAutosave);
+document.addEventListener('change', scheduleAutosave);
+
+/* Last-chance flush when the tab is closed or backgrounded mid-debounce */
+window.addEventListener('beforeunload', () => { if (_asT) autosaveNow(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && _asT) autosaveNow();
+});
+</script>
+
+</body></html>

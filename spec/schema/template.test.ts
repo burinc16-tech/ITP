@@ -480,3 +480,149 @@ describe("parse helpers", () => {
     expect(templateSchema.safeParse(realTemplate).success).toBe(true);
   });
 });
+
+describe("grouped dynamic tables (SPEC §12)", () => {
+  /** A minimal grouped section, cloned per case so edits do not leak. */
+  function grouped(): any {
+    return {
+      id: "balancing",
+      title: "Air Balancing Results",
+      type: "dynamic_table",
+      columns: [
+        { id: "design", label: "Design", type: "number" },
+        { id: "balanced", label: "Balanced", type: "number" },
+        {
+          id: "pct",
+          label: "Percentage",
+          type: "calculated",
+          formula: "balanced / design * 100",
+        },
+      ],
+      row_group: {
+        id: "vav",
+        label: "VAV Unit",
+        auto_number: true,
+        columns: [{ id: "tag", label: "Equipment Tag", type: "text" }],
+        totals: {
+          label: "TOTAL",
+          cells: [
+            { column: "design", aggregate: "sum" },
+            { column: "pct", formula: "balanced / design * 100", unit: "%" },
+          ],
+        },
+      },
+    };
+  }
+
+  it("accepts a grouped section and still reports it as a dynamic table", () => {
+    const section = sectionSchema.parse(grouped());
+    expect(isDynamicTableSection(section)).toBe(true);
+    expect(isStandardSection(section)).toBe(false);
+  });
+
+  it("leaves an ungrouped dynamic table valid and unchanged", () => {
+    const flat = grouped();
+    delete flat.row_group;
+    const section: any = sectionSchema.parse(flat);
+    expect(isDynamicTableSection(section)).toBe(true);
+    expect(section.row_group).toBeUndefined();
+  });
+
+  it("requires a formula on a calculated column", () => {
+    const s = grouped();
+    delete s.columns[2].formula;
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+
+  it("requires a totals cell to name exactly one of aggregate or formula", () => {
+    const neither = grouped();
+    neither.row_group.totals.cells[0] = { column: "design" };
+    expect(sectionSchema.safeParse(neither).success).toBe(false);
+
+    const both = grouped();
+    both.row_group.totals.cells[0] = {
+      column: "design",
+      aggregate: "sum",
+      formula: "design",
+    };
+    expect(sectionSchema.safeParse(both).success).toBe(false);
+  });
+
+  it("rejects a totals cell naming a column the section does not define", () => {
+    const s = grouped();
+    s.row_group.totals.cells[0].column = "no_such_column";
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+
+  it("rejects prefilled_rows on a grouped table, which seeds from row_group", () => {
+    const s = grouped();
+    s.prefilled_rows = [{ design: "100" }];
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+
+  it("rejects an unknown key inside row_group", () => {
+    const s = grouped();
+    s.row_group.grouping = "vav";
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+});
+
+describe("flat dynamic-table totals (SPEC §12)", () => {
+  /** A minimal flat table with a totals line, cloned per case. */
+  function flat(): any {
+    return {
+      id: "balancing",
+      title: "Air Balancing Results",
+      type: "dynamic_table",
+      auto_number: true,
+      number_label: "Item No.",
+      columns: [
+        { id: "design", label: "Design", type: "number" },
+        { id: "final_h", label: "Final H", type: "number" },
+        {
+          id: "pct_h",
+          label: "Percentage H",
+          type: "calculated",
+          formula: "final_h / design * 100",
+        },
+      ],
+      totals: {
+        label: "Total Air Flow",
+        cells: [
+          { column: "design", aggregate: "sum" },
+          { column: "final_h", aggregate: "sum" },
+          { column: "pct_h", formula: "final_h / design * 100", unit: "%" },
+        ],
+      },
+    };
+  }
+
+  it("accepts a flat table with a totals line and a number label", () => {
+    const section: any = sectionSchema.parse(flat());
+    expect(isDynamicTableSection(section)).toBe(true);
+    expect(section.totals.label).toBe("Total Air Flow");
+    expect(section.number_label).toBe("Item No.");
+  });
+
+  it("rejects section-level totals combined with a row_group", () => {
+    const s = flat();
+    s.row_group = {
+      id: "g",
+      label: "Group",
+      columns: [{ id: "tag", label: "Tag", type: "text" }],
+    };
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+
+  it("rejects a totals cell naming a column the section does not define", () => {
+    const s = flat();
+    s.totals.cells[0].column = "no_such_column";
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+
+  it("still requires exactly one of aggregate or formula per cell", () => {
+    const s = flat();
+    s.totals.cells[0] = { column: "design" };
+    expect(sectionSchema.safeParse(s).success).toBe(false);
+  });
+});

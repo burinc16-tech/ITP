@@ -1,0 +1,72 @@
+{
+  "code": "DAB",
+  "title": "DX FCU Air Balancing Form",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/DXFCU_Air_Balancing_Form.html",
+
+  "header": {
+    "title": "Air Balancing Form",
+    "fields": [
+      { "id": "project",     "label": "Project",      "type": "text", "source": "project.name", "readonly": true },
+      { "id": "area_served", "label": "Area Served",  "type": "text", "required": true },
+      { "id": "fcu_cu_tag",  "label": "FCU / CU No.", "type": "text", "required": true, "bold": true },
+      { "id": "model",       "label": "Model",        "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "balancing",
+      "title": "Air Balancing Results",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "auto_number": true,
+      "number_label": "Item No.",
+      "min_rows": 4,
+      "_note": "Same flat-table shape as the CHW FCU form (SPEC §12 flat-table totals): one diffuser table closed by a Total Air Flow line. The header pairs the DX indoor unit with its condensing unit (FCU / CU No.). The break flag opts this template into explicit pagination so the sign-off boxes print directly beneath the table, as on the source form.",
+      "columns": [
+        { "id": "diff_no",       "label": "Diffuser No.",           "type": "text",   "width": "11mm", "align": "center" },
+        { "id": "face_size",     "label": "Diffuser Face Size",     "type": "text",   "unit": "mm x mm", "width": "19mm", "align": "center", "carry_down": true },
+        { "id": "internal_size", "label": "Diffuser Internal Size", "type": "text",   "unit": "mm x mm", "width": "19mm", "align": "center", "carry_down": true },
+        { "id": "design",        "label": "Design Airflow",         "type": "number", "unit": "CMH", "width": "15mm", "align": "center" },
+        { "id": "final_l",       "label": "Final Airflow L",        "type": "number", "unit": "CMH", "width": "11mm", "align": "center" },
+        { "id": "final_m",       "label": "Final Airflow M",        "type": "number", "unit": "CMH", "width": "11mm", "align": "center" },
+        { "id": "final_h",       "label": "Final Airflow H",        "type": "number", "unit": "CMH", "width": "11mm", "align": "center" },
+        { "id": "pct_l",         "label": "Percentage L",           "type": "calculated", "unit": "%", "width": "9mm", "align": "center",
+          "formula": "final_l / design * 100" },
+        { "id": "pct_m",         "label": "Percentage M",           "type": "calculated", "unit": "%", "width": "9mm", "align": "center",
+          "formula": "final_m / design * 100" },
+        { "id": "pct_h",         "label": "Percentage H",           "type": "calculated", "unit": "%", "width": "9mm", "align": "center",
+          "formula": "final_h / design * 100" },
+        { "id": "grill_type",    "label": "Grill Type",             "type": "text", "width": "20mm", "align": "center", "carry_down": true },
+        { "id": "remark",        "label": "Remark",                 "type": "text", "width": "22mm", "carry_down": true }
+      ],
+      "totals": {
+        "label": "Total Air Flow",
+        "cells": [
+          { "column": "design",  "aggregate": "sum" },
+          { "column": "final_h", "aggregate": "sum" },
+          { "column": "pct_h",   "formula": "final_h / design * 100", "unit": "%" }
+        ]
+      }
+    },
+
+    {
+      "id": "signoff",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "layout": "two_column",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested by",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed by", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed by", "required": false, "stage": "client" }
+      ],
+      "_note": "The source form prints one Tested-by box and two Witnessed-by boxes directly beneath the results table on the same page."
+    }
+  ]
+}

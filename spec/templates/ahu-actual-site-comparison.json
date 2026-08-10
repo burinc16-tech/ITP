@@ -1,0 +1,177 @@
+{
+  "code": "ASC",
+  "title": "AHU Actual and Site Comparison",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "spec/AHU_Actual_and_Site_Comparison.html",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",     "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ahu_tag",     "label": "AHU Tag No.", "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "description", "label": "Equipment",   "type": "textarea" },
+      { "id": "date",        "label": "Date",        "type": "date", "required": true }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "fresh_air_coil",
+      "no": "1",
+      "title": "Chilled Water AHU — Fresh Air Cooling Coil",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "A4 LANDSCAPE, three tables — a measured departure from the source, which is a single 404mm-wide A3 landscape sheet (its own toolbar tells the user to pick \"Fit to page\" / A4 at the print dialog). Two things force it: PrintView writes `@page { size: A4 <orientation> }` and print.css sizes the page 297×210mm, so A3 is not a size this app can print even though the schema names it; and the source fits 30 columns only through a three-deep nested header at 7px, whereas the app renders one flat header row per column.\n\nSo the source's single CHILLED WATER AHU table is split into three sections that share the same four identity columns — the fresh air coil, the return air coil, then the air flow / damper / filter block that closes the row. Column order within each follows the sheet. The identity columns repeat on every table, exactly as the sheet repeats them between its CHW AHU and MOTOR tables and as `chwfcu-function-test.json` repeats its own (matching the original wins, CLAUDE.md).\n\nThe four coil temperature columns stay `text`, not `number`: the sheet records each as a pair in one cell (\"33.0 / 27.0\", \"8.0°C / 15.0°C\").\n\n`font_size` applies to the on-screen form only — print-section.tsx does not read it.",
+      "columns": [
+        { "id": "tag",           "label": "Tag. No",                   "type": "text",   "width": "9%" },
+        { "id": "location",      "label": "Location",                  "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "area",          "label": "Area Served",               "type": "text",   "width": "12%" },
+        { "id": "brand",         "label": "Brand",                     "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "on_coil",       "label": "Design On Coil DB/WB",      "type": "text",   "unit": "°C", "width": "8%", "align": "center" },
+        { "id": "off_coil",      "label": "Design Off Coil DB/WB",     "type": "text",   "unit": "°C", "width": "8%", "align": "center" },
+        { "id": "total_cooling", "label": "Design Total Cooling",      "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "chw_design",    "label": "Design CHW Circuit In/Out", "type": "text",   "unit": "°C", "width": "9%", "align": "center" },
+        { "id": "chw_site",      "label": "Site CHW Circuit In/Out",   "type": "text",   "unit": "°C", "width": "9%", "align": "center" },
+        { "id": "flow_design",   "label": "Max. Design CHW Flow",      "type": "number", "unit": "l/s", "width": "8%", "align": "center" },
+        { "id": "flow_site",     "label": "Site CHW Flow",             "type": "number", "unit": "l/s", "width": "8%", "align": "center" },
+        { "id": "pipe_size",     "label": "Pipe size",                 "type": "number", "unit": "mm", "width": "7%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "return_air_coil",
+      "no": "2",
+      "title": "Chilled Water AHU — Return Air (Circulation) Cooling Coil",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "Deliberately the same twelve columns as section 1, with the same ids: on the sheet the two coils are one table's two header blocks, asking identical questions. The source-parity test pins the pair together so a revision to one coil cannot silently skip the other.",
+      "columns": [
+        { "id": "tag",           "label": "Tag. No",                   "type": "text",   "width": "9%" },
+        { "id": "location",      "label": "Location",                  "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "area",          "label": "Area Served",               "type": "text",   "width": "12%" },
+        { "id": "brand",         "label": "Brand",                     "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "on_coil",       "label": "Design On Coil DB/WB",      "type": "text",   "unit": "°C", "width": "8%", "align": "center" },
+        { "id": "off_coil",      "label": "Design Off Coil DB/WB",     "type": "text",   "unit": "°C", "width": "8%", "align": "center" },
+        { "id": "total_cooling", "label": "Design Total Cooling",      "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "chw_design",    "label": "Design CHW Circuit In/Out", "type": "text",   "unit": "°C", "width": "9%", "align": "center" },
+        { "id": "chw_site",      "label": "Site CHW Circuit In/Out",   "type": "text",   "unit": "°C", "width": "9%", "align": "center" },
+        { "id": "flow_design",   "label": "Max. Design CHW Flow",      "type": "number", "unit": "l/s", "width": "8%", "align": "center" },
+        { "id": "flow_site",     "label": "Site CHW Flow",             "type": "number", "unit": "l/s", "width": "8%", "align": "center" },
+        { "id": "pipe_size",     "label": "Pipe size",                 "type": "number", "unit": "mm", "width": "7%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "air_flow",
+      "no": "3",
+      "title": "Chilled Water AHU — Air Flow, Damper, Filter and Pressure",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "The tail of the sheet's CHW AHU row, in the sheet's own order. Damper opening and static pressure set point carry no unit because the source header gives none — it prints \"Fresh air damper opening\" and \"Static pressure set point\" bare, where it does state CMH, Pa and mm elsewhere. Confirm both at Rev A rather than inferring % and Pa here.\n\nThe single Remarks column of the source row lives on this last of the three split tables, not on all three.",
+      "columns": [
+        { "id": "tag",           "label": "Tag. No",                   "type": "text",   "width": "8%" },
+        { "id": "location",      "label": "Location",                  "type": "text",   "width": "6%", "carry_down": true },
+        { "id": "area",          "label": "Area Served",               "type": "text",   "width": "11%" },
+        { "id": "brand",         "label": "Brand",                     "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "fa_design",     "label": "Fresh Air Flow Design",     "type": "number", "unit": "CMH", "width": "7%", "align": "center" },
+        { "id": "fa_site",       "label": "Fresh Air Flow Site",       "type": "number", "unit": "CMH", "width": "7%", "align": "center" },
+        { "id": "damper",        "label": "Fresh air damper opening",  "type": "number", "width": "7%", "align": "center" },
+        { "id": "static_sp",     "label": "Static pressure set point", "type": "number", "width": "7%", "align": "center" },
+        { "id": "sa_design",     "label": "Supply Air Flow Design",    "type": "number", "unit": "CMH", "width": "7%", "align": "center" },
+        { "id": "sa_site",       "label": "Supply Air Flow Site",      "type": "number", "unit": "CMH", "width": "7%", "align": "center" },
+        { "id": "filter",        "label": "Filter",                    "type": "text",   "width": "6%", "align": "center" },
+        { "id": "ext_pressure",  "label": "External Pressure",         "type": "number", "unit": "Pa", "width": "6%", "align": "center" },
+        { "id": "remarks",       "label": "Remarks",                   "type": "textarea", "width": "14%" }
+      ]
+    },
+
+    {
+      "id": "motor",
+      "no": "4",
+      "title": "Motor",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "7pt",
+      "_note": "Grouped, not flat: the sheet spreads FAN 1 to FAN 4 across twenty fixed columns and fills the unused ones \"NA\" (this record runs three fans). One row per fan under a spanning AHU block says the same thing, fits the page, and takes a fifth or sixth fan without a template revision — the shape `row_group` was added for (SPEC §12, `vav-air-balancing.json`).\n\nThe break puts the motor table, the instruments and the remarks on a page of their own; the three coil / air flow tables share page 1 and the sign-off closes on the footer's page.",
+      "columns": [
+        { "id": "fan",     "label": "Fan",        "type": "text",   "width": "12%", "align": "center" },
+        { "id": "l1",      "label": "Actual L1",  "type": "number", "unit": "A", "width": "13%", "align": "center" },
+        { "id": "l2",      "label": "Actual L2",  "type": "number", "unit": "A", "width": "13%", "align": "center" },
+        { "id": "l3",      "label": "Actual L3",  "type": "number", "unit": "A", "width": "13%", "align": "center" },
+        { "id": "voltage", "label": "Voltage",    "type": "number", "unit": "V", "width": "13%", "align": "center" },
+        { "id": "rpm",     "label": "Fan speed",  "type": "number", "unit": "RPM", "width": "13%", "align": "center" }
+      ],
+      "row_group": {
+        "id": "unit",
+        "label": "AHU",
+        "auto_number": true,
+        "min_groups": 1,
+        "rows_per_new_group": 1,
+        "columns": [
+          { "id": "tag",        "label": "Tag. No",      "type": "text",   "width": "9%" },
+          { "id": "location",   "label": "Location",     "type": "text",   "width": "6%" },
+          { "id": "area",       "label": "Area Served",  "type": "text",   "width": "11%" },
+          { "id": "brand",      "label": "Brand",        "type": "text",   "width": "7%" },
+          { "id": "design_kw",  "label": "Design",       "type": "text",   "unit": "kW", "width": "7%", "align": "center",
+            "_note": "Text, not number: the sheet records the rating per fan and the count in one cell, \"6.21 x 3\"." },
+          { "id": "design_fla", "label": "Design",       "type": "text",   "unit": "FLA", "width": "7%", "align": "center" },
+          { "id": "remarks",    "label": "Remarks",      "type": "textarea", "width": "10%" }
+        ]
+      }
+    },
+
+    {
+      "id": "instruments",
+      "no": "5",
+      "title": "Test Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "7pt",
+      "min_rows": 4,
+      "_note": "The source carries one free-text box headed \"REMARKS / TEST INSTRUMENTS USED\", filled with a numbered list of instruments and their serial numbers. Split here into a table plus the remarks row below, as on chwfcu-function-test.json and dxfcu-function-test.json: only a table can be read by `link_to_instrument_register`, which is what catches an out-of-calibration instrument (SPEC §5). Four rows to match the four instruments the source lists (multimeter, clamp meter, balometer, airflow meter).",
+      "columns": [
+        { "id": "instrument", "label": "Instrument", "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",   "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",  "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",    "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "no": "6",
+      "title": "Remarks",
+      "type": "standard",
+      "columns": {
+        "result": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the test" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "signatures": [
+      { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+      { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_verified", "role": "Verified By",  "required": false, "stage": "client" }
+    ]
+  }
+}

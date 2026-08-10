@@ -139,12 +139,81 @@ export const columnDefSchema = z
     limit: limitSchema.optional(),
     /** Selectable states when `type` is `status` (SPEC §12). */
     states: z.array(statusStateSchema).min(2).optional(),
+    /**
+     * Arithmetic over other column ids in the same row, for `type: "calculated"`
+     * — e.g. `"balanced / design * 100"`. Read-only; see `lib/formula.ts`.
+     */
+    formula: z.string().optional(),
+    /** Decimal places a computed value is rounded to for display (default 0). */
+    decimals: z.number().int().nonnegative().optional(),
+    /** Copy this cell down from the row above when a row is appended. */
+    carry_down: z.boolean().optional(),
     _note: z.string().optional(),
   })
   .strict()
   .refine((c) => c.type !== "status" || (c.states?.length ?? 0) >= 2, {
     message: "a `status` column must define at least two `states`",
+  })
+  .refine((c) => c.type !== "calculated" || c.formula !== undefined, {
+    message: "a `calculated` column must define a `formula`",
   });
+
+/** Aggregate functions a totals cell may apply down a column. */
+export const aggregateSchema = z.enum(["sum", "mean", "min", "max", "count"]);
+
+/**
+ * One cell of a group's totals row. Either an `aggregate` down a body column, or
+ * a `formula` whose identifiers resolve to the *aggregated* value of each column
+ * — so the same expression works per-row and on the total (the VAV percentage is
+ * `balanced / design * 100` in both places).
+ */
+export const totalCellSchema = z
+  .object({
+    column: z.string(),
+    aggregate: aggregateSchema.optional(),
+    formula: z.string().optional(),
+    unit: z.string().optional(),
+    decimals: z.number().int().nonnegative().optional(),
+  })
+  .strict()
+  .refine((c) => (c.aggregate === undefined) !== (c.formula === undefined), {
+    message: "a totals cell must define exactly one of `aggregate` or `formula`",
+  });
+
+/** The per-group totals row (e.g. the VAV form's `TOTAL` line). */
+export const totalsSchema = z
+  .object({
+    label: z.string(),
+    /** Aggregate applied to any column a cell does not name explicitly. */
+    default_aggregate: aggregateSchema.optional(),
+    cells: z.array(totalCellSchema).min(1),
+  })
+  .strict();
+
+/**
+ * Groups the rows of a `dynamic_table` under shared, row-spanning cells (SPEC
+ * §12) — e.g. a VAV unit spanning its diffuser rows, then a totals line.
+ *
+ * Generic on purpose: the group carries its own typed `columns` and an optional
+ * `totals` row, and nothing here names a specific form (Hard Rule #4). A section
+ * without `row_group` renders exactly as before.
+ */
+export const rowGroupSchema = z
+  .object({
+    id: z.string(),
+    label: z.string(),
+    /** Group-level fields, rendered once in cells spanning the group's rows. */
+    columns: z.array(columnDefSchema).min(1),
+    totals: totalsSchema.optional(),
+    /** Number the groups 1..n in their own column (the VAV form's S/N). */
+    auto_number: z.boolean().optional(),
+    /** Groups present on a blank record. */
+    min_groups: z.number().int().nonnegative().optional(),
+    /** Body rows each new group starts with. */
+    rows_per_new_group: z.number().int().positive().optional(),
+    _note: z.string().optional(),
+  })
+  .strict();
 
 /**
  * Metadata for a result/remarks column on a standard (row-based) section,
@@ -209,14 +278,44 @@ export const dynamicTableSectionSchema = z
     page_break_before: z.boolean().optional(),
     min_rows: z.number().int().nonnegative().optional(),
     auto_number: z.boolean().optional(),
+    /** Printed header of the auto-number column (defaults to "S / No"), e.g. the CHW FCU form's "Item No.". */
+    number_label: z.string().optional(),
     link_to_instrument_register: z.boolean().optional(),
     font_size: z.string().optional(),
     columns: z.array(columnDefSchema).min(1),
     prefilled_rows: z.array(prefilledRowSchema).optional(),
+    /**
+     * Totals line closing a FLAT table, aggregated over all its rows (SPEC §12)
+     * — the CHW FCU air balancing "Total Air Flow" row. A grouped table totals
+     * per group instead: put `totals` inside `row_group`, not here.
+     */
+    totals: totalsSchema.optional(),
+    /** Groups the body rows under shared spanning cells; flat table when absent. */
+    row_group: rowGroupSchema.optional(),
     _status: z.string().optional(),
     _note: z.string().optional(),
   })
-  .strict();
+  .strict()
+  .refine((s) => s.row_group === undefined || s.prefilled_rows === undefined, {
+    message: "`prefilled_rows` is a flat-table seed; a grouped table seeds from `row_group`",
+  })
+  .refine((s) => s.row_group === undefined || s.totals === undefined, {
+    message: "a grouped table totals per group — put `totals` inside `row_group`",
+  })
+  .refine(
+    (s) =>
+      s.row_group?.totals === undefined ||
+      s.row_group.totals.cells.every((c) =>
+        s.columns.some((col) => col.id === c.column),
+      ),
+    { message: "every totals cell must name a column of this section" },
+  )
+  .refine(
+    (s) =>
+      s.totals === undefined ||
+      s.totals.cells.every((c) => s.columns.some((col) => col.id === c.column)),
+    { message: "every totals cell must name a column of this section" },
+  );
 
 /**
  * Shape of a blank row an engineer may append to a section flagged
@@ -424,6 +523,10 @@ export type ColumnDef = z.infer<typeof columnDefSchema>;
 export type ColumnMeta = z.infer<typeof columnMetaSchema>;
 export type Row = z.infer<typeof rowSchema>;
 export type PrefilledRow = z.infer<typeof prefilledRowSchema>;
+export type Aggregate = z.infer<typeof aggregateSchema>;
+export type TotalCell = z.infer<typeof totalCellSchema>;
+export type Totals = z.infer<typeof totalsSchema>;
+export type RowGroup = z.infer<typeof rowGroupSchema>;
 export type AddRowTemplate = z.infer<typeof addRowTemplateSchema>;
 export type DynamicTableSection = z.infer<typeof dynamicTableSectionSchema>;
 export type StandardSection = z.infer<typeof standardSectionSchema>;

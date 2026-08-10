@@ -1,0 +1,79 @@
+{
+  "code": "VAB",
+  "title": "VAV Air Balancing Report",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "spec/VAV_Air_Balancing_Form.html",
+
+  "header": {
+    "title": "VAV Air Balancing Report",
+    "fields": [
+      { "id": "project",    "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "contractor", "label": "Contractor",  "type": "text", "default": "Kenyon Pte Ltd" },
+      { "id": "ahu_tag",    "label": "AHU No.",     "type": "text", "required": true, "bold": true },
+      { "id": "fan_speed",  "label": "Fan Speed",   "type": "number", "unit": "%" },
+      { "id": "static_pressure", "label": "Static Pressure", "type": "number", "unit": "Pa" },
+      { "id": "min_damper", "label": "Min Damper",  "type": "number", "unit": "%" },
+      { "id": "test_date",  "label": "Date of Test", "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "balancing",
+      "title": "Air Balancing Results",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "_note": "The break flag opts this template into explicit pagination. Without it the renderer gives every section its own page, which would push the sign-off onto a second sheet; the source form prints it directly beneath the results table.",
+      "columns": [
+        { "id": "area",     "label": "Service Area",     "type": "text",   "width": "34mm", "carry_down": true },
+        { "id": "diff_no",  "label": "Diffuser No.",     "type": "text",   "width": "14mm", "align": "center" },
+        { "id": "type",     "label": "Diffuser Type",    "type": "text",   "width": "24mm", "carry_down": true },
+        { "id": "dsize",    "label": "Diffuser Size",    "type": "text",   "width": "20mm", "unit": "mm x mm", "align": "center", "carry_down": true },
+        { "id": "design",   "label": "Design Air Flow",  "type": "number", "width": "18mm", "unit": "CMH", "align": "center" },
+        { "id": "balanced", "label": "Balanced Air Flow","type": "number", "width": "18mm", "unit": "CMH", "align": "center" },
+        { "id": "pct",      "label": "Percentage",       "type": "calculated", "width": "15mm", "unit": "%", "align": "center",
+          "formula": "balanced / design * 100" }
+      ],
+      "row_group": {
+        "id": "vav",
+        "label": "VAV Unit",
+        "auto_number": true,
+        "min_groups": 1,
+        "rows_per_new_group": 1,
+        "columns": [
+          { "id": "tag",     "label": "Equipment Tag", "type": "text",   "width": "26mm", "align": "center" },
+          { "id": "size",    "label": "Size",          "type": "text",   "width": "12mm", "align": "center" },
+          { "id": "velocity","label": "Velocity",      "type": "number", "width": "16mm", "unit": "m/s", "align": "center" },
+          { "id": "remarks", "label": "Remarks",       "type": "textarea", "width": "32mm" }
+        ],
+        "totals": {
+          "label": "TOTAL",
+          "default_aggregate": "sum",
+          "cells": [
+            { "column": "design",   "aggregate": "sum" },
+            { "column": "balanced", "aggregate": "sum" },
+            { "column": "pct",      "formula": "balanced / design * 100", "unit": "%" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "signoff",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "layout": "two_column",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested by",  "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witness by", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witness by", "required": false, "stage": "client" }
+      ],
+      "_note": "In the section flow, not the top-level footer: the source form prints the three sign-off boxes directly beneath the results table, on the same page."
+    }
+  ]
+}

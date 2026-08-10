@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAV Air Balancing Report - AHU-A-602</title>
+<style>
+  :root{--ink:#1a1a1a;--muted:#555;--field:#fbfbe8;--field-focus:#fff7c9;--accent:#12263a;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#e9edf1;color:var(--ink);font-family:Arial,Helvetica,sans-serif;}
+
+  .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px 16px;background:#12263a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .toolbar .tt{font-weight:700;letter-spacing:.3px;margin-right:auto;font-size:14px;}
+  .btn{border:0;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;transition:filter .15s;}
+  .btn:hover{filter:brightness(1.12);}
+  .btn-html{background:#1e8e5a;} .btn-pdf{background:#c0392b;} .btn-ghost{background:#3a5068;}
+  .savestat{font-size:11px;color:#9fd8b0;font-weight:600;min-width:150px;text-align:right;}
+  .hint{padding:8px 16px;font-size:12px;color:#334;background:#dfe7ee;border-bottom:1px solid #c6d2dd;}
+
+  .page{width:281mm;margin:16px auto;background:#fff;padding:7mm 8mm 9mm;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+
+  .head{display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--accent);padding-bottom:6px;}
+  .head img{height:60px;width:auto;object-fit:contain;}
+  .head .meta{flex:1;}
+  .head .meta .proj{font-size:12px;font-weight:700;}
+  .head .meta .contr{font-size:11px;color:var(--muted);margin-top:2px;}
+  .head .title{font-size:20px;font-weight:800;letter-spacing:.5px;text-align:right;color:var(--accent);}
+
+  table.vav{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed;}
+  table.vav th,table.vav td{border:1px solid #333;font-size:7.6px;padding:2px 2px;text-align:center;vertical-align:middle;word-wrap:break-word;overflow-wrap:anywhere;}
+  table.vav thead th{background:#e8ecf1;font-weight:700;line-height:1.1;padding:3px 2px;}
+  table.vav td input{width:100%;border:0;background:var(--field);text-align:center;font-size:8px;font-family:inherit;padding:2px 1px;}
+  table.vav td input:focus{outline:0;background:var(--field-focus);}
+  table.vav td textarea.wrapinp{width:100%;border:0;background:var(--field);text-align:center;font-size:8px;
+    font-family:inherit;font-weight:inherit;padding:2px 1px;resize:none;overflow:hidden;display:block;
+    line-height:1.3;min-height:15px;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;}
+  table.vav td textarea.wrapinp:focus{outline:0;background:var(--field-focus);}
+  td.grp textarea.wrapinp{background:#f4f6f9;font-weight:700;}
+  td.grp{background:#f4f6f9;font-weight:700;}
+  td.grp input{background:#f4f6f9;font-weight:700;}
+  td.pct{background:#eef4ea;color:#245c2e;font-weight:700;}
+  tr.trow td{background:#dfe7ef;font-weight:800;}
+  tr.trow td.totlabel{text-align:right;padding-right:8px;letter-spacing:.5px;}
+  tr.trow input{background:transparent;font-weight:800;text-align:center;}
+  tr.trow input:focus{outline:0;background:var(--field-focus);}
+  tr.ahu td{background:var(--accent);color:#fff;text-align:left;font-weight:700;font-size:8.6px;padding:4px 6px;}
+  tr.ahu input{background:transparent;color:#fff;font-weight:700;font-size:8.6px;text-align:left;}
+  tr.ahu input:focus{outline:0;background:#20415f;}
+
+  col.c-sn{width:2.6%;}col.c-tag{width:7.6%;}col.c-size{width:3.4%;}col.c-vel{width:5%;}
+  col.c-area{width:11.4%;}col.c-dno{width:3.4%;}col.c-dtype{width:8%;}col.c-dsize{width:6.6%;}
+  col.c-des{width:6%;}col.c-bal{width:6.2%;}col.c-pct{width:5%;}col.c-rem{width:11.8%;}
+  col.c-act{width:9.4%;}
+
+  /* Edit / action column (screen only) */
+  td.act,th.act{background:#fff;white-space:nowrap;padding:1px;}
+  .act .grpbtns{border-top:1px dashed #ccd;margin-top:2px;padding-top:2px;}
+  .act button{border:1px solid #9aa8bd;background:#eef2f8;border-radius:4px;font-size:9px;line-height:15px;
+    padding:0 5px;margin:1px;cursor:pointer;font-family:inherit;}
+  .act button:hover{filter:brightness(0.96);}
+  .act button.add{color:#0a6b3b;border-color:#8fc9ab;background:#eafaf1;}
+  .act button.del{color:#b3261e;border-color:#e6a9a4;background:#fdecec;}
+  .act button.addu{color:#0a3d7a;border-color:#9bb6dc;background:#eaf1fb;font-weight:700;}
+  .act button.delu{color:#8a1a14;border-color:#e6a9a4;background:#fbe3e3;font-weight:700;}
+  .act .lbl{font-size:7px;color:#889;display:block;margin-bottom:1px;letter-spacing:.3px;}
+
+  .signwrap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;page-break-inside:avoid;}
+  .sigbox{flex:1 1 calc(33.333% - 8px);min-width:200px;border:1.4px solid #000;}
+  .sigbox .sh{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:4px 8px;letter-spacing:.4px;}
+  .sigbox .sr{display:flex;align-items:stretch;border-top:1px solid #000;}
+  .sigbox .sr:first-of-type{border-top:0;}
+  .sigbox .sk{flex:0 0 78px;font-size:10px;font-weight:700;padding:6px 8px;background:#f0f2f5;border-right:1px solid #000;display:flex;align-items:center;}
+  .sigbox .sv{flex:1;display:flex;align-items:center;}
+  .sigbox .sv input{width:100%;border:0;background:var(--field);padding:6px 8px;font-size:10.5px;font-family:inherit;font-weight:600;}
+  .sigbox .sv input:focus{outline:0;background:var(--field-focus);}
+  .sig-pad-cell{position:relative;height:60px;background:var(--field);}
+  canvas.sig{display:block;width:100%;height:60px;touch-action:none;cursor:crosshair;}
+  .sig-clear{position:absolute;top:2px;right:4px;font-size:9px;color:#c0392b;background:#fff;border:1px solid #c0392b;border-radius:3px;padding:0 5px;cursor:pointer;line-height:15px;}
+  .sig-hint{position:absolute;left:8px;bottom:4px;font-size:8.5px;color:#aaa;pointer-events:none;}
+
+  @page{size:A4 landscape;margin:8mm;}
+  @media print{
+    html,body{background:#fff;}
+    .toolbar,.hint,.sig-clear,.sig-hint,.act,col.c-act{display:none !important;}
+    .page{width:auto;margin:0;padding:0;box-shadow:none;}
+    table.vav{font-size:7.2px;}
+    thead{display:table-header-group;}
+    tr{page-break-inside:avoid;}
+    input,textarea{background:transparent !important;-webkit-appearance:none;appearance:none;border:0 !important;color:#000 !important;}
+    tr.ahu td,tr.ahu input{color:#fff !important;}
+    td.pct,td.grp,tr.trow td,tr.ahu td,table.vav thead th,.sigbox .sh,.sigbox .sk{
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .sig-pad-cell{background:#fff;}
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar noprint">
+    <span class="tt">VAV Air Balancing Report &mdash; AHU-A-602</span>
+    <span class="savestat" id="savestat"></span>
+    <button class="btn btn-ghost" onclick="clearSaved()">Reset Saved Data</button>
+    <button class="btn btn-ghost" onclick="clearAllSig()">Clear Signatures</button>
+    <button class="btn btn-html" onclick="saveAsHTML()">Save as HTML</button>
+    <button class="btn btn-pdf" onclick="saveAsPDF()">Save as PDF</button>
+  </div>
+  <div class="hint noprint">
+    Fill the yellow fields. Percentages and per-VAV totals calculate automatically (type to override a total; clear to restore auto).
+    Use the <b>Edit</b> column (screen only) to add/remove a diffuser row (<span style="color:#0a6b3b;font-weight:700;">+ row</span> / <span style="color:#b3261e;font-weight:700;">&times;</span>)
+    or a whole VAV unit (<span style="color:#0a3d7a;font-weight:700;">+ VAV</span> / <span style="color:#8a1a14;font-weight:700;">&times; VAV</span>). S/N and diffuser numbers renumber automatically.
+    <b>Save as HTML</b> keeps an editable copy; <b>Save as PDF</b> prints to A4 landscape (multiple pages, Edit column hidden).
+    <b>Auto-save:</b> everything you type or sign is saved automatically in this browser and restored when you reopen the form.
+    Use <b>Reset Saved Data</b> to discard the auto-saved copy and return to the original form.
+  </div>
+
+  <div class="page" id="page">
+    <div class="head">
+      <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4QNGRXhpZgAASUkqAAgAAAAEAABRBAABAAAABwAAAAJRAQAAAwAAPgAAAANRAQABAAAAAAAAAARRAQABAAAAiwAAAAAAAAAASrYjc8ybr946vfZoj9QYWr7Q3fNKfcwkiturxewIT7h+pd0pZcM6vf9Bd8wunuapueLHzOvi6/hcitEzZsyTrN4iYsHN0e1umdcPUr01se+0v+Xv7/c0gtJBzf8xa8Xe5/dooNwhhNeeu+QeXsJSg8/T1+4xes8RV70pk9+9z+67xeeOp9tgjNECTLo/xv0WaskxputBe843b8c8wvmct+Tv7/8sds19nNcrmeGuxeiXtuHQ3fHZ5fYxc863w+ZKgdDl5fR8oNtEgtAGTbjF1u+CptoracRkktY5uPVyldW3zezA1O/Fzerb3fAnf9NTjtQ6es4hjNaktuGlvuY6gtKUs+MffNJah9Ctu+QhWr3W4fS2y+rF3u81cMcKUb2Hqtzv9Psmjd6Mrd8wo+cGTbo7c8gnes9JhtMgYsJ0m9dShNbv9/czre3j4/JajNOes+HP2e8snuVCiNMwf9Nij9Q8h9Qje9GDn9jn7vhC1v88xPxznN6Cpd5qlNUplOYpg9U2sO84tvJCc8Wzx+uEnN6tvd4nidnY2+48dcsxjNn///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCACFANMDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigAooooAKKKKACiiigAooooAKKhubqCyt3uLmZIokGWdzgCuN1TxncTkxaWnkx/8APxKuXP8Auqen1b8q2o4epWdoI58RiaVCN6jOtvtTstMiEl5cxwg/dBOWb6KOT+Fcrf8AjeeQlNOtRGv/AD1uOT+CA/zP4VyzFpJWlkd5JW+9JIxZj9Safb2r313BZxkh7hxHkdVHVj+Cgn8K9WngKVNc1TX8jw6ubVq0lCgrX+877wq97caUb2+uZJnuXLx7gAFQcDAAAGcbvxFbtMiiSCFIYlCxxqFVR0AHAFPrx6kuaTklY+hpx5YqLdwoooqCwooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigArJ1rX7bRowrAzXLjMcCnBI9Sf4V9/yzVbxH4iXSY/s1ttkv5FyqnlY1/vN/Qd/zNcC7ySyvLLI0ksh3PI5yWP8Ant0FehhME6vvz+H8zy8fmKw/uQ1l+RPf6hd6pcCe9l3spyiLwkf+6P6nn+VVqKK9uMVFWitD5epUlUlzTd2FdR4IsfNvLnUXGUhHkRZ/vHBY/ltH4msHT9MvtVb/AEG3MiZwZmO2Mf8AAu//AAHNej6Ppy6VpUFmGDMi5dwPvOTlj+JJrgx+IjGm6cXqz18pwk3U9rNWS2L1FFFeGfShRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABWVr2spo1h5gCvcSHZBGT95vU+w6n/EitN3WNGd2CooJZmOAB6mvLdU1N9Y1KS9bIjPyQIf4Y+34nqfwHauvB4f209dlucOYYv6tSuviexWeSSaWSaaQyTSNukdurH19vp2HFNpGYKMn1x65PoPU102j+EJ7vbPqe63g6i3U4kcf7RH3R7Dn3HSvcq1qdGN5aHzFDDVsVP3de7MGysbvUpzDZQGZ1OHbOET/ebt9OT7V2OmeDLS32y6iwvJevlkYiU/7v8X1b8hXRW1tBZ26QW0SRRIMKiDAFS141fH1KmkdEfR4XLKNDWXvSEVQqhVACgYAHaloorhPSCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigDl/G2oeVp8enoTvuyfMx/zyXG78yQPoTXFxRS3NwkEETSzyHCRr1Pv7D1J6Vp+IJpdT8UTxW6GV1ZbWBB3KjLfTktk+i12Hh7RLbSbTzEkSe5mH72deQf8AZX0Uen5817MKscJh1/M9TwKmHljsU76Qjp/wxDoXhiDSytzclbi9x9/HyxeoQf16n2HFb9FFeTUqSqS5pO7Pcp0oUoqEFZBRRRUFhRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUE4GT0opGUMpVhkEYIoA8umtdb/wCEZk1DSLbfq2qlisjzJGbeBiWLDcR8zE9u2OmKn+G6eJfD8Z0nWbNBp3LQzfaom8k9SMBidp/Q/XjJ8Xix1DxHcfafBWtXpt8QRzQySLGyrwNoC4A61h/2dpH/AETzxB/3+k/+Ir3uR1KTjJb67L5faW3oeSmqc049PX5/Z6nvoIIyDkGivL9D8aXejWkNhF4M8QfZEOAZN8rRr6DKjgdhmvRdO1GHU7UTwpOg7pPC0bqfQhgDXkVsPOlutP67XPRp1oz23LdFFFYGoUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAHCfFLxDqnhzRLK40q5+zyyXOx22K2V2k4+YH0rnvhl401/wAQ+KJbPVL/AM+BbV5AnlIvzBlAOQAe5q98bf8AkW9O/wCvv/2Rq838A6hq2n+IJP7EsRd39xbtDGG+7Hkqd59hjuQOa93DYeFTAt2V9ddPzPLrVZRxSV3bTQ9+8Q+JtL8MWJudRnCk/wCrhXmSQ+ij+vSuJvNX8bX2jaj4iMw0TT4IDJbWnkpJLL6Fiw4H5fTvWLqeja54N1yz8V60sevRnAuyVybdieNueBjscAZ4wODXdeJ9Vs9a+GeqX9hMs1vLasVYdvUEdiPSuaNKFLk5Upczs309Ev1fyN3OVTm5ny26fqeT6d8QvGup6na2EGsKJbmVYULwRgAscDPy9Oa73+x/ip/0MWm/98L/APGq8Z0Fbt/EOnLp7pHeG5jEDv8AdV9w2k8HjOK9r/s34p/9BzSf+/Y/+N1342EKckoKC9V/wDkw0pTTcuZ+jIv7G+Kn/Qxab/3wv/xquE1T4geNtJ1W60+41lGmtpDG5SCMqSPT5K9A/s34p/8AQc0n/v2P/jdeMeI0vY/EmopqUsct6s7Cd4xhWfPJHA4/CjBQhUk1NQfov+AGJlKEU48y9X/wT1HwZ8VJmlisfFJ2ecN0F6UCKRnHzAcYyCNw9OfWvWVYMoZSCpGQR0Nec+GfC2m+KvhXpVrfxYdUk8qdR88R8xuQfT1HesbTdd1v4ZajHo/iFXutFc4t7lATsH+z7Dup5Hb34K9CnWnJUVaSb0727f5HVSqzpxTqap9e3r/ma3ifW/ELfEmz8PaXq32GG5twwPkJJhsOc8jP8IFcpqXjbx94T1tbfWJ1lCnOx4E8uZfVWVQcfTp39K3L+7t7/wCN2g3dpMk0EtqGSRDkMNsleka1oWneIdPey1K3WaI/dPRkPqp7GrdWnQ5I1IJpx1016k8k6vM4yaaemuhneFPGel+LbQvaP5V0gzLayH509x6j3H6Vwfj34pz219/ZvhudVMLYnu9ocMR/CuQRgdz37cdfMdWtn0HxHf2dpcSr9lnkhWUNtYqCV7eoqxruijTNP0W6iVzFfWYmZ26GTcwYD6Db+ddtLLqEKqm9U9kzmnjKsoOOzW7O30z4l+LNaltdH0e2imvHHzXE6gsx6ljjCqo+h/E12jaT8RFtPMXxLp73IGfJNooQn03Yz+lcZ8EXthrWqI5AuWt18vPUru+b9dte2VwY6caFb2dOCSXle51YWMqtPnnJ/eePW3xb1jRtUk07xNpKF4m2yGD5HX3wSQ3rxjNX/HnxCurTTNG1Dwzfx/Z7zzd7GJWOV2cEMOCMnj3rl/jM9u3jGARFTKtogmx67mIz74x+GK8/Kzi1ViH+zlyFJzt3YGce+MfpXo0MHQqqFblt3XRnJVxNWDlSvfz6noeh/FnxHDdm51JBf6emFnCQqhjyeCCAOeOh4P617TpGsWOu6dHf6dOs0EncdVPcEdiPSvH/AIMW0F5d63bXMSSwSW6K8bjKsMngitLWPDWsfDvUX13wszz6WebmyYltq+47r79R9M1x4yjQnWdKC5ZLbs/LyZ0YepVjTVSXvL8Udd8SNa1DQfCT3umz+RcCdE37Fbg5zwQRW9oNzLeeHtMurh9801pFJI2AMsUBJwPc15n428Xab4s+Gsk9k+ydLiLzrdz88Z5/Mehr0fwx/wAino3/AF4wf+i1rjq0vZ4dcytK7/JHTTqc9Z2d1ZGrRRRXCdIUUUUAFFFFAHHfEXwpfeLdItLWwlt45IZ/MYzMQMbSOMA+tYfw++Hmr+FPEMt/fT2bxNbNEBC7E5LKe6jjivTaK6o4yrGi6K2MJYeDqe0e4yaGO4heGaNZInUq6MMhgeoIrzK8+HOtadLqdr4cvbUaPqURWS0u3f8Adk91wD07H04OeteoUVnRxE6N+XqXUpRqbnhtl8IvFWn30F5bXumJPBIssbeYxwwOQcFK67+zfin/ANBzSf8Av2P/AI3XolFdE8wqVHeaT9UYxwkIfC2vmed/2b8U/wDoOaT/AN+x/wDG65O/+EnivU7+e+ur7THuJ3MkjB2GWPXgJXuFcx4x8GxeK7eHbeS2V1CfknjycqeqkZGf6VdDHSjPpG/VRJq4WMo9X8y34P0e40DwpY6XdvG88CsGaIkqcux4yB2NaGqaVZa1p8tjqFus9vIOVbsfUHsfcV4ZNoXhy3neGb4hXEcsbFHRtPmBUjgg81H/AGR4X/6KLN/4ATf/ABVbPBc0/ac7u9fgkZrE2jycqt/iR2Gh/Cy88P8Aji11O2vYZtNgdmUSEiUAqRjAGDyeuRXqdfPn9keF/wDoos3/AIATf/FUf2R4Y/6KLN/4ATf/ABVaV8M67Upzd1p8EiaVZUk1GK/8CRua/wDCXXtU8Q6jfwXOnrFc3MkqB5HBAZiRn5etegWXg+1n8E2Wga3DFceREFLRk/K3PzKeCDzXkf8AZHhf/oos3/gBN/8AFUf2R4Y/6KLN/wCAE3/xVaVKdSpGMXN6be5IzhOEG2orX+8jpZfhJq+jammoeGtaRZIm3R+eCrL7ZAIb8QAa6Np/iY9r5AtNESYjH2gOxx746Z/D8K83/sjwv/0UWb/wAm/+Krb0TVdO8PkCz+JbSQ5yYLjTJZEP5nI/DFKrCc1eT5mu8Jf5DhKMXZe6n2ki7Y/B68v9Qe/8S6x50kjb5Vt8lnPu7AY/AVqeNvhxNq+n6RY6AtnaW1iJAUlZhndt54ByflOSa14fiZ4T8pBNrcLS4+YpbyqpPsCpx+ddLp+p2Oq24uNPu4bmL+9E4YD646VxVMTi4TU5pq22lkdMKOHlFxjrfz1OI+HHgXU/CN5fTX81rIs8aqohdiQQSecgV6FRRXHWrSrTc57nRTpxpx5Y7Hl/jD4SRapdm+0GSC0lkOZoJMiM+64Bx9MY+leh6NZyafoen2UxUy29tHE5XoSqgHHtxV2iqqYmpUgoTd0hQowhJyitwooorA1CiiigAooooAKKKKACiiigAooooAKKKKAOF8afDSz8VXSX1vcCyvuksnl7llHbIyOR6+n4VwMnwx0qKRo5PG+ko6nDK20EH0I38V7xXA+PPhvbeJVfUNOCW+qgc9lnx2b0Pofz9vTwmNqRapynaPomcWIw0HecY3Zwf/CtdI/6HrR/++k/+Lo/4VppH/Q9aR/30n/xdcDe2Vzp15LaXkDwXETbXjcYINQV7qpVmrqr+CPLdSmvsfiz0X/hWukf9D1o/wD30n/xdH/CtdH/AOh60j/vpP8A4uvOqKPY1/8An7+CD2lL+T8Wei/8K10j/oetH/76T/4uj/hWmkf9D1pH/fSf/F151RR7Gv8A8/fwQvaUv5PxZ6L/AMK00j/oetI/76T/AOLqxZ+A7PTrgT2XxE023mHR4pVU/mJK8yoodCs1Z1PwQ1VpraH4s+idF1ebT9seo+NtB1GIdWYpHJj/AHg+PzFdD/wk+gf9BzTP/AuP/GvlWiuKeUQm7uX4JHTHMJRVlH8T67guILqFZreaOaJujxsGU/iKkr5N07V9R0mbzdPvri1fuYpCufqO9dxpPxj8QWW1L+K31CMdSy+W/wCa8fpXJVyerHWm7/gdFPMYP41Y96orz3SvjD4dvdq3q3FhIevmJvT815/QV2mn6zpmrJv0/ULa5GM4ikDEfUdRXm1cPVpfHFo7IVqc/hdy9RRRWJoFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAYXiLwfovihY/7Std0kf3ZoztcD0z3Hsa5/wD4VB4V/wCed5/3/wD/AK1FFbwxNaC5YyaRlKjTk7yig/4VB4V/553n/f8A/wDrUf8ACoPCv/PO8/7/AP8A9aiiq+u4j+d/eL6tR/lQf8Kg8K/887z/AL//AP1qP+FQeFf+ed5/3/8A/rUUUfXcR/O/vD6tR/lQf8Kg8K/887z/AL//AP1qP+FQeFf+ed5/3/8A/rUUUfXcR/O/vD6tR/lQf8Kg8K/887z/AL//AP1qP+FQeFf+ed5/3/8A/rUUUfXcR/O/vD6tR/lQf8Kg8K/887z/AL//AP1qP+FQeFf+ed5/3/8A/rUUUfXcR/O/vD6tR/lQf8Kg8K/887z/AL//AP1qcnwj8LxuHjF6jDkMtwQR+lFFH1zEfzv7w+rUv5UdFpnh1dKYeRquqSIP+Wdxceav/jwNbNFFYSm5O8jWMVFWQUUUVIz/2Q==" alt="logo">
+      <div class="meta">
+        <div class="proj"><input style="border:0;background:transparent;font:inherit;font-weight:700;width:100%;" value="Project: Apple @ AMK3 Level 6 (Phase 1)"></div>
+        <div class="contr"><input style="border:0;background:transparent;font:inherit;width:100%;color:#555;" value="Contractor: Kenyon Pte Ltd"></div>
+      </div>
+      <div class="title">VAV Air Balancing Report</div>
+    </div>
+
+    <table class="vav">
+      <colgroup>
+        <col class="c-sn"><col class="c-tag"><col class="c-size"><col class="c-vel"><col class="c-area">
+        <col class="c-dno"><col class="c-dtype"><col class="c-dsize"><col class="c-des"><col class="c-bal">
+        <col class="c-pct"><col class="c-rem"><col class="c-act">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="2">S/N</th><th rowspan="2">Equipment Tag</th><th rowspan="2">size</th>
+          <th rowspan="2">Velocity m/s</th><th rowspan="2">Service Area</th><th rowspan="2">Diffuser No.</th>
+          <th rowspan="2">Diffuser Type</th><th>Diffuser Size</th><th>Design Air Flow</th>
+          <th>Balanced Air Flow</th><th>Percentage</th><th rowspan="2">Remarks</th>
+          <th rowspan="2" class="act">Edit</th>
+        </tr>
+        <tr><th>mm x mm</th><th>CMH</th><th>CMH</th><th>%</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <div class="signwrap">
+      <div class="sigbox">
+        <div class="sh">TESTED BY</div>
+        <div class="sr"><div class="sk">Name</div><div class="sv"><input value=""></div></div>
+        <div class="sr"><div class="sk">Signature</div><div class="sv sig-pad-cell">
+          <canvas class="sig" data-name="tested"></canvas>
+          <span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></div></div>
+        <div class="sr"><div class="sk">Date/Time</div><div class="sv"><input value=""></div></div>
+      </div>
+      <div class="sigbox">
+        <div class="sh">WITNESS BY</div>
+        <div class="sr"><div class="sk">Name</div><div class="sv"><input value=""></div></div>
+        <div class="sr"><div class="sk">Signature</div><div class="sv sig-pad-cell">
+          <canvas class="sig" data-name="witness1"></canvas>
+          <span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></div></div>
+        <div class="sr"><div class="sk">Date/Time</div><div class="sv"><input value=""></div></div>
+      </div>
+      <div class="sigbox">
+        <div class="sh">WITNESS BY</div>
+        <div class="sr"><div class="sk">Name</div><div class="sv"><input value=""></div></div>
+        <div class="sr"><div class="sk">Signature</div><div class="sv sig-pad-cell">
+          <canvas class="sig" data-name="witness2"></canvas>
+          <span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></div></div>
+        <div class="sr"><div class="sk">Date/Time</div><div class="sv"><input value=""></div></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  var GROUPS = [{"sn": 1, "tag": "VAV A-602-02", "size": 200, "vel": "4.7", "rem": "BMS Measurement 530", "rows": [{"area": "Shared Office", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 140, "balanced": 123}, {"area": "Shared Office", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 140, "balanced": 133}, {"area": "Shared Office", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 250, "balanced": 234}]}, {"sn": 2, "tag": "VAV A-602-03", "size": 200, "vel": "2.3", "rem": "BMS Measurement 2815", "rows": [{"area": "Breakout", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 266}, {"area": "Breakout", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 251}, {"area": "Breakout", "no": 3, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 257}, {"area": "Breakout", "no": 4, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 224}, {"area": "Breakout", "no": 5, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 248}, {"area": "Breakout", "no": 6, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 237}, {"area": "Breakout", "no": 7, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 247}, {"area": "Breakout", "no": 8, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 236}, {"area": "Breakout", "no": 9, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 222}, {"area": "Breakout", "no": 10, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 230}, {"area": "Breakout", "no": 11, "type": "Linear Bar", "dsize": "120 x 1200", "design": 257, "balanced": 211}]}, {"sn": 3, "tag": "VAV-A-602-04", "size": 200, "vel": "4.0", "rem": "BMS Measurement 452", "rows": [{"area": "4 PAX Meeting Room", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 225, "balanced": 218}, {"area": "4 PAX Meeting Room", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 225, "balanced": 238}]}, {"sn": 4, "tag": "VAV-A-602-05", "size": 250, "vel": "9.3", "rem": "(Under Phase 2)", "phase2": true, "rows": [{"area": "Elec RM / Lobby", "no": 1, "type": "Double Deflect", "dsize": "600 x 600", "design": 500, "balanced": null}, {"area": "Elec RM / Lobby", "no": 2, "type": "Double Deflect", "dsize": "600 x 600", "design": 500, "balanced": null}, {"area": "Elec RM / Lobby", "no": 3, "type": "Linear Bar", "dsize": "120 x 1200", "design": 250, "balanced": null}, {"area": "Elec RM / Lobby", "no": 4, "type": "Linear Bar", "dsize": "120 x 1200", "design": 250, "balanced": null}, {"area": "Elec RM / Lobby", "no": 5, "type": "4 Way Diffuser", "dsize": "600 x 600", "design": 150, "balanced": null}]}, {"sn": 5, "tag": "VAV-A-602-06", "size": 150, "vel": "37.7", "rem": "BMS Measurement 2412", "rows": [{"area": "Open office", "no": 1, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 394}, {"area": "Open office", "no": 2, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 415}, {"area": "Open office", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 420}, {"area": "Open office", "no": 4, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 389}, {"area": "Open office", "no": 5, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 410}, {"area": "Open office", "no": 6, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 401}]}, {"sn": 6, "tag": "VAV-A-602-07", "size": 200, "vel": "26.5", "rem": "BMS Measurement 3028", "rows": [{"area": "Open office (window)", "no": 1, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 526}, {"area": "Open office (window)", "no": 2, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 533}, {"area": "Open office (window)", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 514}, {"area": "Open office (window)", "no": 4, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 521}, {"area": "Open office (window)", "no": 5, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 506}, {"area": "Open office (window)", "no": 6, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 500, "balanced": 494}]}, {"sn": 7, "tag": "VAV-A-602-08", "size": 250, "vel": "13.6", "rem": "BMS Measurement 2419", "rows": [{"area": "Open office", "no": 1, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 402}, {"area": "Open office", "no": 2, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 390}, {"area": "Open office", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 396}, {"area": "Open office", "no": 4, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 399}, {"area": "Open office", "no": 5, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 405}, {"area": "Open office", "no": 6, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 400, "balanced": 415}]}, {"sn": 8, "tag": "VAV-A-602-09", "size": "", "vel": "", "rem": "BMS Measurement 705", "rows": [{"area": "Home Lab", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 180, "balanced": 163}, {"area": "Home Lab", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 180, "balanced": 163}, {"area": "Home Lab", "no": 3, "type": "Linear Bar", "dsize": "120 x 1200", "design": 180, "balanced": 168}, {"area": "Home Lab", "no": 4, "type": "Linear Bar", "dsize": "120 x 1200", "design": 180, "balanced": 182}]}, {"sn": 9, "tag": "VAV-A-602-10", "size": "", "vel": "", "rem": "BMS Measurement 452", "rows": [{"area": "2P Phone Room", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 225, "balanced": 229}, {"area": "2P Phone Room", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 225, "balanced": 205}]}, {"sn": 10, "tag": "VAV-A-602-11", "size": "", "vel": "", "rem": "BMS Measurement 275", "rows": [{"area": "Shared Office", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 140, "balanced": 135}, {"area": "Shared Office", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 140, "balanced": 137}]}, {"sn": 11, "tag": "VAV-A-602-12", "size": "", "vel": "", "rem": "BMS Measurement 605", "rows": [{"area": "Home Office", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 200, "balanced": 197}, {"area": "Home Office", "no": 2, "type": "Linear Bar", "dsize": "120 x 1200", "design": 200, "balanced": 182}, {"area": "Home Office", "no": 3, "type": "Linear Bar", "dsize": "120 x 1200", "design": 200, "balanced": 192}]}, {"sn": 12, "tag": "VAV-A-602-13", "size": "", "vel": "", "rem": "BMS Measurement 205", "rows": [{"area": "2P Phone Room", "no": 1, "type": "Linear Bar", "dsize": "120 x 1200", "design": 200, "balanced": 202}]}, {"sn": 13, "tag": "VAV-A-602-14", "size": "", "vel": "", "rem": "BMS Measurement 435", "rows": [{"area": "Lab", "no": 1, "type": "4 Way Diffuser", "dsize": "600 x 600", "design": 220, "balanced": 229}, {"area": "Lab", "no": 2, "type": "4 Way Diffuser", "dsize": "600 x 600", "design": 220, "balanced": 219}]}, {"sn": 14, "tag": "VAV-A-602-15", "size": "", "vel": "", "rem": "BMS Measurement 2690", "rows": [{"area": "Open Office", "no": 1, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 472}, {"area": "Open Office", "no": 2, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 466}, {"area": "Open Office", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 435}, {"area": "Open Office", "no": 4, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 450}, {"area": "Open Office", "no": 5, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 442}, {"area": "Open Office", "no": 6, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 445, "balanced": 443}]}, {"sn": 15, "tag": "VAV-A-602-16", "size": "", "vel": "", "rem": "BMS Measurement 3282", "rows": [{"area": "Open Office", "no": 1, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 563}, {"area": "Open Office", "no": 2, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 519}, {"area": "Open Office", "no": 3, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 553}, {"area": "Open Office", "no": 4, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 555}, {"area": "Open Office", "no": 5, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 564}, {"area": "Open Office", "no": 6, "type": "4 Way Diffuser", "dsize": "300 x 300", "design": 550, "balanced": 574}]}];
+  var AHU = "AHU No.: AHU-A-602 (Testing at Fan Speed 67.6%, Static Pressure 190 Pa, Min Damper 30%)";
+
+  function esc(v){return v===null||v===undefined?'':String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+  function inp(val,cls){return '<input class="'+(cls||'')+'" value="'+esc(val)+'">';}
+  function escT(v){return v===null||v===undefined?'':String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function wrapInp(val,cls){return '<textarea class="'+(cls||'')+' wrapinp" rows="1">'+escT(val)+'</textarea>';}
+  function fitWrap(){document.querySelectorAll('textarea.wrapinp').forEach(function(t){
+    t.style.height='auto';t.style.height=Math.max(15,t.scrollHeight)+'px';});}
+  function totInp(ov,cls){return ov!==null&&ov!==undefined
+      ? '<input class="'+cls+'" data-auto="0" value="'+esc(ov)+'">'
+      : '<input class="'+cls+'">';}
+
+  function renderHTML(){
+    var h='<tr class="ahu"><td colspan="12">'+inp(AHU)+'</td><td class="act"></td></tr>';
+    GROUPS.forEach(function(g,gi){
+      var span=g.rows.length+1, tov=g.tov||{};
+      g.rows.forEach(function(r,ri){
+        h+='<tr class="drow" data-g="'+gi+'">';
+        if(ri===0){
+          h+='<td rowspan="'+span+'" class="grp">'+inp(g.sn,'g-sn')+'</td>';
+          h+='<td rowspan="'+span+'" class="grp">'+wrapInp(g.tag,'g-tag')+'</td>';
+          h+='<td rowspan="'+span+'" class="grp">'+inp(g.size,'g-size')+'</td>';
+          h+='<td rowspan="'+span+'" class="grp">'+inp(g.vel,'g-vel')+'</td>';
+        }
+        h+='<td>'+inp(r.area,'f-area')+'</td>';
+        h+='<td>'+inp(r.no,'f-no')+'</td>';
+        h+='<td>'+inp(r.type,'f-type')+'</td>';
+        h+='<td>'+inp(r.dsize,'f-dsize')+'</td>';
+        h+='<td>'+inp(r.design,'des')+'</td>';
+        h+='<td>'+inp(r.balanced,'bal')+'</td>';
+        h+='<td class="pct"><span class="pctv">-</span></td>';
+        if(ri===0){ h+='<td rowspan="'+span+'" class="grp">'+wrapInp(g.rem,'g-rem')+'</td>'; }
+        h+='<td class="act"><button class="add" title="Add diffuser row below" onclick="addDiff('+gi+','+ri+')">+ row</button>'
+          +'<button class="del" title="Remove this diffuser row" onclick="delDiff('+gi+','+ri+')">\u00d7</button></td>';
+        h+='</tr>';
+      });
+      h+='<tr class="trow" data-g="'+gi+'">'
+        +'<td class="totlabel" colspan="4">TOTAL</td>'
+        +'<td>'+totInp(tov.des,'tdes')+'</td>'
+        +'<td>'+totInp(tov.bal,'tbal')+'</td>'
+        +'<td class="pct">'+totInp(tov.pct,'tpct')+'</td>'
+        +'<td class="act"><span class="lbl">VAV UNIT</span>'
+        +'<div><button class="addu" title="Add a new VAV unit below" onclick="addGroup('+gi+')">+ VAV</button>'
+        +'<button class="delu" title="Remove this entire VAV unit" onclick="delGroup('+gi+')">\u00d7 VAV</button></div></td>'
+        +'</tr>';
+    });
+    return h;
+  }
+
+  function buildTable(){var tb=document.getElementById('tbody');if(tb.children.length){fitWrap();return;}tb.innerHTML=renderHTML();fitWrap();}
+  function renderTable(){document.getElementById('tbody').innerHTML=renderHTML();fitWrap();}
+  function rebuild(){renderTable();recalc();scheduleSave();}
+
+  function num(el){var v=parseFloat(el&&el.value);return isNaN(v)?null:v;}
+  function pctStr(b,d){return (b!==null&&d!==null&&d!==0)?Math.round(b/d*100)+'%':'';}
+  function setAuto(el,val){if(el&&el.getAttribute('data-auto')!=='0')el.value=val;}
+
+  function recalc(){
+    GROUPS.forEach(function(g,gi){
+      var drows=document.querySelectorAll('tr.drow[data-g="'+gi+'"]');
+      var sumD=0,sumB=0,anyB=false;
+      drows.forEach(function(tr){
+        var d=num(tr.querySelector('.des')),b=num(tr.querySelector('.bal'));
+        var pv=tr.querySelector('.pctv'); if(pv)pv.textContent=pctStr(b,d);
+        if(d!==null)sumD+=d;
+        if(b!==null){sumB+=b;anyB=true;}
+      });
+      var trow=document.querySelector('tr.trow[data-g="'+gi+'"]');
+      if(trow){
+        setAuto(trow.querySelector('.tdes'),sumD);
+        setAuto(trow.querySelector('.tbal'),anyB?sumB:'');
+        setAuto(trow.querySelector('.tpct'),(anyB&&sumD!==0)?Math.round(sumB/sumD*100)+'%':'');
+      }
+    });
+  }
+
+  // ---- Live model sync (reconstruct GROUPS from the DOM) ----
+  function gv(root,sel){var e=root.querySelector(sel);return e?e.value:'';}
+  function ov(tr,sel){var e=tr.querySelector(sel);return (e&&e.getAttribute('data-auto')==='0')?e.value:null;}
+  function syncModel(){
+    var a=document.querySelector('tr.ahu input'); if(a)AHU=a.value;
+    var order=[],seen={};
+    document.querySelectorAll('#tbody tr.drow').forEach(function(tr){var g=tr.getAttribute('data-g');if(!(g in seen)){seen[g]=1;order.push(g);}});
+    var ng=[];
+    order.forEach(function(gi){
+      var drows=document.querySelectorAll('tr.drow[data-g="'+gi+'"]');
+      var first=drows[0];
+      var g={sn:gv(first,'.g-sn'),tag:gv(first,'.g-tag'),size:gv(first,'.g-size'),vel:gv(first,'.g-vel'),rem:gv(first,'.g-rem'),rows:[]};
+      drows.forEach(function(tr){
+        g.rows.push({area:gv(tr,'.f-area'),no:gv(tr,'.f-no'),type:gv(tr,'.f-type'),dsize:gv(tr,'.f-dsize'),design:gv(tr,'.des'),balanced:gv(tr,'.bal')});
+      });
+      var trow=document.querySelector('tr.trow[data-g="'+gi+'"]');
+      g.tov=trow?{des:ov(trow,'.tdes'),bal:ov(trow,'.tbal'),pct:ov(trow,'.tpct')}:{};
+      ng.push(g);
+    });
+    if(ng.length)GROUPS=ng;
+  }
+  function renumber(){GROUPS.forEach(function(g,gi){g.sn=gi+1;g.rows.forEach(function(r,ri){r.no=ri+1;});});}
+
+  // ---- Structural edits ----
+  function addDiff(gi,ri){syncModel();var g=GROUPS[gi];var ref=g.rows[ri]||{};
+    g.rows.splice(ri+1,0,{area:ref.area||'',no:'',type:ref.type||'',dsize:ref.dsize||'',design:'',balanced:''});
+    renumber();rebuild();}
+  function delDiff(gi,ri){syncModel();var g=GROUPS[gi];if(g.rows.length<=1)return;g.rows.splice(ri,1);renumber();rebuild();}
+  function addGroup(gi){syncModel();
+    GROUPS.splice(gi+1,0,{sn:'',tag:'',size:'',vel:'',rem:'',rows:[{area:'',no:1,type:'',dsize:'',design:'',balanced:''}],tov:{}});
+    renumber();rebuild();}
+  function delGroup(gi){syncModel();if(GROUPS.length<=1)return;GROUPS.splice(gi,1);renumber();rebuild();}
+
+  // ---- Signatures ----
+  function setupCanvas(cv){var r=cv.getBoundingClientRect();cv.width=Math.max(1,Math.round(r.width));cv.height=Math.max(1,Math.round(r.height));
+    var c=cv.getContext('2d');c.lineWidth=1.8;c.lineCap='round';c.lineJoin='round';c.strokeStyle='#0a1a3a';return c;}
+  function attachSig(cv){var ctx=cv.getContext('2d'),drawing=false,last=null;
+    function pos(e){var b=cv.getBoundingClientRect(),p=(e.touches?e.touches[0]:e);return{x:p.clientX-b.left,y:p.clientY-b.top};}
+    function st(e){e.preventDefault();drawing=true;last=pos(e);var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='none';}
+    function mv(e){if(!drawing)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;cv.setAttribute('data-signed','1');}
+    function en(){if(drawing){drawing=false;scheduleSave();}}
+    cv.addEventListener('mousedown',st);cv.addEventListener('mousemove',mv);window.addEventListener('mouseup',en);
+    cv.addEventListener('touchstart',st,{passive:false});cv.addEventListener('touchmove',mv,{passive:false});cv.addEventListener('touchend',en);}
+  function clearSig(el){var cv=el.parentNode.querySelector('canvas.sig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+    cv.removeAttribute('data-signed');cv.removeAttribute('data-url');var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='';
+    scheduleSave();}
+  function clearAllSig(){document.querySelectorAll('.sig-clear').forEach(function(b){clearSig(b);});}
+  function initSignatures(){document.querySelectorAll('canvas.sig').forEach(function(cv){setupCanvas(cv);
+    var u=cv.getAttribute('data-url');if(u){var img=new Image();img.onload=function(){cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);};img.src=u;
+      var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='none';}
+    attachSig(cv);});}
+
+  // ---- Auto-save (localStorage) ----
+  var LS_KEY='vav_airbal_AHU-A-602_v1';
+  var saveTimer=null;
+  var storeOK=null;
+  function canStore(){
+    if(storeOK!==null)return storeOK;
+    try{var t='__vav_probe';localStorage.setItem(t,'1');localStorage.removeItem(t);storeOK=true;}
+    catch(e){storeOK=false;}
+    return storeOK;
+  }
+  function setStat(msg){var s=document.getElementById('savestat');if(s)s.textContent=msg;}
+  function collectState(){
+    syncModel();
+    var statics=[];
+    document.querySelectorAll('.head input, .sigbox input').forEach(function(el){statics.push(el.value);});
+    var sigs={};
+    document.querySelectorAll('canvas.sig').forEach(function(cv){
+      sigs[cv.getAttribute('data-name')]=cv.getAttribute('data-signed')?cv.toDataURL('image/png'):null;
+    });
+    return {ahu:AHU,groups:GROUPS,statics:statics,sigs:sigs,t:new Date().toISOString()};
+  }
+  function doSave(){
+    if(!canStore())return;
+    try{
+      localStorage.setItem(LS_KEY,JSON.stringify(collectState()));
+      setStat('Auto-saved ✓ '+new Date().toLocaleTimeString());
+    }catch(e){setStat('Auto-save failed (storage full?)');}
+  }
+  function scheduleSave(){
+    if(!canStore())return;
+    setStat('Saving…');
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(doSave,500);
+  }
+  function loadState(){
+    if(!canStore())return null;
+    try{var r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null;}
+    catch(e){return null;}
+  }
+  function restoreState(st){
+    if(!st)return;
+    if(st.groups&&st.groups.length){GROUPS=st.groups;if(st.ahu)AHU=st.ahu;renderTable();}
+    if(st.statics){
+      document.querySelectorAll('.head input, .sigbox input').forEach(function(el,i){
+        if(st.statics[i]!==undefined&&st.statics[i]!==null)el.value=st.statics[i];
+      });
+    }
+    if(st.sigs){
+      document.querySelectorAll('canvas.sig').forEach(function(cv){
+        var u=st.sigs[cv.getAttribute('data-name')];
+        if(u){cv.setAttribute('data-url',u);cv.setAttribute('data-signed','1');}
+      });
+    }
+  }
+  function clearSaved(){
+    if(!canStore()){setStat('Auto-save unavailable here');return;}
+    if(!confirm('Discard the auto-saved data and reload the original form?'))return;
+    try{localStorage.removeItem(LS_KEY);}catch(e){}
+    location.reload();
+  }
+
+  // ---- Save ----
+  function syncForSave(){
+    document.querySelectorAll('input').forEach(function(el){el.setAttribute('value',el.value);});
+    document.querySelectorAll('textarea').forEach(function(el){el.textContent=el.value;});
+    document.querySelectorAll('canvas.sig').forEach(function(cv){if(cv.getAttribute('data-signed'))cv.setAttribute('data-url',cv.toDataURL('image/png'));});
+  }
+  function saveAsHTML(){syncForSave();var html='<!DOCTYPE html>\n'+document.documentElement.cloneNode(true).outerHTML;
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='VAV_Air_Balancing_Report_AHU-A-602_filled.html';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1500);
+    doSave();}
+  function saveAsPDF(){syncForSave();doSave();window.print();}
+
+  window.addEventListener('DOMContentLoaded',function(){
+    var st=loadState();
+    if(st)restoreState(st);   // restore auto-saved table, text fields and signatures
+    buildTable();      // build from data on first load; skip if restored/reopened file already has rows
+    syncModel();       // make in-memory model match the DOM (handles reopened/edited files)
+    initSignatures();
+    recalc();
+    fitWrap();
+    if(!canStore())setStat('Auto-save unavailable in this viewer');
+    else if(st)setStat('Restored auto-saved data'+(st.t?' ('+new Date(st.t).toLocaleString()+')':''));
+    else setStat('Auto-save on');
+    document.addEventListener('input',function(e){
+      if(e.target.matches('.des,.bal')){recalc();}
+      else if(e.target.matches('.tdes,.tbal,.tpct')){
+        if(e.target.value.trim()===''){e.target.setAttribute('data-auto','1');recalc();}
+        else{e.target.setAttribute('data-auto','0');}
+      }
+      if(e.target.classList&&e.target.classList.contains('wrapinp')){
+        e.target.style.height='auto';e.target.style.height=Math.max(15,e.target.scrollHeight)+'px';
+      }
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')scheduleSave();
+    });
+    window.addEventListener('beforeunload',function(){
+      if(saveTimer){clearTimeout(saveTimer);doSave();}   // flush pending auto-save
+    });
+  });
+</script>
+</body>
+</html>

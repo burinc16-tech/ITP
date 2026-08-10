@@ -39,7 +39,16 @@ import { fieldsComplete } from "../lib/completeness";
 import { buildContextSnapshot } from "../lib/context-snapshot";
 import { dataUrlToBlob } from "../lib/data-url";
 import { downscaleImage } from "../lib/downscale-image";
+import { appendixPhotos } from "../lib/photo-appendix";
+import {
+  defaultCoverOptions,
+  RFI_DISCIPLINES,
+  type RfiCoverOptions,
+} from "../lib/rfi-cover";
 import type { RecordValues } from "../lib/values";
+import { PhotoAppendixPanel } from "./photo-appendix-panel";
+import { PrintPhotoAppendix } from "./print-photo-appendix";
+import { PrintRfiCover } from "./print-rfi-cover";
 import { PrintView } from "./print-view";
 import { SaveBar, type SaveState } from "./save-bar";
 import { SignSlot, type SignSlotInput } from "./sign-slot";
@@ -111,6 +120,14 @@ export function RecordForm(props: {
   const [values, setValues] = useState<RecordValues | null>(null);
   const [save, setSave] = useState<SaveState>({ status: "idle" });
   const [preview, setPreview] = useState(false);
+  // Opt-in Inspection Request (RFI) cover page (handover task 2). Off by
+  // default; options are seeded from the record on first enable, then the
+  // user's edits win (SPEC §12).
+  const [coverEnabled, setCoverEnabled] = useState(false);
+  const [coverOptions, setCoverOptions] = useState<RfiCoverOptions | null>(null);
+  // Opt-in photo attachment pages (SPEC §12). Off by default; the photos
+  // themselves live on the record either way — the toggle only controls print.
+  const [photoPagesEnabled, setPhotoPagesEnabled] = useState(false);
   const [signatures, setSignatures] = useState<Map<string, SignatureView>>(
     () => new Map(),
   );
@@ -324,7 +341,7 @@ export function RecordForm(props: {
   // refresh thumbnails. The blob is durable in Dexie and the queue drives the R2
   // upload. Gated by field-editability so a locked record can't gain photos.
   const handleAddPhoto = useCallback(
-    async (fieldId: string, file: Blob) => {
+    async (fieldId: string, file: Blob, caption?: string) => {
       const current = recordRef.current;
       if (!attachmentsRepo || !current || !statusFieldsEditable(current.status)) return;
       const image = await downscaleImage(file);
@@ -333,6 +350,7 @@ export function RecordForm(props: {
         recordId: current.id,
         fieldId,
         image,
+        caption,
         deviceId: deviceId(),
         now: clock(),
       });
@@ -756,7 +774,42 @@ export function RecordForm(props: {
           >
             Print / Save as PDF
           </button>
+          <label className="cover-toggle">
+            <input
+              type="checkbox"
+              checked={coverEnabled}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setCoverEnabled(on);
+                if (on && !coverOptions) {
+                  setCoverOptions(defaultCoverOptions(template, values, record));
+                }
+              }}
+            />
+            Include Inspection Request cover page
+          </label>
+          <label className="cover-toggle">
+            <input
+              type="checkbox"
+              checked={photoPagesEnabled}
+              onChange={(e) => setPhotoPagesEnabled(e.target.checked)}
+            />
+            Include photo attachment pages
+            {appendixPhotos(attachments).length > 0
+              ? ` (${appendixPhotos(attachments).length} photo${appendixPhotos(attachments).length === 1 ? "" : "s"})`
+              : " (no photos added yet)"}
+          </label>
         </div>
+
+        {coverEnabled && coverOptions && (
+          <CoverOptionsPanel
+            options={coverOptions}
+            onChange={setCoverOptions}
+            onReset={() =>
+              setCoverOptions(defaultCoverOptions(template, values, record))
+            }
+          />
+        )}
       </div>
 
       <div className="screen-view">
@@ -774,7 +827,30 @@ export function RecordForm(props: {
           canSign={canSign}
           newId={newId}
         />
+        {attachmentsRepo && (
+          <PhotoAppendixPanel
+            photos={appendixPhotos(attachments)}
+            onAddPhoto={(fieldId, file, caption) =>
+              void handleAddPhoto(fieldId, file, caption)
+            }
+            onCaptionPhoto={(id, caption) => void handleCaptionPhoto(id, caption)}
+            onRemovePhoto={(id) => void handleRemovePhoto(id)}
+            locked={!editable}
+          />
+        )}
       </div>
+
+      {coverEnabled && coverOptions && (
+        <div className="print-doc rfi-cover-doc">
+          <PrintRfiCover
+            template={template}
+            record={record}
+            options={coverOptions}
+            status={record.status}
+            signatures={signatures}
+          />
+        </div>
+      )}
 
       <PrintView
         template={template}
@@ -785,6 +861,17 @@ export function RecordForm(props: {
         attachments={attachments}
       />
 
+      {photoPagesEnabled && (
+        <div className="print-doc photo-appendix-doc">
+          <PrintPhotoAppendix
+            template={template}
+            photos={appendixPhotos(attachments)}
+            status={record.status}
+            serialNo={record.serial_no}
+          />
+        </div>
+      )}
+
       {signingSlot && (
         <SignSlot
           slot={signingSlot}
@@ -792,6 +879,84 @@ export function RecordForm(props: {
           onCancel={() => setSigningSlot(null)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Print-step editor for the RFI cover (handover task 2). The discipline is
+ * user-chosen (SPEC §12) and the app-filled text fields are pre-seeded but
+ * editable — the user's edits are what print. Manual on-site fields (IRF No.,
+ * Scope, Result, Inspector sign-off) are not here; they print as blank boxes.
+ */
+function CoverOptionsPanel(props: {
+  options: RfiCoverOptions;
+  onChange: (next: RfiCoverOptions) => void;
+  onReset: () => void;
+}): ReactNode {
+  const { options, onChange, onReset } = props;
+  const set = <K extends keyof RfiCoverOptions>(
+    key: K,
+    value: RfiCoverOptions[K],
+  ): void => onChange({ ...options, [key]: value });
+
+  const field = (
+    key: keyof RfiCoverOptions,
+    label: string,
+  ): ReactNode => (
+    <label className="cover-field">
+      <span>{label}</span>
+      <input
+        type="text"
+        value={options[key]}
+        onChange={(e) => set(key, e.target.value)}
+      />
+    </label>
+  );
+
+  return (
+    <div className="cover-options no-print">
+      <div className="cover-options-head">
+        <strong>Inspection Request cover — details</strong>
+        <button type="button" className="ghost-button" onClick={onReset}>
+          Reset to record
+        </button>
+      </div>
+
+      <fieldset className="cover-discipline">
+        <legend>Discipline</legend>
+        {RFI_DISCIPLINES.map((d) => (
+          <label key={d.value} className="cover-radio">
+            <input
+              type="radio"
+              name="rfi-discipline"
+              checked={options.discipline === d.value}
+              onChange={() => set("discipline", d.value)}
+            />
+            {d.label}
+          </label>
+        ))}
+        {options.discipline === "other" && (
+          <input
+            type="text"
+            className="cover-other"
+            placeholder="Please specify"
+            value={options.otherText}
+            onChange={(e) => set("otherText", e.target.value)}
+          />
+        )}
+      </fieldset>
+
+      <div className="cover-fields">
+        {field("project", "Project")}
+        {field("contractor", "Contractor")}
+        {field("drawingNo", "Drawing No.")}
+        {field("ref", "Ref.")}
+        {field("floor", "Floor")}
+        {field("area", "Area")}
+        {field("date", "Date")}
+        {field("activity", "Activity")}
+      </div>
     </div>
   );
 }
