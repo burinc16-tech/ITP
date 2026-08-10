@@ -15,3 +15,10 @@ npm-debug.log*
 # OS / editor cruft
 .DS_Store
 Thumbs.db
+
+# Scratch / local logs
+_to_delete/
+rebuild-output.txt
+worker-deploy-log.txt
+push-branch-log.txt
+deploy-log.txt
