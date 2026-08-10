@@ -1,0 +1,173 @@
+{
+  "code": "CWF",
+  "title": "Chilled Water System Flushing Record",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Chemical_Flush_Checklist.html (Rev 0)",
+
+  "header": {
+    "title": "Record Details",
+    "fields": [
+      { "id": "project",      "label": "Client / Project", "type": "text", "source": "project.name", "readonly": true },
+      { "id": "date",         "label": "Date",             "type": "date", "required": true },
+      { "id": "test_section", "label": "Test Section (attach marked-up schematic and layout plan drawings)", "type": "text", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "checklist",
+      "title": "Chilled Water System Flushing Record",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / No / NA" },
+        "remarks": { "label": "Comments" }
+      },
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [
+          { "value": "yes", "label": "Yes", "outcome": "pass" },
+          { "value": "no",  "label": "No",  "outcome": "fail" },
+          { "value": "na",  "label": "NA",  "outcome": "na" }
+        ],
+        "remarks": true,
+        "editable_no": true,
+        "editable_group": true
+      },
+      "_note": "**One table, four `group` headings — the paper's own layout.** The sheet is a single table whose bold rows (Pre-Requisite Requirements / Preparation / Flushing Procedure / Post-Flushing) head runs of items; consecutive rows sharing a `group` render exactly that way (`print-group-row`). Four separate sections instead printed four 16pt titles and four repeated column-header rows, none of which the paper has, and measured 24mm taller.\n\n**Deliberate divergence from the source: the Yes / No / NA column.** The paper gives every item a Comments cell and no tick column — the only thing it records against an item is free text. The app adds a tick ahead of that cell (decided with the user 2026-08-10, SPEC §12) so a flush record answers each item and a \"No\" is derivable as an outstanding item (SPEC §6). The Comments cell is kept verbatim as the remarks column, so the output is the source plus one column, never the source minus anything.\n\n`status` rather than `pass_fail_na` so the three choices read Yes / No / NA exactly as the other ACMV checklists head them (`fcu-lcp-checklist.json`), and so an added row can carry the same words — `add_row_template` has no `labels` key.\n\n**Items are numbered 1–14, which the paper does not do.** `StandardTable` always prints a serial column; with no `no` values it printed an empty ruled column down every row, which reads as a fault on a signed document. Numbering it also gives an RFI something to cite.\n\n`page_break_before` on the first section is what keeps the checklist on one sheet: `paginate` gives every section its own page unless at least one declares a break, and a break on the opening section is a no-op for layout — it is already page 1. Same idiom as `fcu-lcp-checklist.json`. Measured: without it this record printed 7 pages.\n\n`allow_add_rows` because the source has a \"+ row\" button on every block; the added row carries its own number and group label (`editable_no`, `editable_group`) so it lands under the right heading, and its wording is record data, never template wording (SPEC §12, Hard Rule #5). The sheet's three blank trailing rows are these added rows, not empty template rows — a record that needs none prints none.",
+      "rows": [
+        { "id": "pre_01", "no": "1", "type": "status", "remarks": true, "group": "Pre-Requisite Requirements",
+          "description": "Hydrostatic Test Complete",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "pre_02", "no": "2", "type": "status", "remarks": true, "group": "Pre-Requisite Requirements",
+          "description": "Sufficient Permanent or Temporary Water & Power available",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "pre_03", "no": "3", "type": "status", "remarks": true, "group": "Pre-Requisite Requirements",
+          "description": "Sufficient Drainage available for Balanced Flush.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "pre_04", "no": "4", "type": "status", "remarks": true, "group": "Pre-Requisite Requirements",
+          "description": "Written Approval to Discharge Chemicals to Public Drain.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+
+        { "id": "prep_01", "no": "5", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "Confirm the following Components are installed:",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ],
+          "_note": "A lead-in the sheet still gives its own Comments cell, so it stays a row and carries the same control: answer it for the set, or NA it and tick the lettered items beneath." },
+        { "id": "prep_02", "no": "6", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "a) Flushing Loops at Equipment/Risers.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "prep_03", "no": "7", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "b) Line Size Drain Points up to 50mm and above.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "prep_04", "no": "8", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "c) Dosing Pot (For introduction of chemical).",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "prep_05", "no": "9", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "d) System or Temporary Pumps able to provide Flushing Velocity",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "prep_06", "no": "10", "type": "status", "remarks": true, "group": "Preparation",
+          "description": "e) Specify Chemical Used for Cleaning & Quantity / Concentration",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ],
+          "_note": "The chemical and its concentration are written in this row's Comments cell, as on the paper. Not a `{{variable}}`: it is a value recorded during the flush, not project wording interpolated into a step (SPEC §5.1)." },
+
+        { "id": "flush_01", "no": "11", "type": "status", "remarks": true, "group": "Flushing Procedure",
+          "description": "System left Filled with Water and Dosed with Inhibitor or Biocide.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "flush_02", "no": "12", "type": "status", "remarks": true, "group": "Flushing Procedure",
+          "description": "Flushing Bypasses Removed or Isolated and Drain Points Plugged.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "flush_03", "no": "13", "type": "status", "remarks": true, "group": "Flushing Procedure",
+          "description": "Verified PH before drain.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ],
+          "_note": "The measured pH goes in this row's Comments cell — the sheet asks for it there and declares no acceptance band, so no `limit` is invented here." },
+
+        { "id": "post_01", "no": "14", "type": "status", "remarks": true, "group": "Post-Flushing",
+          "description": "Strainer has been cleaned after flushing completed.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks / Instruments Used",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "One free box on the sheet, covering remarks and instruments together — not the tabulated instrument list the AHU comparison sheet carries. So no `instruments` block is declared and the record is not wired to the calibration register; same call as `acmv-pipe-pressure-test.json`. A field group rather than a one-row standard section, which would print a spurious column header.\n\nThe break here closes the record on a second sheet with the sign-off. Measured with a filled record: the header and checklist come to 195mm of a 233mm body, and remarks plus the sign-off to 140mm — 335mm together, so they cannot share a sheet. Without the break the whole record is one *logical* page that silently spills onto a second physical sheet, which breaks SPEC §7: the first sheet prints no footer and the footer that does print reads \"Page 1 of 1\" on a two-sheet document. An explicit break is what gives each sheet its own header, serial, status and honest page number. A record with several added rows still overflows page 1 onto a third sheet — that is inherent to `allow_add_rows` (about three spare rows here) and is the same trade every add-rows template makes.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks, test instruments, calibration certificate numbers", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "type": "sign_off",
+      "_note": "The sheet's three sign-off rows: a contractor line prefilled \"Contractor\", then two open Witnessed By lines whose company is typed on site.\n\nAn in-flow `sign_off` rather than the top-level `footer`. PrintView gives the footer a sheet of its own, which made the record three sheets where the paper is one; sharing the closing sheet with the remarks box brings it to two, the same page count the source HTML itself prints. Same call, and the same reasoning, as `fcu-lcp-checklist.json`.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}
