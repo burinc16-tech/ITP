@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AHU Air Measurement - AHU-A-602</title>
+<style>
+  :root{--ink:#1a1a1a;--muted:#555;--field:#fbfbe8;--focus:#fff7c9;--accent:#12355f;--grp:#eef2f8;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:#dfe3e8;color:var(--ink);font-family:Arial,Helvetica,sans-serif;}
+  .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px 16px;background:#12263a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .toolbar .tt{font-weight:700;margin-right:auto;font-size:14px;}
+  .btn{border:0;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;transition:filter .15s;}
+  .btn:hover{filter:brightness(1.12);}
+  .btn-html{background:#1e8e5a;}.btn-pdf{background:#c0392b;}.btn-ghost{background:#3a5068;}
+  .save-status{font-size:11px;color:#9fd6b0;min-width:150px;text-align:right;}
+  .save-status.warn{color:#f0c674;}
+  .hint{padding:8px 16px;font-size:12px;color:#334;background:#e3e9ef;border-bottom:1px solid #c6d2dd;}
+  .sheets{padding:18px;}
+  .page{width:210mm;min-height:297mm;margin:0 auto 20px;background:#fff;padding:12mm 12mm 10mm;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+
+  .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--accent);padding-bottom:8px;}
+  .head img.l{height:58px;}.head img.r{height:46px;margin-left:auto;}
+  .head .ti{flex:1;text-align:center;}
+  .head .ti h1{font-size:19px;color:var(--accent);letter-spacing:.5px;}
+
+  .info{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin-top:12px;border:1.4px solid var(--accent);}
+  .info .f{display:flex;align-items:stretch;border-bottom:1px solid #c9d3e0;}
+  .info .f .lbl{flex:0 0 130px;background:var(--grp);font-size:10.5px;font-weight:700;padding:6px 8px;display:flex;align-items:center;border-right:1px solid #c9d3e0;}
+  .info .f .val{flex:1;display:flex;align-items:center;}
+  .info .f .val input{width:100%;border:0;background:var(--field);font:inherit;font-size:10.5px;font-weight:600;padding:6px 8px;}
+  .info .f .val input:focus{outline:0;background:var(--focus);}
+  .info .f .unit{font-size:9px;color:var(--muted);padding:0 8px;display:flex;align-items:center;background:#f6f8fb;border-left:1px solid #e0e6ee;}
+
+  table.meas{width:100%;border-collapse:collapse;margin-top:14px;table-layout:fixed;}
+  table.meas th,table.meas td{border:1px solid #444;font-size:10px;text-align:center;padding:0;}
+  table.meas thead th{background:#e6ebf2;font-weight:700;padding:5px 2px;font-size:9.5px;line-height:1.15;}
+  table.meas td{height:26px;}
+  table.meas td input{width:100%;border:0;background:var(--field);text-align:center;font:inherit;font-size:10px;padding:4px 2px;}
+  table.meas td input:focus{outline:0;background:var(--focus);}
+  table.meas col.sn{width:9%;}
+  td.sncell{background:var(--grp);font-weight:700;}
+  td.sncell input{background:var(--grp);font-weight:700;}
+  td.totcell{background:var(--grp);} td.totcell input{background:var(--grp);font-weight:700;}
+  table.meas col.actcol{width:80px;}
+  table.meas td.act,table.meas th.act{background:#fff;white-space:nowrap;padding:1px;}
+  .meas .act button{border:1px solid #9aa8bd;background:#eef2f8;border-radius:4px;font-size:9.5px;line-height:16px;padding:0 6px;margin:1px;cursor:pointer;font-family:inherit;}
+  .meas .act button:hover{filter:brightness(0.96);}
+  .meas .act button.add{color:#0a6b3b;border-color:#8fc9ab;background:#eafaf1;}
+  .meas .act button.del{color:#b3261e;border-color:#e6a9a4;background:#fdecec;}
+  table.meas th.tp{position:relative;}
+  .meas .tphdr{display:block;}
+  .meas .coldel{display:inline-block;margin-top:3px;border:1px solid #e6a9a4;background:#fdecec;color:#b3261e;
+    border-radius:3px;font-size:8.5px;line-height:14px;padding:0 5px;cursor:pointer;font-family:inherit;}
+  .meas .coldel:hover{filter:brightness(0.96);}
+  .meas .act button.coladd{margin-top:2px;}
+
+  .calc{margin-top:12px;border:1.4px solid var(--accent);}
+  .calc .ch{background:var(--accent);color:#fff;font-weight:700;font-size:10.5px;padding:5px 8px;letter-spacing:.3px;}
+  .calc .cr{display:flex;align-items:stretch;border-top:1px solid #c9d3e0;}
+  .calc .cr .cl{flex:1;font-size:10.5px;padding:6px 8px;display:flex;align-items:center;background:#f6f8fb;}
+  .calc .cr .cl.edit{padding:0;background:var(--field);}
+  .calc .cr .cl.edit input{width:100%;border:0;background:var(--field);font:inherit;font-size:10.5px;padding:6px 8px;}
+  .calc .cr .cl.edit input:focus{outline:0;background:var(--focus);}
+  .calc .cr .cv{flex:0 0 150px;display:flex;align-items:center;border-left:1px solid #c9d3e0;}
+  .calc .cr .cv input{width:100%;border:0;background:var(--field);font:inherit;font-size:10.5px;font-weight:700;text-align:center;padding:6px 8px;}
+  .calc .cr .cv input:focus{outline:0;background:var(--focus);}
+  .calc .cr .cv input[readonly]{background:#e9eef6;color:var(--accent);cursor:default;}
+  .calc .cr .cu{flex:0 0 44px;font-size:9px;color:var(--muted);display:flex;align-items:center;justify-content:center;border-left:1px solid #e0e6ee;background:#f6f8fb;}
+
+  .rem{margin-top:12px;}
+  .rem h3{font-size:11px;color:var(--accent);margin-bottom:4px;}
+  .rem textarea{width:100%;min-height:52px;border:1px solid #aaa;border-radius:3px;padding:6px;font:inherit;font-size:10px;resize:vertical;background:var(--field);}
+  .rem textarea:focus{outline:0;background:var(--focus);}
+
+  table.sign{margin-top:14px;border-collapse:collapse;width:100%;}
+  .sign td{border:1.2px solid #333;font-size:11px;padding:0;}
+  .sign .role{background:var(--accent);color:#fff;font-weight:700;width:100px;white-space:nowrap;text-align:left;padding:8px 10px;}
+  .sign .k{background:#eef2f8;font-weight:700;width:1%;white-space:nowrap;text-align:left;padding:8px 8px;}
+  .sign .v input{width:100%;border:0;background:var(--field);padding:9px 8px;font:inherit;font-size:11px;}
+  .sign .v input:focus{outline:0;background:var(--focus);}
+  .sign td.v.name{width:auto;min-width:140px;}
+  .sign td.v.date{width:112px;}
+  .sign td.v.date input{text-align:center;padding:9px 4px;}
+  .sign .sigcell{width:200px;position:relative;height:56px;background:var(--field);}
+  canvas.sig{display:block;width:100%;height:56px;touch-action:none;cursor:crosshair;}
+  .sig-clear{position:absolute;top:2px;right:3px;font-size:8px;color:#c0392b;background:#fff;border:1px solid #c0392b;border-radius:3px;padding:0 5px;cursor:pointer;}
+  .sig-hint{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:8px;color:#bbb;pointer-events:none;}
+
+  @page{size:A4 portrait;margin:10mm;}
+  @media print{
+    html,body{background:#fff;}
+    .toolbar,.hint,.sig-clear,.sig-hint,.act,col.actcol,.coldel{display:none !important;}
+    .sheets{padding:0;}
+    .page{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none;}
+    .page.p1{page-break-after:always;}
+    input,textarea{background:transparent !important;-webkit-appearance:none;appearance:none;border:0 !important;color:#000 !important;}
+    .rem textarea{border:1px solid #999 !important;}
+    .info .f .lbl,.info .f .unit,td.sncell,td.totcell,thead th,.calc .ch,.calc .cr .cl,.calc .cr .cu,.sign .role,.sign .k{
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar noprint">
+    <span class="tt">AHU Air Measurement &mdash; AHU-A-602</span>
+    <span class="save-status" id="saveStatus"></span>
+    <button class="btn btn-ghost" onclick="clearSavedData()">Clear Saved Data</button>
+    <button class="btn btn-ghost" onclick="clearAllSig()">Clear Signatures</button>
+    <button class="btn btn-html" onclick="saveAsHTML()">Save as HTML</button>
+    <button class="btn btn-pdf" onclick="saveAsPDF()">Save as PDF</button>
+  </div>
+  <div class="hint noprint">
+    Fill the yellow fields and sign each page (draw with mouse or finger). <b>Auto-save is on</b>: every entry, signature, and added/removed row or column is recorded automatically in this browser, so you can close the page and continue later on the same computer. <b>Save as HTML</b> keeps an editable copy with entries and signatures; <b>Save as PDF</b> prints the two A4 pages. Use the <b>Edit</b> column (screen only) to add/remove measurement rows &mdash; S/N renumbers automatically. Use <b>+ col</b> in the Edit header to add a Test Point column, or the <b>&times;</b> under a Test Point heading to delete it &mdash; both renumber automatically. Page 1 = Supply Air, Page 2 = Fresh Air.
+  </div>
+
+  <div class="sheets">
+  <!-- ================= PAGE 1: SUPPLY AIR ================= -->
+  <div class="page p1">
+    <div class="head">
+      <div class="ti"><h1>AHU SUPPLY AIR MEASUREMENT</h1></div>
+      <img class="r" src="data:image/png;base64,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" alt="logo">
+    </div>
+
+    <div class="info">
+      <div class="f"><div class="lbl">AHU Name</div><div class="val"><input value="AHU-A-602"></div></div>
+      <div class="f"><div class="lbl">Testing Date</div><div class="val"><input value="2025-06-11" type="date"></div></div>
+      <div class="f"><div class="lbl">Duct Size</div><div class="val"><input value="2000 x 400"></div><div class="unit">mm</div></div>
+      <div class="f"><div class="lbl">Running Hz</div><div class="val"><input value="0.672"></div></div>
+      <div class="f"><div class="lbl">Design Airflow</div><div class="val"><input value="21710"></div><div class="unit">CMH</div></div>
+      <div class="f"><div class="lbl">Actual Static Pressure</div><div class="val"><input value="190"></div><div class="unit">Pa</div></div>
+      <div class="f"><div class="lbl">Actual Airflow</div><div class="val"><input value="21484"></div><div class="unit">CMH</div></div>
+      <div class="f" style="border-bottom:0;"><div class="lbl" style="background:#f6f8fb;"></div><div class="val" style="background:#fff;"></div></div>
+    </div>
+
+    <table class="meas">
+      <colgroup><col class="sn"><col><col><col><col><col><col><col><col class="actcol"></colgroup>
+      <thead><tr><th>S/N</th><th>Test Point 1</th><th>Test Point 2</th><th>Test Point 3</th><th>Test Point 4</th><th>Test Point 5</th><th>Test Point 6</th><th>Test Point 7</th><th class="act">Edit</th></tr></thead>
+      <tbody><tr><td class="sncell"><input value="1"></td><td><input value="7.46"></td><td><input value="6.47"></td><td><input value="6.52"></td><td><input value="7.21"></td><td><input value="7.09"></td><td><input value="7.74"></td><td><input value="8.86"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr><tr><td class="sncell"><input value="2"></td><td><input value="7.38"></td><td><input value="6.89"></td><td><input value="6.56"></td><td><input value="7.67"></td><td><input value="7.45"></td><td><input value="7.94"></td><td><input value="9.22"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr></tbody>
+    </table>
+
+    <div class="calc">
+      <div class="ch">CALCULATION</div>
+      <div class="cr"><div class="cl edit"><input value="Grand Total (sum of all readings)"></div><div class="cv"><input value="104.46"></div><div class="cu"></div></div>
+      <div class="cr"><div class="cl edit"><input value="Average velocity = Grand Total ÷ number of readings"></div><div class="cv"><input value="7.46"></div><div class="cu">m/s</div></div>
+      <div class="cr"><div class="cl edit"><input value="Actual Airflow = velocity × 2.0 × 0.4 × 3,600 (duct 2000 × 400 mm)"></div><div class="cv"><input value="21484"></div><div class="cu">CMH</div></div>
+    </div>
+
+    <div class="rem"><h3>REMARKS / TEST INSTRUMENTS USED:</h3><textarea></textarea></div>
+
+    <table class="sign">
+      <tr><td class="role">Tested By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p1_tested"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr><tr><td class="role">Witnessed By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p1_witness"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr><tr><td class="role">Verified By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p1_verified"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr>
+    </table>
+  </div>
+
+  <!-- ================= PAGE 2: FRESH AIR ================= -->
+  <div class="page p2">
+    <div class="head">
+      <div class="ti"><h1>AHU FRESH AIR MEASUREMENT</h1></div>
+      <img class="r" src="data:image/png;base64,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" alt="logo">
+    </div>
+
+    <div class="info">
+      <div class="f"><div class="lbl">AHU Name</div><div class="val"><input value="AHU-A-602"></div></div>
+      <div class="f"><div class="lbl">Testing Date</div><div class="val"><input value="2025-07-22" type="date"></div></div>
+      <div class="f"><div class="lbl">Duct Size</div><div class="val"><input value="600 x 600"></div><div class="unit">mm</div></div>
+      <div class="f"><div class="lbl">BMS Airflow</div><div class="val"><input value="5155"></div><div class="unit">CMH</div></div>
+      <div class="f"><div class="lbl">Design Airflow</div><div class="val"><input value="4500"></div><div class="unit">CMH</div></div>
+      <div class="f"><div class="lbl">Fresh Air Damper Opening</div><div class="val"><input value="1"></div></div>
+      <div class="f"><div class="lbl">Adjusted Airflow</div><div class="val"><input value="5276"></div><div class="unit">CMH</div></div>
+      <div class="f" style="border-bottom:0;"><div class="lbl" style="background:#f6f8fb;"></div><div class="val" style="background:#fff;"></div></div>
+    </div>
+
+    <table class="meas">
+      <colgroup><col class="sn"><col><col><col><col><col><col class="actcol"></colgroup>
+      <thead><tr><th>S/N</th><th>Test Point 1</th><th>Test Point 2</th><th>Test Point 3</th><th>Test Point 4</th><th>Test Point 5</th><th class="act">Edit</th></tr></thead>
+      <tbody><tr><td class="sncell"><input value="1"></td><td><input value="1.04"></td><td><input value="0.88"></td><td><input value="1.51"></td><td><input value="3.14"></td><td><input value="4.62"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr><tr><td class="sncell"><input value="2"></td><td><input value="1.19"></td><td><input value="0.91"></td><td><input value="2.55"></td><td><input value="5.14"></td><td><input value="4.73"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr><tr><td class="sncell"><input value="3"></td><td><input value="1.22"></td><td><input value="1.42"></td><td><input value="2.67"></td><td><input value="6.34"></td><td><input value="7.36"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr><tr><td class="sncell"><input value="4"></td><td><input value="2.82"></td><td><input value="4.84"></td><td><input value="4.72"></td><td><input value="6.53"></td><td><input value="7.67"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr><tr><td class="sncell"><input value="5"></td><td><input value="2.95"></td><td><input value="6.39"></td><td><input value="6.67"></td><td><input value="6.95"></td><td><input value="7.53"></td><td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button><button class="del" title="Remove this row" onclick="measDelRow(this)">×</button></td></tr></tbody>
+    </table>
+
+    <div class="calc">
+      <div class="ch">CALCULATION</div>
+      <div class="cr"><div class="cl">Sum of all readings</div><div class="cv"><input value="101.79"></div><div class="cu"></div></div>
+      <div class="cr"><div class="cl">Divisor</div><div class="cv"><input value="6"></div><div class="cu"></div></div>
+      <div class="cr"><div class="cl">Velocity = sum &divide; divisor</div><div class="cv"><input value="16.965"></div><div class="cu">m/s</div></div>
+      <div class="cr"><div class="cl edit"><input value="Adjusted Airflow = velocity × 0.6 × 0.6 × 3,600 (duct 600 × 600 mm)"></div><div class="cv"><input value="5276"></div><div class="cu">CMH</div></div>
+    </div>
+
+    <div class="rem"><h3>REMARKS / TEST INSTRUMENTS USED:</h3><textarea></textarea></div>
+
+    <table class="sign">
+      <tr><td class="role">Tested By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p2_tested"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr><tr><td class="role">Witnessed By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p2_witness"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr><tr><td class="role">Verified By</td><td class="k">Name</td><td class="v name"><input value=""></td><td class="k">Signature</td><td class="sigcell"><canvas class="sig" data-name="p2_verified"></canvas><span class="sig-clear" onclick="clearSig(this)">clear</span><span class="sig-hint">sign here</span></td><td class="k">Date</td><td class="v date"><input type="date"></td></tr>
+    </table>
+  </div>
+  </div>
+
+<script>
+  function setupCanvas(cv){var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+    cv.width=Math.max(1,Math.round(r.width*d));cv.height=Math.max(1,Math.round(r.height*d));
+    var c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.lineWidth=1.7;c.lineCap='round';c.lineJoin='round';c.strokeStyle='#0a1a3a';}
+  function attachSig(cv){var ctx=cv.getContext('2d'),drawing=false,last=null;
+    function pos(e){var b=cv.getBoundingClientRect(),p=(e.touches?e.touches[0]:e);return{x:p.clientX-b.left,y:p.clientY-b.top};}
+    function st(e){e.preventDefault();drawing=true;last=pos(e);var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='none';}
+    function mv(e){if(!drawing)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;cv.setAttribute('data-signed','1');}
+    function en(){if(drawing){drawing=false;if(window.scheduleSave)scheduleSave();}}
+    cv.addEventListener('mousedown',st);cv.addEventListener('mousemove',mv);window.addEventListener('mouseup',en);cv.addEventListener('mouseleave',en);
+    cv.addEventListener('touchstart',st,{passive:false});cv.addEventListener('touchmove',mv,{passive:false});cv.addEventListener('touchend',en);}
+  function clearSig(el){var cv=el.parentNode.querySelector('canvas.sig');
+    cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cv.removeAttribute('data-url');cv.removeAttribute('data-signed');
+    var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='';if(window.scheduleSave)scheduleSave();}
+  function clearAllSig(){document.querySelectorAll('.sig-clear').forEach(function(b){clearSig(b);});}
+
+  // ---- Add / remove measurement rows (per table) ----
+  function renumberMeas(tbody){
+    tbody.querySelectorAll('tr').forEach(function(tr,i){
+      var first=tr.querySelector('td input'); if(first) first.value=String(i+1);
+    });
+  }
+  function measAddRow(btn){
+    var tr=btn.closest('tr'), tbody=tr.parentNode;
+    var ncell=tr.querySelectorAll('td:not(.act)').length;
+    var ntr=document.createElement('tr'), html='';
+    for(var i=0;i<ncell;i++){ html+='<td'+(i===0?' class="sncell"':'')+'><input value=""></td>'; }
+    html+='<td class="act"><button class="add" title="Add row below" onclick="measAddRow(this)">+ row</button>'
+        +'<button class="del" title="Remove this row" onclick="measDelRow(this)">\u00d7</button></td>';
+    ntr.innerHTML=html;
+    tr.after(ntr);
+    renumberMeas(tbody);
+  }
+  function measDelRow(btn){
+    var tr=btn.closest('tr'), tbody=tr.parentNode;
+    if(tbody.querySelectorAll('tr').length<=1) return;
+    tr.remove(); renumberMeas(tbody);
+  }
+
+  // ---- Add / remove Test Point columns (per table) ----
+  function renumberCols(table){
+    table.querySelectorAll('thead th.tp .tphdr').forEach(function(sp,i){
+      sp.textContent='Test Point '+(i+1);
+    });
+  }
+  function measAddCol(btn){
+    var table=btn.closest('table.meas'), thead=table.querySelector('thead tr');
+    var tps=thead.querySelectorAll('th.tp');
+    var refTh=tps.length ? tps[tps.length-1].nextSibling : thead.querySelector('th.act');
+    var nth=document.createElement('th');
+    nth.className='tp';
+    nth.innerHTML='<span class="tphdr">Test Point</span>'
+        +'<button class="coldel" title="Delete this column" onclick="measDelCol(this)">×</button>';
+    thead.insertBefore(nth, refTh);
+    var idx=Array.prototype.indexOf.call(thead.children, nth);
+    table.querySelectorAll('tbody tr').forEach(function(tr){
+      var ntd=document.createElement('td'); ntd.innerHTML='<input value="">';
+      tr.insertBefore(ntd, tr.children[idx]||null);
+    });
+    var cg=table.querySelector('colgroup');
+    if(cg){ cg.insertBefore(document.createElement('col'), cg.children[idx]||null); }
+    renumberCols(table);
+  }
+  function measDelCol(btn){
+    var th=btn.closest('th'), table=btn.closest('table.meas'), thead=table.querySelector('thead tr');
+    if(thead.querySelectorAll('th.tp').length<=1) return;
+    var idx=Array.prototype.indexOf.call(thead.children, th);
+    th.remove();
+    table.querySelectorAll('tbody tr').forEach(function(tr){ if(tr.children[idx]) tr.children[idx].remove(); });
+    var cg=table.querySelector('colgroup');
+    if(cg && cg.children[idx]) cg.children[idx].remove();
+    renumberCols(table);
+  }
+  // Upgrade static "Test Point" headers with column controls (idempotent).
+  function upgradeMeasHeaders(){
+    document.querySelectorAll('table.meas').forEach(function(table){
+      var thead=table.querySelector('thead tr'); if(!thead) return;
+      thead.querySelectorAll('th').forEach(function(th){
+        if(th.classList.contains('act')||th.classList.contains('tp')) return;
+        var t=th.textContent.trim();
+        if(/^Test Point/i.test(t)){
+          th.classList.add('tp');
+          th.innerHTML='<span class="tphdr">'+t+'</span>'
+              +'<button class="coldel" title="Delete this column" onclick="measDelCol(this)">×</button>';
+        }
+      });
+      var act=thead.querySelector('th.act');
+      if(act && !act.querySelector('.coladd')){
+        act.innerHTML='Edit<br><button class="add coladd" title="Add Test Point column" onclick="measAddCol(this)">+ col</button>';
+      }
+      renumberCols(table);
+    });
+  }
+  function restoreSig(cv){var u=cv.getAttribute('data-url');if(!u)return;var img=new Image();
+    img.onload=function(){var ctx=cv.getContext('2d');ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(img,0,0,cv.width,cv.height);ctx.restore();
+      var h=cv.parentNode.querySelector('.sig-hint');if(h)h.style.display='none';};img.src=u;}
+  function initSignatures(){document.querySelectorAll('canvas.sig').forEach(function(cv){setupCanvas(cv);restoreSig(cv);attachSig(cv);});}
+
+  function syncForSave(){
+    document.querySelectorAll('input').forEach(function(el){
+      if(el.type==='checkbox'||el.type==='radio'){if(el.checked)el.setAttribute('checked','');else el.removeAttribute('checked');}
+      else el.setAttribute('value',el.value);
+    });
+    document.querySelectorAll('textarea').forEach(function(el){el.textContent=el.value;});
+    document.querySelectorAll('canvas.sig').forEach(function(cv){if(cv.getAttribute('data-signed'))cv.setAttribute('data-url',cv.toDataURL('image/png'));});
+  }
+  function saveAsHTML(){syncForSave();
+    var html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='AHU_Air_Measurement_AHU-A-602_filled.html';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1500);}
+  function saveAsPDF(){syncForSave();window.print();}
+
+  window.addEventListener('load', function(){upgradeMeasHeaders();if(window.restoreData)restoreData();initSignatures();});
+  window.addEventListener('resize', function(){document.querySelectorAll('canvas.sig').forEach(function(cv){
+    var u=cv.getAttribute('data-signed')?cv.toDataURL('image/png'):null;
+    setupCanvas(cv); if(u){cv.setAttribute('data-url',u);restoreSig(cv);} });});
+</script>
+
+<script>
+  // ===== Auto-calculation for the CALCULATION blocks =====
+  (function(){
+    function readingInputs(table){
+      var out=[];
+      if(!table) return out;
+      table.querySelectorAll('tbody tr').forEach(function(tr){
+        tr.querySelectorAll('td').forEach(function(td){
+          if(td.classList.contains('sncell')||td.classList.contains('act')) return;
+          var inp=td.querySelector('input'); if(inp) out.push(inp);
+        });
+      });
+      return out;
+    }
+    function num(v){ v=parseFloat(String(v).replace(/,/g,'').trim()); return isFinite(v)?v:null; }
+    function ductArea(page){          // m² from the "Duct Size" field, e.g. "2000 x 400" (mm)
+      var f=page.querySelectorAll('.info .f'), i, lbl, v, m;
+      for(i=0;i<f.length;i++){
+        lbl=f[i].querySelector('.lbl');
+        if(lbl && /duct\s*size/i.test(lbl.textContent)){
+          v=f[i].querySelector('input'); if(!v) return null;
+          m=v.value.match(/([\d.]+)\s*[x×*]\s*([\d.]+)/i);
+          if(m) return (parseFloat(m[1])/1000)*(parseFloat(m[2])/1000);
+          return null;
+        }
+      }
+      return null;
+    }
+    function crLabel(cr){
+      var e=cr.querySelector('.cl input'); if(e) return e.value;
+      var c=cr.querySelector('.cl'); return c?c.textContent:'';
+    }
+    function setV(inp,txt,ro){ if(!inp)return; if(ro)inp.readOnly=true; inp.value=txt; }
+    function fmt(x,d){ return (x==null||!isFinite(x))?'':x.toFixed(d); }
+
+    function recalcPage(page){
+      var table=page.querySelector('table.meas'), calc=page.querySelector('.calc');
+      if(!table||!calc) return;
+      var sum=0, count=0;
+      readingInputs(table).forEach(function(inp){ var n=num(inp.value); if(n!=null){ sum+=n; count++; } });
+
+      var sumRow=null,divRow=null,velRow=null,airRow=null;
+      calc.querySelectorAll('.cr').forEach(function(cr){
+        var t=crLabel(cr);
+        if(/airflow/i.test(t)) airRow=cr;
+        else if(/velocity/i.test(t)) velRow=cr;
+        else if(/^\s*divisor\s*$/i.test(t)) divRow=cr;
+        else if(/grand\s*total|sum\s*of/i.test(t)) sumRow=cr;
+      });
+      function cv(cr){ return cr?cr.querySelector('.cv input'):null; }
+      var sumIn=cv(sumRow), velIn=cv(velRow), airIn=cv(airRow), divIn=cv(divRow);
+
+      setV(sumIn, fmt(sum,2), true);
+
+      var divisor = count>0 ? count : null;
+      if(divRow){ setV(divIn, divisor==null?'':String(divisor), true); }
+
+      var vel = (sumIn && divisor) ? (sum/divisor) : null;
+      setV(velIn, fmt(vel,3), true);
+
+      var area=ductArea(page);
+      var air = (vel!=null && area!=null) ? Math.round(vel*area*3600) : null;
+      setV(airIn, air==null?'':String(air), true);
+    }
+    function recalcAll(){ document.querySelectorAll('.page').forEach(recalcPage); }
+
+    // Recompute whenever any field is edited, and after rows/columns are added or removed.
+    document.addEventListener('input', recalcAll);
+    ['measAddRow','measDelRow','measAddCol','measDelCol'].forEach(function(fn){
+      var orig=window[fn];
+      if(typeof orig==='function'){ window[fn]=function(){ var r=orig.apply(this,arguments); recalcAll(); return r; }; }
+    });
+    window.addEventListener('load', recalcAll);
+    if(document.readyState!=='loading') recalcAll();
+  })();
+</script>
+
+<script>
+  // ===== AUTO-SAVE (records filled text, signatures, and table structure in this browser) =====
+  var STORE_KEY='ahu_air_measurement_AHU-A-602_v1';
+  var _saveTimer=null;
+
+  function storageOK(){try{var t='__t';localStorage.setItem(t,t);localStorage.removeItem(t);return true;}catch(e){return false;}}
+
+  function setStatus(msg,warn){var el=document.getElementById('saveStatus');if(!el)return;
+    el.textContent=msg;el.className='save-status'+(warn?' warn':'');}
+
+  function collectData(){
+    var d={tables:[],inputs:[],textareas:[],sigs:{},savedAt:new Date().toLocaleString()};
+    document.querySelectorAll('table.meas').forEach(function(t){
+      d.tables.push({rows:t.querySelectorAll('tbody tr').length,
+                     cols:t.querySelectorAll('thead th.tp').length});
+    });
+    document.querySelectorAll('input').forEach(function(el){d.inputs.push(el.value);});
+    document.querySelectorAll('textarea').forEach(function(el){d.textareas.push(el.value);});
+    document.querySelectorAll('canvas.sig').forEach(function(cv){
+      if(cv.getAttribute('data-signed'))d.sigs[cv.getAttribute('data-name')]=cv.toDataURL('image/png');});
+    return d;
+  }
+
+  function autoSave(){
+    if(!storageOK()){setStatus('Auto-save unavailable in this browser',true);return;}
+    try{
+      localStorage.setItem(STORE_KEY,JSON.stringify(collectData()));
+      setStatus('✓ Auto-saved '+new Date().toLocaleTimeString());
+    }catch(e){setStatus('Auto-save failed (storage full?)',true);}
+  }
+
+  function scheduleSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(autoSave,400);}
+
+  /* Rebuild rows / Test Point columns so the layout matches what was saved. */
+  function restoreStructure(d){
+    var tables=document.querySelectorAll('table.meas');
+    (d.tables||[]).forEach(function(cfg,i){
+      var t=tables[i];if(!t||!cfg)return;
+      var guard=0,b,list;
+      while(cfg.cols>=1&&t.querySelectorAll('thead th.tp').length<cfg.cols&&guard++<80){
+        b=t.querySelector('thead th.act .coladd');if(!b)break;measAddCol(b);}
+      while(cfg.cols>=1&&t.querySelectorAll('thead th.tp').length>cfg.cols&&guard++<160){
+        list=t.querySelectorAll('thead th.tp');b=list[list.length-1].querySelector('.coldel');if(!b)break;measDelCol(b);}
+      while(cfg.rows>=1&&t.querySelectorAll('tbody tr').length<cfg.rows&&guard++<400){
+        list=t.querySelectorAll('tbody tr');b=list[list.length-1].querySelector('.act .add');if(!b)break;measAddRow(b);}
+      while(cfg.rows>=1&&t.querySelectorAll('tbody tr').length>cfg.rows&&guard++<600){
+        list=t.querySelectorAll('tbody tr');b=list[list.length-1].querySelector('.act .del');if(!b)break;measDelRow(b);}
+    });
+  }
+
+  function restoreData(){
+    if(!storageOK())return;
+    var raw=null;try{raw=localStorage.getItem(STORE_KEY);}catch(e){return;}
+    if(!raw)return;
+    var d;try{d=JSON.parse(raw);}catch(e){return;}
+    restoreStructure(d);
+    var inputs=document.querySelectorAll('input');
+    (d.inputs||[]).forEach(function(v,i){if(inputs[i]&&v!==null&&v!==undefined)inputs[i].value=v;});
+    var tas=document.querySelectorAll('textarea');
+    (d.textareas||[]).forEach(function(v,i){if(tas[i]&&v!==null&&v!==undefined)tas[i].value=v;});
+    document.querySelectorAll('canvas.sig').forEach(function(cv){
+      var u=(d.sigs||{})[cv.getAttribute('data-name')];
+      if(u){cv.setAttribute('data-url',u);cv.setAttribute('data-signed','1');}});
+    setStatus('✓ Restored (last saved '+(d.savedAt||'earlier')+')');
+  }
+
+  function clearSavedData(){
+    if(!window.confirm('Delete the auto-saved copy of this form from this browser?\nThe entries currently on screen are kept until you reload.'))return;
+    try{localStorage.removeItem(STORE_KEY);}catch(e){}
+    setStatus('Saved data cleared');
+  }
+
+  /* Save on typing, on row/column changes, and just before the page closes. */
+  document.addEventListener('input',function(e){
+    if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))scheduleSave();});
+  document.addEventListener('change',function(e){
+    if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))scheduleSave();});
+  ['measAddRow','measDelRow','measAddCol','measDelCol'].forEach(function(fn){
+    var orig=window[fn];
+    if(typeof orig==='function'){window[fn]=function(){var r=orig.apply(this,arguments);scheduleSave();return r;};}
+  });
+  window.addEventListener('beforeunload',function(){if(_saveTimer){clearTimeout(_saveTimer);autoSave();}});
+  window.addEventListener('load',function(){
+    if(storageOK()&&!localStorage.getItem(STORE_KEY))setStatus('Auto-save ready');});
+</script>
+</body>
+</html>

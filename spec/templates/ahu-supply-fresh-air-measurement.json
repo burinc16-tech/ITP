@@ -1,0 +1,173 @@
+{
+  "code": "AAM",
+  "title": "AHU Supply and Fresh Air Measurement",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/AHU_Supply_and_Fresh_Air_Measurement.html",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project", "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ahu_tag", "label": "AHU Name",    "type": "text", "source": "equipment.tag", "required": true, "bold": true },
+      { "id": "duct_ref","label": "Location",    "type": "text" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "supply_details",
+      "no": "1",
+      "title": "Supply Air — Test Details",
+      "type": "field_group",
+      "_note": "Page 1 of the source. The source records a different Testing Date on each page (supply 11 Jun, fresh 22 Jul in the sample), so the date lives here and in section 4, not in the record header.",
+      "fields": [
+        { "id": "supply_test_date",      "label": "Testing Date",           "type": "date", "required": true },
+        { "id": "supply_duct_size",      "label": "Duct Size",              "type": "text", "unit": "mm" },
+        { "id": "supply_running_hz",     "label": "Running Hz",             "type": "number" },
+        { "id": "supply_design_airflow", "label": "Design Airflow",         "type": "number", "unit": "CMH" },
+        { "id": "supply_static_pressure","label": "Actual Static Pressure", "type": "number", "unit": "Pa" },
+        { "id": "supply_actual_airflow", "label": "Actual Airflow",         "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "supply_readings",
+      "no": "2",
+      "title": "Supply Air — Velocity Readings",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 2,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "The source lets the engineer add and remove Test Point COLUMNS as well as rows; template columns are fixed by the schema, so this pins the seven test points of the source's supply table and engineers vary the ROW count on site. A duct needing a different traverse pattern is a template revision. min_rows matches the source's two seeded rows.",
+      "columns": [
+        { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp3", "label": "Test Point 3", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp4", "label": "Test Point 4", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp5", "label": "Test Point 5", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp6", "label": "Test Point 6", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp7", "label": "Test Point 7", "type": "number", "unit": "m/s", "width": "13%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "supply_calc",
+      "no": "3",
+      "title": "Supply Air — Calculation",
+      "type": "field_group",
+      "_note": "The source auto-computes these three values in JavaScript (grand total of every reading; average velocity = total / reading count; airflow = velocity x duct area x 3600, parsing the duct size text). The template formula engine aggregates down columns of one table and cannot parse the duct-size text, so these are recorded by the engineer as on the paper original. Wire this to `lib/formula.ts` in a later revision if cross-section aggregate formulas are added.",
+      "fields": [
+        { "id": "supply_grand_total",   "label": "Grand Total (sum of all readings)",              "type": "number" },
+        { "id": "supply_avg_velocity",  "label": "Average velocity = Grand Total / no. of readings","type": "number", "unit": "m/s" },
+        { "id": "supply_calc_airflow",  "label": "Actual Airflow = velocity x duct area x 3,600",  "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "supply_remarks",
+      "no": "4",
+      "title": "Supply Air — Remarks",
+      "type": "standard",
+      "columns": { "result": { "label": "Remarks" } },
+      "rows": [
+        { "id": "supply_general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the supply air measurement" }
+      ]
+    },
+
+    {
+      "id": "fresh_details",
+      "no": "5",
+      "title": "Fresh Air — Test Details",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "Page 2 of the source. Fresh Air Damper Opening carries no unit because the source header gives none — confirm at Rev A rather than inferring % here (same caution as ahu-actual-site-comparison.json).",
+      "fields": [
+        { "id": "fresh_test_date",       "label": "Testing Date",             "type": "date", "required": true },
+        { "id": "fresh_duct_size",       "label": "Duct Size",                "type": "text", "unit": "mm" },
+        { "id": "fresh_bms_airflow",     "label": "BMS Airflow",              "type": "number", "unit": "CMH" },
+        { "id": "fresh_design_airflow",  "label": "Design Airflow",           "type": "number", "unit": "CMH" },
+        { "id": "fresh_damper_opening",  "label": "Fresh Air Damper Opening", "type": "number" },
+        { "id": "fresh_adjusted_airflow","label": "Adjusted Airflow",         "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "fresh_readings",
+      "no": "6",
+      "title": "Fresh Air — Velocity Readings",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 2,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "Five test points, as the source's fresh air table. Same fixed-columns departure as section 2.",
+      "columns": [
+        { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp3", "label": "Test Point 3", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp4", "label": "Test Point 4", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp5", "label": "Test Point 5", "type": "number", "unit": "m/s", "width": "18%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "fresh_calc",
+      "no": "7",
+      "title": "Fresh Air — Calculation",
+      "type": "field_group",
+      "_note": "Same manual-entry departure as section 3. The source's fresh air block also shows an explicit Divisor row, kept here.",
+      "fields": [
+        { "id": "fresh_sum_readings",   "label": "Sum of all readings",                            "type": "number" },
+        { "id": "fresh_divisor",        "label": "Divisor (number of readings)",                   "type": "number" },
+        { "id": "fresh_velocity",       "label": "Velocity = sum / divisor",                       "type": "number", "unit": "m/s" },
+        { "id": "fresh_calc_airflow",   "label": "Adjusted Airflow = velocity x duct area x 3,600","type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "fresh_remarks",
+      "no": "8",
+      "title": "Fresh Air — Remarks",
+      "type": "standard",
+      "columns": { "result": { "label": "Remarks" } },
+      "rows": [
+        { "id": "fresh_general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the fresh air measurement" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "no": "9",
+      "title": "Test Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "8pt",
+      "min_rows": 2,
+      "_note": "The source carries a free-text box headed \"REMARKS / TEST INSTRUMENTS USED\" on each page. Split into the per-page remarks rows above plus this shared table, as on ahu-actual-site-comparison.json: only a table can be read by `link_to_instrument_register`, which is what catches an out-of-calibration instrument (SPEC §5).",
+      "columns": [
+        { "id": "instrument", "label": "Instrument", "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",   "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",  "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",    "type": "date", "width": "22%", "align": "center" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "signatures": [
+      { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor",
+        "_note": "The source repeats the Tested/Witnessed/Verified block on both pages. One record covers both measurements here, so a single sign-off signs the whole record; the per-page test dates live in sections 1 and 5." },
+      { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_verified", "role": "Verified By",  "required": false, "stage": "client" }
+    ]
+  }
+}
