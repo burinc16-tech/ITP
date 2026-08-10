@@ -15,8 +15,8 @@ function Fail($msg) {
 
 $token = "TOKEN-REMOVED"
 $r2Token = "TOKEN-REMOVED"
-if ($token -eq "TOKEN-REMOVED") { Fail "This script already ran and its token was scrubbed. Add a fresh token." }
-$env:CLOUDFLARE_API_TOKEN = $token
+$oauth = ($token -eq "TOKEN-REMOVED")
+if (-not $oauth) { $env:CLOUDFLARE_API_TOKEN = $token } else { Write-Host "No API token in script - using wrangler browser login." -ForegroundColor Yellow }
 $wrangler = "./node_modules/wrangler/bin/wrangler.js"
 if (-not (Test-Path $wrangler)) { Fail "wrangler not found in node_modules - this file must sit in the repo root." }
 
@@ -36,7 +36,7 @@ try {
     $verified = $true
   }
 } catch { }
-if (-not $verified) {
+if (-not $verified -and -not $oauth) {
   Fail "Cloudflare rejected this token (401). Create a token via My Profile > API Tokens > Create Token > Edit Cloudflare Workers template (plus D1:Edit, Workers R2 Storage:Edit), copy the value shown after creation, and update the token line in this script."
 }
 

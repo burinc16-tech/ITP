@@ -22,3 +22,5 @@ rebuild-output.txt
 worker-deploy-log.txt
 push-branch-log.txt
 deploy-log.txt
+run-output.txt
+_claude_tmp/
