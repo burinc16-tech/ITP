@@ -268,6 +268,27 @@ export const prefilledRowSchema = z.record(
   z.union([z.string(), z.number()]),
 );
 
+/**
+ * How a flat dynamic table mints and labels engineer-added columns. Every
+ * repeating column shares one spec, because the columns it repeats are the same
+ * measurement taken at another point.
+ */
+export const addColumnsSchema = z
+  .object({
+    /** Id stem for a new column; the ordinal is appended (`tp` → `tp8`). */
+    id_prefix: z.string(),
+    /** Printed heading stem; the column's POSITION is appended, not its id. */
+    label_prefix: z.string(),
+    type: fieldTypeSchema,
+    unit: z.string().optional(),
+    width: z.string().optional(),
+    align: alignSchema.optional(),
+    /** Floor for deletion — a table cannot be emptied of columns entirely. */
+    min_count: z.number().int().positive().optional(),
+    _note: z.string().optional(),
+  })
+  .strict();
+
 /** A section whose body is an add/delete table of typed columns. */
 export const dynamicTableSectionSchema = z
   .object({
@@ -283,6 +304,21 @@ export const dynamicTableSectionSchema = z
     link_to_instrument_register: z.boolean().optional(),
     font_size: z.string().optional(),
     columns: z.array(columnDefSchema).min(1),
+    /**
+     * Lets the engineer add and delete COLUMNS on a flat table, not just rows
+     * (SPEC §12) — the air-measurement sheets, where the number of test points
+     * across a duct is decided at the duct, not by the template.
+     *
+     * `columns` still seeds the initial set; this describes how a further one is
+     * minted and how they are all labelled. Labels are positional
+     * (`"${label_prefix} ${n}"`), so deleting the third of seven renumbers the
+     * rest exactly as the source HTML does. Column ids stay stable, so a cell's
+     * value never migrates to a different column when the labels shift.
+     *
+     * Wording is never typed by the engineer — the label is generated — so an
+     * added column carries no record-authored template text (Hard Rule #5).
+     */
+    add_columns: addColumnsSchema.optional(),
     prefilled_rows: z.array(prefilledRowSchema).optional(),
     /**
      * Totals line closing a FLAT table, aggregated over all its rows (SPEC §12)
@@ -520,6 +556,7 @@ export type HeaderField = z.infer<typeof headerFieldSchema>;
 export type Header = z.infer<typeof headerSchema>;
 export type Page = z.infer<typeof pageSchema>;
 export type ColumnDef = z.infer<typeof columnDefSchema>;
+export type AddColumns = z.infer<typeof addColumnsSchema>;
 export type ColumnMeta = z.infer<typeof columnMetaSchema>;
 export type Row = z.infer<typeof rowSchema>;
 export type PrefilledRow = z.infer<typeof prefilledRowSchema>;

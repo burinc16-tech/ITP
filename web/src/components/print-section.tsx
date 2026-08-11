@@ -18,7 +18,7 @@ import type { SignatureView } from "../data/signature";
 import { computeCell, computeFlatTotals, computeTotals } from "../lib/grouped-table";
 import type { VarMap } from "../lib/interpolate";
 import { formatFieldValue } from "../lib/print-format";
-import { groupsFor, type RecordValues } from "../lib/values";
+import { columnsFor, groupsFor, type RecordValues } from "../lib/values";
 import { PrintDescription } from "./print-description";
 import { PrintSignatureGrid } from "./print-sign-off";
 
@@ -89,10 +89,13 @@ function DynamicTable(props: {
   if (section.row_group) return <GroupedTable section={section} values={values} />;
   const rows = values.tables[section.id] ?? [];
   const totals = computeFlatTotals(section, rows);
+  // The engineer's columns when the section allows added ones (SPEC §12), else
+  // the template's — so a test point added on site prints on the PDF.
+  const columns = columnsFor(values, section);
   // The totals label spans every column before the first one carrying a totals
   // cell, matching the source form's "Total Air Flow" row (SPEC §12).
   const firstTotalIndex = section.totals
-    ? section.columns.findIndex((c) =>
+    ? columns.findIndex((c) =>
         section.totals!.cells.some((cell) => cell.column === c.id),
       )
     : -1;
@@ -105,7 +108,7 @@ function DynamicTable(props: {
           {section.auto_number && (
             <th className="print-num-col">{section.number_label ?? "S / No"}</th>
           )}
-          {section.columns.map((col) => (
+          {columns.map((col) => (
             <th key={col.id} style={{ width: col.width }}>
               {col.label}
               {col.unit ? ` (${col.unit})` : ""}
@@ -117,7 +120,7 @@ function DynamicTable(props: {
         {rows.map((row, i) => (
           <tr key={i}>
             {section.auto_number && <td className="print-c">{i + 1}</td>}
-            {section.columns.map((col) => (
+            {columns.map((col) => (
               <td
                 key={col.id}
                 className={col.type === "calculated" ? "print-computed" : undefined}
@@ -139,7 +142,7 @@ function DynamicTable(props: {
             <td className="print-totals-label" colSpan={totalsLabelSpan}>
               {section.totals.label}
             </td>
-            {section.columns.slice(Math.max(firstTotalIndex, 0)).map((col) => (
+            {columns.slice(Math.max(firstTotalIndex, 0)).map((col) => (
               <td key={col.id} className="print-c">
                 {totals[col.id] ?? ""}
               </td>

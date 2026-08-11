@@ -9,10 +9,13 @@ import {
 import {
   addGroup,
   addGroupRow,
+  addTableColumn,
   addTableRow,
+  columnsFor,
   groupsFor,
   removeGroup,
   removeGroupRow,
+  removeTableColumn,
   removeTableRow,
   setGroupCell,
   setGroupField,
@@ -41,10 +44,15 @@ function FlatTableSection(props: {
   const min = section.min_rows ?? 0;
   const atMin = rows.length <= min;
   const totals = computeFlatTotals(section, rows);
+  // Columns can be the engineer's, not the template's, when the section allows
+  // added columns (SPEC §12) — a duct's traverse decides how many test points.
+  const columns = columnsFor(values, section);
+  const addColumns = section.add_columns;
+  const atMinColumns = columns.length <= (addColumns?.min_count ?? 1);
   // The totals label spans every column before the first one that carries a
   // totals cell (the CHW FCU form's "Total Air Flow" spans the size columns).
   const firstTotalIndex = section.totals
-    ? section.columns.findIndex((c) =>
+    ? columns.findIndex((c) =>
         section.totals!.cells.some((cell) => cell.column === c.id),
       )
     : -1;
@@ -68,10 +76,24 @@ function FlatTableSection(props: {
           <thead>
             <tr>
               {section.auto_number && <th className="col-num">#</th>}
-              {section.columns.map((col) => (
+              {columns.map((col) => (
                 <th key={col.id} style={{ width: col.width }}>
                   {col.label}
                   {col.unit ? ` (${col.unit})` : ""}
+                  {addColumns && (
+                    <button
+                      type="button"
+                      className="col-remove"
+                      onClick={() =>
+                        onChange(removeTableColumn(values, section, col.id))
+                      }
+                      disabled={atMinColumns}
+                      aria-label={`Remove ${col.label}`}
+                      title={`Remove ${col.label}`}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </th>
               ))}
               <th className="col-actions">
@@ -85,7 +107,7 @@ function FlatTableSection(props: {
                 {section.auto_number && (
                   <td className="col-num">{index + 1}</td>
                 )}
-                {section.columns.map((col) =>
+                {columns.map((col) =>
                   col.type === "calculated" ? (
                     <td key={col.id} className="col-computed">
                       <output
@@ -133,7 +155,7 @@ function FlatTableSection(props: {
                 <td className="totals-label" colSpan={totalsLabelSpan}>
                   {section.totals.label}
                 </td>
-                {section.columns
+                {columns
                   .slice(Math.max(firstTotalIndex, 0))
                   .map((col) => (
                     <td key={col.id} className="col-computed">
@@ -147,13 +169,24 @@ function FlatTableSection(props: {
         </table>
       </div>
 
-      <button
-        type="button"
-        className="row-add"
-        onClick={() => onChange(addTableRow(values, section))}
-      >
-        + Add row
-      </button>
+      <div className="table-tools">
+        <button
+          type="button"
+          className="row-add"
+          onClick={() => onChange(addTableRow(values, section))}
+        >
+          + Add row
+        </button>
+        {addColumns && (
+          <button
+            type="button"
+            className="row-add"
+            onClick={() => onChange(addTableColumn(values, section))}
+          >
+            + Add {addColumns.label_prefix.toLowerCase()}
+          </button>
+        )}
+      </div>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import {
   isFieldGroupSection,
   isMatrixSection,
   isStandardSection,
+  type ColumnDef,
   type DynamicTableSection,
   type Template,
 } from "@schema";
@@ -30,6 +31,14 @@ export interface RecordValues {
    * — read it through `groupsFor`, never by direct index.
    */
   groups?: Record<string, TableGroup[]>;
+  /**
+   * Column ids currently present on a flat table that allows engineer-added
+   * columns (`add_columns`, SPEC §12), keyed by section id and in printed order.
+   * Optional: a record that has never touched its columns simply does not carry
+   * it, and reads fall back to the template's own list — so every record written
+   * before the feature existed still renders. Read it through `columnsFor`.
+   */
+  columns?: Record<string, string[]>;
 }
 
 /**
@@ -361,6 +370,83 @@ export function setTableCell(
     i === index ? { ...row, [columnId]: value } : row,
   );
   return { ...values, tables: { ...values.tables, [sectionId]: next } };
+}
+
+/**
+ * The columns a flat table currently shows: the record's own list when the
+ * engineer has added or deleted any, the template's otherwise.
+ *
+ * Labels are POSITIONAL for a section that allows added columns — the third
+ * column reads "Test Point 3" whatever its id — so deleting one renumbers the
+ * rest exactly as the source sheets do, while the ids (and therefore the stored
+ * cell values) stay put.
+ */
+export function columnsFor(
+  values: RecordValues,
+  section: DynamicTableSection,
+): ColumnDef[] {
+  const spec = section.add_columns;
+  if (!spec) return section.columns;
+
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  return ids.map((id, index) => {
+    const fromTemplate = section.columns.find((c) => c.id === id);
+    return {
+      ...(fromTemplate ?? {}),
+      id,
+      label: `${spec.label_prefix} ${index + 1}`,
+      type: fromTemplate?.type ?? spec.type,
+      unit: fromTemplate?.unit ?? spec.unit,
+      width: fromTemplate?.width ?? spec.width,
+      align: fromTemplate?.align ?? spec.align,
+    } as ColumnDef;
+  });
+}
+
+/** Append one column, with the lowest id the section is not already using. */
+export function addTableColumn(
+  values: RecordValues,
+  section: DynamicTableSection,
+): RecordValues {
+  const spec = section.add_columns;
+  if (!spec) return values;
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  // Never reuse an id still in play: a recycled id would inherit the deleted
+  // column's leftover cell values on any row that was not cleared.
+  let n = ids.length + 1;
+  while (ids.includes(`${spec.id_prefix}${n}`)) n += 1;
+  return {
+    ...values,
+    columns: { ...values.columns, [section.id]: [...ids, `${spec.id_prefix}${n}`] },
+  };
+}
+
+/**
+ * Delete one column and the readings under it. Refuses to go below `min_count`
+ * (default 1) — a table with no columns is not a table.
+ */
+export function removeTableColumn(
+  values: RecordValues,
+  section: DynamicTableSection,
+  columnId: string,
+): RecordValues {
+  const spec = section.add_columns;
+  if (!spec) return values;
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  if (ids.length <= (spec.min_count ?? 1)) return values;
+  if (!ids.includes(columnId)) return values;
+
+  const table = values.tables[section.id] ?? [];
+  const stripped = table.map((row) => {
+    const { [columnId]: _removed, ...rest } = row;
+    return rest;
+  });
+
+  return {
+    ...values,
+    columns: { ...values.columns, [section.id]: ids.filter((id) => id !== columnId) },
+    tables: { ...values.tables, [section.id]: stripped },
+  };
 }
 
 export function addTableRow(

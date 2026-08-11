@@ -463,6 +463,35 @@ input[readonly] {
   cursor: pointer;
 }
 
+/* Add row / add column sit side by side under a table that allows both. */
+.table-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Delete-this-column control, in the column heading (SPEC §12). Smaller than the
+ * 40px row control on purpose: it lives inside a heading cell that also has to
+ * hold the label, and deleting a whole column of readings should take a
+ * deliberate tap rather than sit under the thumb. */
+.col-remove {
+  display: block;
+  margin: 0.25rem auto 0;
+  min-height: 28px;
+  min-width: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fail-bg);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.col-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Grouped dynamic table (SPEC §12): spanning group cells, a computed column and
    a per-group totals line. Touch targets stay full size — this is filled on a
    tablet in a plant room, not at a desk. */

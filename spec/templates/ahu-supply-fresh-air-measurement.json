@@ -45,7 +45,16 @@
       "min_rows": 2,
       "auto_number": true,
       "number_label": "S/N",
-      "_note": "The source lets the engineer add and remove Test Point COLUMNS as well as rows; template columns are fixed by the schema, so this pins the seven test points of the source's supply table and engineers vary the ROW count on site. A duct needing a different traverse pattern is a template revision. min_rows matches the source's two seeded rows.",
+      "_note": "`add_columns` gives this table the source's own \"+ col / ×\" behaviour (SPEC §12, added 2026-08-11 alongside the FCU sheet): the seven columns below are the starting traverse, and the engineer adds or deletes test points at the duct. Headings are positional, so deleting the third of seven renumbers the rest exactly as the source does, while the column ids — and therefore the readings already typed — stay put. min_rows matches the source's two seeded rows.\n\nThis supersedes the note that used to sit here, which said a different traverse pattern was a template revision. It was a compromise forced by the schema having no column-level extension, not a judgement about the form; the schema now has one.",
+      "add_columns": {
+        "id_prefix": "tp",
+        "label_prefix": "Test Point",
+        "type": "number",
+        "unit": "m/s",
+        "width": "13%",
+        "align": "center",
+        "min_count": 1
+      },
       "columns": [
         { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
         { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
@@ -108,7 +117,16 @@
       "min_rows": 2,
       "auto_number": true,
       "number_label": "S/N",
-      "_note": "Five test points, as the source's fresh air table. Same fixed-columns departure as section 2.",
+      "_note": "Five test points to start, as the source's fresh air table, and the same `add_columns` behaviour as section 2 — the fresh air duct is a different size and rarely wants the same traverse as the supply.",
+      "add_columns": {
+        "id_prefix": "tp",
+        "label_prefix": "Test Point",
+        "type": "number",
+        "unit": "m/s",
+        "width": "18%",
+        "align": "center",
+        "min_count": 1
+      },
       "columns": [
         { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
         { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },

@@ -5,10 +5,14 @@ import {
   type DynamicTableSection,
 } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
+import fcuRaw from "../../../spec/templates/fcu-supply-fresh-air-measurement.json";
 import {
   addChecklistRow,
+  addTableColumn,
   addTableRow,
+  columnsFor,
   emptyValues,
+  removeTableColumn,
   removeChecklistRow,
   setAddedRowField,
   setTableCell,
@@ -81,6 +85,89 @@ describe("table mutations", () => {
     const next = setTableCell(values, "sec_1", 3, "remarks", "27");
     expect(next.tables.sec_1![3]!.remarks).toBe("27");
     expect(values.tables.sec_1![3]!.remarks).toBe("");
+  });
+});
+
+/**
+ * Engineer-added columns (SPEC §12) — the air-measurement sheets, where the
+ * number of test points across a duct is decided at the duct. Exercised against
+ * the FCU template, whose supply table starts at seven and allows more.
+ */
+describe("column mutations", () => {
+  const fcu = parseTemplate(fcuRaw);
+  const supply = (): DynamicTableSection => {
+    const s = fcu.sections.find((x) => x.id === "supply_readings");
+    if (!s || !isDynamicTableSection(s)) throw new Error("no supply_readings");
+    return s;
+  };
+
+  it("falls back to the template's columns before anything is changed", () => {
+    const values = emptyValues(fcu);
+    const cols = columnsFor(values, supply());
+    expect(cols).toHaveLength(7);
+    expect(cols[0]!.label).toBe("Test Point 1");
+    expect(cols[6]!.label).toBe("Test Point 7");
+  });
+
+  it("adds a column with a fresh id and the next heading", () => {
+    const values = emptyValues(fcu);
+    const next = addTableColumn(values, supply());
+    const cols = columnsFor(next, supply());
+    expect(cols).toHaveLength(8);
+    expect(cols[7]!.label).toBe("Test Point 8");
+    expect(cols[7]!.unit).toBe("m/s");
+    expect(columnsFor(values, supply())).toHaveLength(7); // original untouched
+  });
+
+  it("renumbers the headings when a middle column goes, keeping ids stable", () => {
+    let values = emptyValues(fcu);
+    values = setTableCell(values, "supply_readings", 0, "tp4", "7.21");
+
+    const next = removeTableColumn(values, supply(), "tp3");
+    const cols = columnsFor(next, supply());
+
+    expect(cols).toHaveLength(6);
+    // What was tp4 is now headed "Test Point 3"...
+    expect(cols[2]!.id).toBe("tp4");
+    expect(cols[2]!.label).toBe("Test Point 3");
+    // ...and its reading travelled with the id, not the heading.
+    expect(next.tables.supply_readings![0]!.tp4).toBe("7.21");
+  });
+
+  it("drops the deleted column's readings", () => {
+    let values = emptyValues(fcu);
+    values = setTableCell(values, "supply_readings", 0, "tp3", "6.52");
+
+    const next = removeTableColumn(values, supply(), "tp3");
+
+    expect(next.tables.supply_readings![0]!.tp3).toBeUndefined();
+  });
+
+  it("never deletes below min_count", () => {
+    let values = emptyValues(fcu);
+    for (const id of ["tp1", "tp2", "tp3", "tp4", "tp5", "tp6"]) {
+      values = removeTableColumn(values, supply(), id);
+    }
+    expect(columnsFor(values, supply())).toHaveLength(1);
+
+    const refused = removeTableColumn(values, supply(), "tp7");
+    expect(columnsFor(refused, supply())).toHaveLength(1);
+  });
+
+  it("does not reuse the id of a deleted column", () => {
+    // Delete two, add one: the new id must not collide with a surviving column.
+    let values = removeTableColumn(emptyValues(fcu), supply(), "tp7");
+    values = removeTableColumn(values, supply(), "tp6");
+    const next = addTableColumn(values, supply());
+    const ids = columnsFor(next, supply()).map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("leaves a table without add_columns on its template columns", () => {
+    const values = emptyValues(template);
+    const before = columnsFor(values, table("sec_1"));
+    const after = addTableColumn(values, table("sec_1"));
+    expect(columnsFor(after, table("sec_1"))).toEqual(before);
   });
 });
 
