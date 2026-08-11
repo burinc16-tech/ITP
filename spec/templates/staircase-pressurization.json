@@ -1,0 +1,248 @@
+{
+  "code": "SPZ",
+  "title": "Staircase Pressurization System T&C Report",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Staircase_Pressurization_TC_Report.html (Form No. SC6, Rev. 0) — nine numbered sections: project information, system and equipment details, test instruments, pre-test checklist, two measured tests, remarks, overall result and a four-way endorsement. The supplied file was saved with a completed record in it (AMK3 Staircase 6, levels B1–7, fans FAF-B-SC6-R01/R02); those are record values, not template values, and are not carried here. The source's own Form No. and Rev. are recorded in this note rather than as fields: the printed footer already carries the template code and revision (SPEC §7), and a second pair of revision numbers on the same page invites the two to disagree.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",    "label": "Project Title",       "type": "text", "source": "project.name", "readonly": true },
+      { "id": "stair_ref",  "label": "Staircase Ref. / ID", "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "test_date",  "label": "Test Date",           "type": "date", "required": true }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "project_info",
+      "no": "1",
+      "title": "Project Information",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "`page_break_before` on the opening section is what stops every section taking a page of its own: `paginate` gives one section per page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same idiom as `fcu-lcp-checklist.json`. Without it this record printed ten pages.\n\n**Where the other three breaks fall, and why.** Measured on the live build: a page gives 877px to content after the running head, footer and margins, and each added row of a test table costs 35px. The sections group 1–3 / 4–5 / 6–7 / 8–9, which fits both an empty record and the nine-level staircase of the source sample:\n\n| page | sections | empty | 9 levels |\n| --- | --- | --- | --- |\n| 1 | header, 1, 2, 3 | 673 | 673 |\n| 2 | 4, 5 | 521 | 801 |\n| 3 | 6, 7 | 244 | 524 |\n| 4 | 8, 9 | 580 | 580 |\n\nThree pages would hold an empty record but not a filled one — at nine levels the content is 2,578px against 2,631px of three pages, and sections cannot be split, so no grouping packs. Four is the floor for a real record. Page 2 is the tight one: 76px spare at nine levels, so a staircase past about eleven levels needs the break moved to section 5. The source declares no page boundaries at all — it is one long div the browser breaks wherever it lands — so there is no paper pagination to match here, only content to keep whole.\n\nProject Title, Staircase Ref. / ID and Test Date are the record header, so they are not repeated here; the remaining five fields of the source's section 1 are.\n\n\"Witnessed By\" is a typed name on the paper, in the project block, and is kept as one — it is the party the test is booked with, written before the test. The witness who actually signs is the endorsement slot in section 9. Two different marks on the paper, so two different fields here.",
+      "fields": [
+        { "id": "levels_served",   "label": "Levels Served",        "type": "text" },
+        { "id": "main_contractor", "label": "Main Contractor",      "type": "text" },
+        { "id": "acmv_contractor", "label": "ACMV Sub-Contractor",  "type": "text" },
+        { "id": "consultant",      "label": "Consultant (M&E)",     "type": "text" },
+        { "id": "witnessed_by",    "label": "Witnessed By",         "type": "text" }
+      ]
+    },
+
+    {
+      "id": "equipment",
+      "no": "2",
+      "title": "System & Equipment Details",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 2,
+      "_note": "**A table, where the paper has a label/value grid.** The source repeats Reference No. / Make / Model / Serial / Airflow / Pressure / Motor across a duty block and a standby block, and every one of those cells holds TWO stacked inputs on the sample sheet because this staircase runs two fans (R01 and R02). One row per fan says the same thing without the stacking, and a staircase with one fan or with four prints exactly the rows it has. Same reasoning as the instruments table on `ductwork-air-leakage-test.json`.\n\nThe sample writes airflow as \"R01 A&B – 8,000\" because one cell had to carry two fans; with a row per fan the qualifier is the row itself, so these are plain `number` columns and the units live in the column headers where the paper puts them.",
+      "columns": [
+        { "id": "duty",           "label": "Duty / Standby",  "type": "text",   "width": "11%", "align": "center" },
+        { "id": "ref_no",         "label": "Fan Reference No.","type": "text",  "width": "16%" },
+        { "id": "location",       "label": "Fan Location",    "type": "text",   "width": "11%", "carry_down": true },
+        { "id": "make_model",     "label": "Make / Model",    "type": "text",   "width": "18%" },
+        { "id": "serial_no",      "label": "Serial No.",      "type": "text",   "width": "12%" },
+        { "id": "design_airflow", "label": "Design Airflow",  "type": "number", "unit": "CMH", "width": "9%", "align": "center" },
+        { "id": "design_pressure","label": "Design Static Pressure", "type": "number", "unit": "Pa", "width": "8%", "align": "center" },
+        { "id": "motor_kw",       "label": "Motor Rating",    "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "speed_hz",       "label": "Fan Speed",       "type": "number", "unit": "Hz", "width": "8%", "align": "center" }
+      ],
+      "prefilled_rows": [
+        { "duty": "Duty" },
+        { "duty": "Standby" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "no": "3",
+      "title": "Test Instruments",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "auto_number": true,
+      "number_label": "S/N",
+      "font_size": "8pt",
+      "min_rows": 3,
+      "_note": "Already a table on the paper, with a calibration-due column — so it maps straight onto `link_to_instrument_register` (SPEC §5). min_rows matches the source's three seeded lines (two named instruments and one spare).",
+      "columns": [
+        { "id": "instrument", "label": "Instrument",       "type": "text", "width": "34%" },
+        { "id": "make_model", "label": "Make / Model",     "type": "text", "width": "24%" },
+        { "id": "serial_no",  "label": "Serial No.",       "type": "text", "width": "18%" },
+        { "id": "cal_due",    "label": "Calibration Due",  "type": "date", "width": "18%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "pre_test",
+      "no": "4",
+      "title": "Pre-Test Checklist",
+      "type": "standard",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "columns": {
+        "result":  { "label": "Yes / No / N.A." },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The paper's eight items verbatim, each a Yes / No / N.A. radio with a remarks cell. `status` rather than `pass_fail_na` so the three choices read exactly as the sheet heads them, matching `fcu-lcp-checklist.json`; the outcomes make a \"No\" derivable as an outstanding item (SPEC §6). No `allow_add_rows` — the source seeds no blank trailing rows here, unlike the LCP checklist.",
+      "rows": [
+        { "id": "pt_01", "no": "1", "type": "status", "remarks": true,
+          "description": "Pressurization fan installed, aligned and test-run completed",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_02", "no": "2", "type": "status", "remarks": true,
+          "description": "Ductwork, dampers and air injection grilles installed as per approved drawings",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_03", "no": "3", "type": "status", "remarks": true,
+          "description": "All staircase doors installed with self-closing devices and operating properly",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_04", "no": "4", "type": "status", "remarks": true,
+          "description": "Staircase construction completed; openings / gaps sealed",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_05", "no": "5", "type": "status", "remarks": true,
+          "description": "Fire alarm interface to pressurization fan tested and functional",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_06", "no": "6", "type": "status", "remarks": true,
+          "description": "Remote manual start/stop switch provided at FCC / fire alarm panel",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_07", "no": "7", "type": "status", "remarks": true,
+          "description": "Secondary (standby) power supply available and changeover tested",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] },
+        { "id": "pt_08", "no": "8", "type": "status", "remarks": true,
+          "description": "Fan status indication (run / fault) at FCC functional",
+          "states": [
+            { "value": "yes", "label": "Yes",  "outcome": "pass" },
+            { "value": "no",  "label": "No",   "outcome": "fail" },
+            { "value": "na",  "label": "N.A.", "outcome": "na" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "test_1",
+      "no": "5",
+      "title": "Test 1 — Pressure Differential Test (All Doors Closed)",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 1,
+      "_note": "Procedure, from the source, for the engineer running the test: start the pressurization fan; with all staircase doors closed, measure the pressure differential between the pressurized staircase and the adjacent occupied area / lobby at each level. The source prints that paragraph above the table and this template has nowhere to render it — the section schema carries a title and rows, not prose. The acceptance figure itself is not lost: it sits in the Criteria cell of every row, and the code reference is in that column's heading.\n\n**Measured ΔP is `text`, not `number`.** The sample records two readings in one cell per level — \"62.3 / 24.2\", the staircase and the smoke-stop lobby — because the criterion compares them. A `number` column takes one figure and would reject the reading this test produces. That also rules out a `limit`, so Pass / Fail is judged by the engineer, as on the paper.\n\nLevel and Measurement Location are record data — a staircase serving B1 to 7 and one serving 1 to 12 fill different rows — so only one row is seeded. `carry_down` copies Location and Criteria into each appended row, which is what the source's own \"＋ Add row\" does.",
+      "columns": [
+        { "id": "level",    "label": "Level",                                  "type": "text",   "width": "10%", "align": "center" },
+        { "id": "location", "label": "Measurement Location",                   "type": "text",   "width": "32%", "carry_down": true },
+        { "id": "measured", "label": "Measured ΔP (Pa)",                       "type": "text",   "width": "24%", "align": "center" },
+        { "id": "criteria", "label": "Criteria (SCDF Cl. 7.2 / SS 553)",       "type": "text",   "width": "16%", "align": "center", "carry_down": true },
+        { "id": "result",   "label": "Pass / Fail",                            "type": "status", "width": "18%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "location": "Staircase / Smoke Stop Lobby", "criteria": "≥ 50 Pa" }
+      ]
+    },
+
+    {
+      "id": "test_2",
+      "no": "6",
+      "title": "Test 2 — Door Opening Force Test",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 1,
+      "_note": "Procedure, from the source: with the pressurization system running and all doors closed, measure the force required at the door handle to open each staircase door against the air pressure and the door closer. Same shape and the same prose limitation as section 5; Measured Force is `text` for the same reason — the sample records \"98.9 / 96.4\" per level, the staircase door and the SSL door.",
+      "columns": [
+        { "id": "level",    "label": "Level",                             "type": "text",   "width": "10%", "align": "center" },
+        { "id": "door_ref", "label": "Door Reference",                    "type": "text",   "width": "32%", "carry_down": true },
+        { "id": "measured", "label": "Measured Force (N)",                "type": "text",   "width": "24%", "align": "center" },
+        { "id": "criteria", "label": "Criteria (SCDF Cl. 7.2 / SS 553)",  "type": "text",   "width": "16%", "align": "center", "carry_down": true },
+        { "id": "result",   "label": "Pass / Fail",                       "type": "status", "width": "18%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "door_ref": "Staircase Door / SSL Door", "criteria": "≤ 110 N" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "no": "7",
+      "title": "Remarks / Observations",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `condensate-pipe-flood-test.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a plain box; this prints as one.",
+      "fields": [
+        { "id": "observations", "label": "Remarks / Observations", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "overall",
+      "no": "8",
+      "title": "Overall Test Result",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": { "result": { "label": "Result" } },
+      "_note": "The source's three radio chips. \"Accepted with comments\" takes outcome `neutral`, not `fail`: the record IS accepted, and marking it failed would count an accepted system against the dashboards (SPEC §6). The rectification items it refers to belong in section 7 and, where they need chasing, as their own outstanding entries. Confirm that reading at Rev A.\n\nThe qualifying sentence under each chip is carried in the row description rather than in the state labels, which print as chips and have to stay short.",
+      "rows": [
+        { "id": "overall_result", "type": "status",
+          "description": "Overall test result — Accepted: the staircase pressurization system complies with the acceptance criteria. Accepted with comments: subject to rectification of the items listed in Remarks. Rejected: re-test required.",
+          "states": [
+            { "value": "accepted",          "label": "Accepted",               "outcome": "pass" },
+            { "value": "accepted_comments", "label": "Accepted with comments", "outcome": "neutral" },
+            { "value": "rejected",          "label": "Rejected",               "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "endorsement",
+      "no": "9",
+      "title": "Endorsement",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, and the source closes its last page with the endorsement block. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`.\n\nFour roles, and the schema has exactly four stages, so each maps to one: contractor / check / witness / client. No company is locked. The ACMV sub-contractor slot defaults to Kenyon Pte Ltd but stays editable (asked for by the user 2026-08-11): unlike the single-contractor test sheets, this report is endorsed by four parties and the ACMV sub-contractor is not always Kenyon — on a job where it is someone else, a locked company would be wrong on a signed fire-safety document and there would be no way to correct it. `company_default` still prefills the common case.",
+      "signatures": [
+        { "id": "sig_tested",   "role": "Tested By (ACMV Sub-Contractor)",  "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_verified", "role": "Verified By (Main Contractor)",    "required": false, "stage": "check" },
+        { "id": "sig_witness",  "role": "Witnessed By (Consultant / PE)",   "required": false, "stage": "witness" },
+        { "id": "sig_client",   "role": "Client / Owner Representative",    "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

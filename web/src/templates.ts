@@ -18,6 +18,12 @@ import acmvPipePressureTestRaw from "../../spec/templates/acmv-pipe-pressure-tes
 import ahuActualSiteComparisonRaw from "../../spec/templates/ahu-actual-site-comparison.json";
 import chemicalFlushChecklistRaw from "../../spec/templates/chemical-flush-checklist.json";
 import ahuSupplyFreshAirRaw from "../../spec/templates/ahu-supply-fresh-air-measurement.json";
+import condensateFloodTestRaw from "../../spec/templates/condensate-pipe-flood-test.json";
+import fcuSupplyFreshAirRaw from "../../spec/templates/fcu-supply-fresh-air-measurement.json";
+import sensorCalibrationRaw from "../../spec/templates/sensor-calibration-record.json";
+import staircasePressurizationRaw from "../../spec/templates/staircase-pressurization.json";
+import firePwdIntercomRaw from "../../spec/templates/fire-pwd-intercom-test.json";
+import lightingCircuitTestRaw from "../../spec/templates/lighting-circuit-test.json";
 import paSystemTestRaw from "../../spec/templates/pa-system-test.json";
 
 /**
@@ -46,5 +52,11 @@ export const TEMPLATES: Template[] = [
   parseTemplate(ahuActualSiteComparisonRaw),
   parseTemplate(chemicalFlushChecklistRaw),
   parseTemplate(ahuSupplyFreshAirRaw),
+  parseTemplate(condensateFloodTestRaw),
+  parseTemplate(fcuSupplyFreshAirRaw),
+  parseTemplate(sensorCalibrationRaw),
+  parseTemplate(staircasePressurizationRaw),
+  parseTemplate(firePwdIntercomRaw),
+  parseTemplate(lightingCircuitTestRaw),
   parseTemplate(paSystemTestRaw),
 ];
