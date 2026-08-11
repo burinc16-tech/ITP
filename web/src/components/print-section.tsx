@@ -15,9 +15,10 @@ import {
 } from "@schema";
 import type { AttachmentView } from "../data/attachment";
 import type { SignatureView } from "../data/signature";
+import { computeCell, computeFlatTotals, computeTotals } from "../lib/grouped-table";
 import type { VarMap } from "../lib/interpolate";
 import { formatFieldValue } from "../lib/print-format";
-import type { RecordValues } from "../lib/values";
+import { columnsFor, groupsFor, type RecordValues } from "../lib/values";
 import { PrintDescription } from "./print-description";
 import { PrintSignatureGrid } from "./print-sign-off";
 
@@ -85,13 +86,29 @@ function DynamicTable(props: {
   values: RecordValues;
 }): ReactNode {
   const { section, values } = props;
+  if (section.row_group) return <GroupedTable section={section} values={values} />;
   const rows = values.tables[section.id] ?? [];
+  const totals = computeFlatTotals(section, rows);
+  // The engineer's columns when the section allows added ones (SPEC §12), else
+  // the template's — so a test point added on site prints on the PDF.
+  const columns = columnsFor(values, section);
+  // The totals label spans every column before the first one carrying a totals
+  // cell, matching the source form's "Total Air Flow" row (SPEC §12).
+  const firstTotalIndex = section.totals
+    ? columns.findIndex((c) =>
+        section.totals!.cells.some((cell) => cell.column === c.id),
+      )
+    : -1;
+  const totalsLabelSpan =
+    (section.auto_number ? 1 : 0) + Math.max(firstTotalIndex, 0);
   return (
     <table className="print-table">
       <thead>
         <tr>
-          {section.auto_number && <th className="print-num-col">S / No</th>}
-          {section.columns.map((col) => (
+          {section.auto_number && (
+            <th className="print-num-col">{section.number_label ?? "S / No"}</th>
+          )}
+          {columns.map((col) => (
             <th key={col.id} style={{ width: col.width }}>
               {col.label}
               {col.unit ? ` (${col.unit})` : ""}
@@ -103,19 +120,133 @@ function DynamicTable(props: {
         {rows.map((row, i) => (
           <tr key={i}>
             {section.auto_number && <td className="print-c">{i + 1}</td>}
-            {section.columns.map((col) => (
+            {columns.map((col) => (
               <td
                 key={col.id}
+                className={col.type === "calculated" ? "print-computed" : undefined}
                 style={col.align ? { textAlign: col.align } : undefined}
               >
-                {formatFieldValue(col.type, row[col.id] ?? "", {
-                  states: col.states,
-                })}
+                {col.type === "calculated"
+                  ? computeCell(col, row)
+                  : formatFieldValue(col.type, row[col.id] ?? "", {
+                      states: col.states,
+                    })}
               </td>
             ))}
           </tr>
         ))}
       </tbody>
+      {section.totals && (
+        <tfoot>
+          <tr className="print-totals-row">
+            <td className="print-totals-label" colSpan={totalsLabelSpan}>
+              {section.totals.label}
+            </td>
+            {columns.slice(Math.max(firstTotalIndex, 0)).map((col) => (
+              <td key={col.id} className="print-c">
+                {totals[col.id] ?? ""}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      )}
+    </table>
+  );
+}
+
+/**
+ * A grouped table as printed: each group's fields occupy cells spanning its body
+ * rows, closed by a totals line (SPEC §12). Computed cells come from the same
+ * `lib/grouped-table` helpers the form uses, so what the engineer saw while
+ * filling is what the signed document carries.
+ */
+function GroupedTable(props: {
+  section: DynamicTableSection;
+  values: RecordValues;
+}): ReactNode {
+  const { section, values } = props;
+  const group = section.row_group;
+  if (!group) return null;
+  const groups = groupsFor(values, section.id);
+  const labelSpan = (group.auto_number ? 1 : 0) + group.columns.length;
+
+  return (
+    <table className="print-table print-grouped">
+      <thead>
+        <tr>
+          {group.auto_number && (
+            <th className="print-num-col">{section.number_label ?? "S / No"}</th>
+          )}
+          {group.columns.map((col) => (
+            <th key={col.id} style={{ width: col.width }}>
+              {col.label}
+              {col.unit ? ` (${col.unit})` : ""}
+            </th>
+          ))}
+          {section.columns.map((col) => (
+            <th key={col.id} style={{ width: col.width }}>
+              {col.label}
+              {col.unit ? ` (${col.unit})` : ""}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      {groups.map((g, gi) => {
+        const totals = computeTotals(section, g);
+        const span = g.rows.length;
+        return (
+          <tbody key={gi} className="print-group">
+            {g.rows.map((row, ri) => (
+              <tr key={ri}>
+                {ri === 0 && group.auto_number && (
+                  <td className="print-c print-group-cell" rowSpan={span}>
+                    {gi + 1}
+                  </td>
+                )}
+                {ri === 0 &&
+                  group.columns.map((col) => (
+                    <td
+                      key={col.id}
+                      className="print-c print-group-cell"
+                      rowSpan={span}
+                    >
+                      {formatFieldValue(col.type, g.fields[col.id] ?? "", {
+                        states: col.states,
+                        unit: col.unit,
+                      })}
+                    </td>
+                  ))}
+                {section.columns.map((col) => (
+                  <td
+                    key={col.id}
+                    className={col.type === "calculated" ? "print-c print-computed" : "print-c"}
+                    style={col.align ? { textAlign: col.align } : undefined}
+                  >
+                    {col.type === "calculated"
+                      ? computeCell(col, row)
+                      : formatFieldValue(col.type, row[col.id] ?? "", {
+                          states: col.states,
+                          unit: col.unit,
+                        })}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {group.totals && (
+              <tr className="print-totals-row">
+                <td className="print-totals-label" colSpan={labelSpan}>
+                  {group.totals.label}
+                </td>
+                {section.columns.map((col) => (
+                  <td key={col.id} className="print-c">
+                    {totals[col.id] ?? ""}
+                  </td>
+                ))}
+              </tr>
+            )}
+          </tbody>
+        );
+      })}
     </table>
   );
 }

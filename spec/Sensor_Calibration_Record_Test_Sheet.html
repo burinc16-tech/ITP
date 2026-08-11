@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sensor Calibration Record Test Sheet</title>
+<style>
+  :root{ --line:#1a1a1a; --accent:#0b57a4; }
+  *{ box-sizing:border-box; }
+  body{
+    font-family:"Segoe UI", Arial, Helvetica, sans-serif;
+    margin:0; background:#e8ebef; color:#111;
+  }
+  .sheet{
+    background:#fff; max-width:900px; margin:18px auto 60px;
+    padding:28px 32px 36px; box-shadow:0 2px 14px rgba(0,0,0,.18);
+  }
+  /* ---------- toolbar ---------- */
+  .toolbar{
+    position:sticky; top:0; z-index:50; background:#0b57a4;
+    max-width:900px; margin:0 auto; padding:10px 16px;
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
+  }
+  .toolbar span.title{ color:#fff; font-weight:600; margin-right:auto; font-size:14px; }
+  .toolbar button{
+    border:none; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:600;
+    cursor:pointer; background:#fff; color:#0b57a4;
+  }
+  .toolbar button:hover{ background:#dce9f7; }
+  .toolbar button.primary{ background:#ffb300; color:#222; }
+  .toolbar button.primary:hover{ background:#ffc633; }
+  /* ---------- header ---------- */
+  .head{
+    display:flex; align-items:center; justify-content:space-between;
+    border:2px solid var(--line); border-bottom:none; padding:10px 14px; gap:14px;
+  }
+  .head img.kenyon{ height:52px; }
+  .head img.apple{ height:44px; }
+  .head .client{ flex:1; }
+  .head .client input{
+    font-weight:700; font-size:15px; text-align:center; width:100%;
+    border:none; border-bottom:1px dotted #bbb; background:transparent; padding:3px 4px; outline:none;
+  }
+  .head .client input:focus{ background:#fff7cc; }
+  .titlebar{
+    border:2px solid var(--line); border-bottom:none; padding:4px 8px;
+  }
+  div.titlebar input, div.titlebar input[type=text]{
+    width:100%; text-align:center; font-size:18px; font-weight:700; letter-spacing:.4px;
+    border:none; border-bottom:none; background:transparent; padding:4px; outline:none;
+    font-family:inherit;
+  }
+  div.titlebar input:focus{ background:#fff7cc; }
+  .subbar{
+    border:2px solid var(--line); border-bottom:none; display:flex; align-items:center;
+    padding:6px 10px; gap:8px; font-weight:700;
+  }
+  .subbar input{ flex:1; }
+  /* ---------- table ---------- */
+  table.data{
+    width:100%; border-collapse:collapse; font-size:13px;
+  }
+  table.data th, table.data td{
+    border:1px solid var(--line); padding:4px 6px; vertical-align:middle;
+  }
+  table.data thead .grouphead th{
+    border:2px solid var(--line); font-size:14px; padding:6px; background:#f0f4f8;
+  }
+  table.data thead .colhead th{ background:#f7f7f7; }
+  table.data td:last-child{ min-width:110px; }
+  td.rowtools{ border:none !important; padding-left:6px !important; width:28px; }
+  td.rowtools button{
+    border:1px solid #c33; color:#c33; background:#fff; border-radius:4px;
+    width:22px; height:22px; line-height:1; cursor:pointer; font-size:13px; padding:0;
+  }
+  td.rowtools button:hover{ background:#fdecec; }
+  /* ---------- inputs ---------- */
+  input[type=text], input[type=date], textarea{
+    width:100%; border:none; border-bottom:1px dotted #999; background:#fdfde8;
+    font:inherit; padding:3px 4px; outline:none;
+  }
+  textarea{ border:1px dotted #999; resize:vertical; min-height:52px; }
+  input:focus, textarea:focus{ background:#fff7cc; }
+  table.data input{ background:transparent; border-bottom:none; }
+  table.data input:focus{ background:#fff7cc; }
+  /* ---------- sections ---------- */
+  .block{ border:2px solid var(--line); border-top:none; padding:8px 10px; }
+  .block .lbl{ font-weight:700; margin-bottom:4px; }
+  /* ---------- sign-off ---------- */
+  table.sign{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.sign td{ border:2px solid var(--line); padding:8px 10px; vertical-align:top; }
+  table.sign td.role{ width:130px; font-weight:700; }
+  .sigrow{ display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+  .sigfield{ display:flex; flex-direction:column; gap:2px; }
+  .sigfield label{ font-weight:600; font-size:12px; }
+  .sigfield input{ width:190px; }
+  .sigpad{ position:relative; }
+  .sigpad canvas{
+    border:1px solid #888; background:#fff; border-radius:4px;
+    touch-action:none; cursor:crosshair; display:block;
+  }
+  .sigpad .clear{
+    position:absolute; right:2px; top:2px; font-size:10px; border:none;
+    background:#eee; border-radius:3px; cursor:pointer; padding:2px 6px;
+  }
+  .hint{ font-size:11px; color:#777; }
+  footer.note{ max-width:900px; margin:8px auto; font-size:11px; color:#666; text-align:center; }
+  /* ---------- print : compact layout to fit one A4 page ---------- */
+  @page{ size:A4; margin:9mm; }
+  @media print{
+    body{ background:#fff; }
+    .toolbar, td.rowtools, .sigpad .clear, .hint, footer.note{ display:none !important; }
+    .sheet{ box-shadow:none; margin:0; padding:0; max-width:none; }
+    input, textarea{ background:transparent !important; border-color:transparent; }
+    textarea{ border:none; min-height:0; height:56px; }
+    .head{ padding:6px 12px; }
+    .head img.kenyon{ height:42px; }
+    .head img.apple{ height:34px; }
+    .head .client input{ font-size:13px; padding:2px; }
+    div.titlebar input, div.titlebar input[type=text]{ font-size:16px; padding:3px; }
+    .titlebar{ padding:2px 6px; }
+    .subbar{ padding:4px 8px; font-size:13px; }
+    .subbar input{ font-size:13px; padding:2px 3px; }
+    table.data{ font-size:11px; }
+    table.data th, table.data td{ padding:3px 5px; }
+    table.data thead .grouphead th{ padding:4px; font-size:12px; }
+    input[type=text], input[type=date]{ font-size:11px; padding:2px 3px; }
+    .block{ padding:5px 8px; }
+    .block .lbl{ font-size:12px; margin-bottom:2px; }
+    table.sign{ font-size:11px; }
+    table.sign td{ padding:5px 8px; }
+    table.sign td.role{ width:100px; font-size:12px; }
+    .sigrow{ gap:12px; }
+    .sigfield label{ font-size:11px; }
+    .sigfield input{ width:160px; }
+    .sigpad canvas{ width:200px; height:54px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="title">Sensor Calibration Test Sheet</span>
+  <button type="button" onclick="addRow()">+ Add Row</button>
+  <button type="button" onclick="savePDF()">Save as PDF</button>
+  <button type="button" class="primary" onclick="saveHTML()">Save as HTML</button>
+</div>
+
+<div class="sheet">
+
+  <div class="head">
+    <img class="kenyon" src="data:image/jpeg;base64,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" alt="Kenyon logo">
+    <div class="client"><input type="text" id="clientLine" value="Client: Apple South Asia Pte Ltd (AMK3 Level 6)"></div>
+    <img class="apple" src="data:image/jpeg;base64,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" alt="Apple logo">
+  </div>
+
+  <div class="titlebar"><input type="text" id="docTitle" value="Sensor Calibration Record Test Sheet"></div>
+
+  <div class="subbar">
+    <span>Type of Sensor:</span>
+    <input type="text" id="sensorType" value="">
+  </div>
+
+  <table class="data">
+    <thead>
+      <tr class="grouphead"><th colspan="6">Record Test Data</th></tr>
+      <tr class="colhead">
+        <th style="width:15%">Room / Location</th>
+        <th style="width:18%">Sensor ID</th>
+        <th style="width:15%">Field Measure</th>
+        <th style="width:15%">BMS Measure</th>
+        <th style="width:12%">Offset</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody">
+      <tr>
+        <td><input type="text" value="Network RM"></td>
+        <td><input type="text" value="ROOM TEMPERATURE"></td>
+        <td><input type="text" value="22.8 °C"></td>
+        <td><input type="text" value="22.3 °C"></td>
+        <td><input type="text" value="0.5 °C"></td>
+        <td><input type="text" value=""></td>
+        <td class="rowtools"><button type="button" onclick="delRow(this)" title="Delete row">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="Network RM"></td>
+        <td><input type="text" value="ROOM HUMIDITY"></td>
+        <td><input type="text" value="76.0%"></td>
+        <td><input type="text" value="73.8 %"></td>
+        <td><input type="text" value="2.2%"></td>
+        <td><input type="text" value=""></td>
+        <td class="rowtools"><button type="button" onclick="delRow(this)" title="Delete row">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="Network RM"></td>
+        <td><input type="text" value="TA SMART VALVE"></td>
+        <td><input type="text" value="0.25 L/s"></td>
+        <td><input type="text" value="0.22 L/s"></td>
+        <td><input type="text" value="0.03 L/s"></td>
+        <td><input type="text" value="Valve 71.3% open"></td>
+        <td class="rowtools"><button type="button" onclick="delRow(this)" title="Delete row">×</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="block">
+    <div class="lbl">Test Instrument / Tools Required:</div>
+    <textarea id="tools" rows="2"></textarea>
+  </div>
+
+  <div class="block">
+    <div class="lbl">REMARKS:</div>
+    <textarea id="remarks" rows="3"></textarea>
+  </div>
+
+  <table class="sign">
+    <tr>
+      <td class="role">Tested By</td>
+      <td>
+        <div class="sigrow">
+          <div class="sigfield"><label>Name:</label><input type="text"></div>
+          <div class="sigfield"><label>Signature: <span class="hint">(draw below)</span></label>
+            <div class="sigpad"><canvas width="260" height="70" data-sig=""></canvas><button type="button" class="clear" onclick="clearSig(this)">clear</button></div>
+          </div>
+          <div class="sigfield"><label>Date:</label><input type="date"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="role">Witnessed By</td>
+      <td>
+        <div class="sigrow">
+          <div class="sigfield"><label>Name:</label><input type="text"></div>
+          <div class="sigfield"><label>Signature: <span class="hint">(draw below)</span></label>
+            <div class="sigpad"><canvas width="260" height="70" data-sig=""></canvas><button type="button" class="clear" onclick="clearSig(this)">clear</button></div>
+          </div>
+          <div class="sigfield"><label>Date:</label><input type="date"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="role">Witnessed By</td>
+      <td>
+        <div class="sigrow">
+          <div class="sigfield"><label>Name:</label><input type="text"></div>
+          <div class="sigfield"><label>Signature: <span class="hint">(draw below)</span></label>
+            <div class="sigpad"><canvas width="260" height="70" data-sig=""></canvas><button type="button" class="clear" onclick="clearSig(this)">clear</button></div>
+          </div>
+          <div class="sigfield"><label>Date:</label><input type="date"></div>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+
+<footer class="note">
+  Fill in the fields, draw signatures with mouse or finger, then use <b>Save as PDF</b> (print dialog → “Save as PDF”)
+  or <b>Save as HTML</b> to download a new copy of this form with all current data and signatures embedded.
+</footer>
+
+<script>
+/* ---------------- signature pads ---------------- */
+function initPad(canvas){
+  const ctx = canvas.getContext('2d');
+  ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#102a63';
+  // restore saved signature (when reopening a saved HTML copy)
+  if (canvas.dataset.sig){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = canvas.dataset.sig;
+  }
+  let drawing = false;
+  const pos = e => {
+    const r = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x:(p.clientX - r.left) * canvas.width / r.width,
+             y:(p.clientY - r.top ) * canvas.height / r.height };
+  };
+  const start = e => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+  const move  = e => { if(!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  const end   = () => { if(!drawing) return; drawing = false; canvas.dataset.sig = canvas.toDataURL('image/png'); };
+  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove',  move,  {passive:false});
+  canvas.addEventListener('touchend',   end);
+}
+function clearSig(btn){
+  const c = btn.parentElement.querySelector('canvas');
+  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  c.dataset.sig = '';
+}
+document.querySelectorAll('.sigpad canvas').forEach(initPad);
+
+/* ---------------- table rows ---------------- */
+function addRow(){
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" value=""></td>'.repeat(6) +
+    '<td class="rowtools"><button type="button" onclick="delRow(this)" title="Delete row">×</button></td>';
+  document.getElementById('dataBody').appendChild(tr);
+  tr.querySelector('input').focus();
+}
+function delRow(btn){
+  const body = document.getElementById('dataBody');
+  if (body.rows.length <= 1){ alert('At least one row is required.'); return; }
+  btn.closest('tr').remove();
+}
+
+/* ---------------- save helpers ---------------- */
+function syncState(){
+  // write live values back into the markup so a serialized copy keeps them
+  document.querySelectorAll('input').forEach(i => {
+    if (i.type === 'checkbox' || i.type === 'radio'){
+      i.checked ? i.setAttribute('checked','') : i.removeAttribute('checked');
+    } else {
+      i.setAttribute('value', i.value);
+    }
+  });
+  document.querySelectorAll('textarea').forEach(t => { t.textContent = t.value; });
+  document.querySelectorAll('.sigpad canvas').forEach(c => {
+    c.setAttribute('data-sig', c.dataset.sig || '');
+  });
+}
+function stamp(){
+  const d = new Date(), z = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + z(d.getMonth()+1) + '-' + z(d.getDate()) + '_' + z(d.getHours()) + z(d.getMinutes());
+}
+function saveHTML(){
+  syncState();
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SENSOR_CALIBRATION_TEST_' + stamp() + '.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function savePDF(){
+  syncState();
+  window.print();   // choose “Save as PDF” as the destination
+}
+</script>
+</body>
+</html>

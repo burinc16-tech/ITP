@@ -1,0 +1,143 @@
+{
+  "code": "LCP",
+  "title": "FCU LCP Checklist",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/FCU_LCP_Checklist.html (Rev 0)",
+
+  "variables": [
+    { "id": "damper_qty", "label": "Motorized dampers", "type": "number", "default": 2 }
+  ],
+
+  "header": {
+    "title": "Checklist Details",
+    "fields": [
+      { "id": "project",  "label": "Project",        "type": "text", "source": "project.name", "readonly": true },
+      { "id": "location", "label": "Location",       "type": "text", "source": "equipment.location", "required": true },
+      { "id": "ref_code", "label": "Reference Code", "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "date",     "label": "Date",           "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "checks",
+      "title": "FCU LCP Checklist",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / No / NA" },
+        "remarks": { "label": "Comments" }
+      },
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [
+          { "value": "yes", "label": "Yes", "outcome": "pass" },
+          { "value": "no",  "label": "No",  "outcome": "fail" },
+          { "value": "na",  "label": "NA",  "outcome": "na" }
+        ],
+        "remarks": true,
+        "editable_no": true
+      },
+      "_note": "The source sheet prints eight worded items followed by three blank numbered rows (9, 10, 11) for whatever else the panel needs. Those blanks are `allow_add_rows`, not three empty template rows: an engineer's added wording is record data, never template wording (SPEC §12, Hard Rule #5), and a record that needs none prints none rather than three empty lines.\n\n`status` rather than `pass_fail_na` so the three columns read Yes / No / NA exactly as the sheet heads them, and so an added row can carry the same words — `add_row_template` has no `labels` key. The outcomes make a \"No\" answer derivable as an outstanding item (SPEC §6).",
+      "rows": [
+        { "id": "lcp_01", "no": "1", "type": "status", "remarks": true,
+          "description": "Incoming power supply available.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_02", "no": "2", "type": "status", "remarks": true,
+          "description": "Switch mode (MAN / OFF / BMS)",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_03", "no": "3", "type": "status", "remarks": true,
+          "description": "RUN / STOP / TRIP Status (BMS)",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_04", "no": "4", "type": "status", "remarks": true,
+          "description": "Test Time Schedule (BMS Schedule)",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_05", "no": "5", "type": "status", "remarks": true,
+          "description": "Check {{damper_qty}} nos Motorized Damper Status (Open / Close)",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ],
+          "_note": "The source hardcodes \"2 nos\"; the damper count varies per FCU, so it is a `{{variable}}` set once per record (SPEC §5.1) rather than wording baked into the template." },
+        { "id": "lcp_06", "no": "6", "type": "status", "remarks": true,
+          "description": "Chilled water control valve — TA Smart Valve (valve open / close)",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_07", "no": "7", "type": "status", "remarks": true,
+          "description": "Control Panel Lamp Test",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] },
+        { "id": "lcp_08", "no": "8", "type": "status", "remarks": true,
+          "description": "Check LCP status output signals to BMS — termination complete",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "NA",  "outcome": "na" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "measurements",
+      "title": "Motor Measurements",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "The sheet's single inline strip (V / LOW / MED / HIGH) under the checklist. A field group, not a table: it records one set of readings for this panel, not a list.\n\nThe break here is what gives the checklist room to grow. Everything on one page measured 382.1mm against 297mm — the app's three signature columns are 85.5mm where the source's signature table is a compact strip. Breaking before the measurements leaves the checklist a page of its own with roughly 87mm spare, about six added rows, and still closes the record on page 2 with the signatures rather than spending a third page on them.",
+      "fields": [
+        { "id": "voltage",      "label": "Voltage",        "type": "number", "unit": "V" },
+        { "id": "current_low",  "label": "Current — LOW",  "type": "number", "unit": "A" },
+        { "id": "current_med",  "label": "Current — MED",  "type": "number", "unit": "A" },
+        { "id": "current_high", "label": "Current — HIGH", "type": "number", "unit": "A" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A field group, not a one-row standard section: a standard section prints its column headers, so a lone remarks row came out headed \"Description | Remarks | Remarks\". The source is a plain labelled box.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section, not the top-level `footer`: the source is a single A4 portrait sheet that closes with its three signature rows, and portrait leaves enough body height to keep them there. Measured with a full record — see the parity test.",
+      "signatures": [
+        { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness",  "role": "Witnessed By", "company_default": "T&C Consultant", "required": false, "stage": "witness" },
+        { "id": "sig_client",   "role": "Witnessed By", "company_default": "Client", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

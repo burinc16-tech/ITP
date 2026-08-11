@@ -1,0 +1,79 @@
+{
+  "code": "SCR",
+  "title": "Sensor Calibration Record Test Sheet",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Sensor_Calibration_Record_Test_Sheet.html — a one-page sheet: client band, \"Type of Sensor\" bar, one add/delete-row data table, two free-text boxes, and a three-row sign-off. The supplied file was saved with a completed record in it (AMK3 Level 6 Network RM, room temperature / humidity / TA smart valve); those are record values, not template values, and are not carried here.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "client",      "label": "Client",         "type": "text", "source": "project.client", "readonly": true },
+      { "id": "location",    "label": "Location",       "type": "text", "source": "equipment.location" },
+      { "id": "sensor_type", "label": "Type of Sensor", "type": "text", "required": true, "bold": true }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "readings",
+      "title": "Record Test Data",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 3,
+      "_note": "\"Type of Sensor\" is carried as a header field, not a section: it is the source's own bar between the title and this table, one sheet covers one sensor type, and every row inherits it — a section of its own would also cost the page a heading and a block it cannot spare.\n\n`page_break_before` on the opening section is what keeps this on one sheet: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same idiom as `fcu-lcp-checklist.json`. min_rows matches the source's three seeded rows; the source adds and deletes rows freely, which is what `dynamic_table` gives.\n\n**Every measurement column is `text`, not `number`.** The source writes the unit into the cell alongside the figure — \"22.8 °C\", \"76.0%\", \"0.25 L/s\" in the sample — because one sheet is used for temperature, humidity and flow sensors and the unit follows the sensor type, which is chosen per record. A `number` column would need a fixed `unit` in the template and would reject the readings this form is designed to take.\n\nOffset is recorded, not derived: it is Field − BMS on a temperature row, but the source leaves it typed and a sheet may carry non-numeric readings, so `lib/formula.ts` is not wired here.",
+      "columns": [
+        { "id": "room",     "label": "Room / Location", "type": "text", "width": "15%" },
+        { "id": "sensor_id","label": "Sensor ID",       "type": "text", "width": "20%" },
+        { "id": "field",    "label": "Field Measure",   "type": "text", "width": "14%", "align": "center" },
+        { "id": "bms",      "label": "BMS Measure",     "type": "text", "width": "14%", "align": "center" },
+        { "id": "offset",   "label": "Offset",          "type": "text", "width": "12%", "align": "center" },
+        { "id": "remarks",  "label": "Remarks",         "type": "text", "width": "25%" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "title": "Test Instrument / Tools Required",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "8pt",
+      "min_rows": 1,
+      "_note": "The source heads this a free-text box. A table instead, as on `ahu-supply-fresh-air-measurement.json` §9: only a table can be read by `link_to_instrument_register` (SPEC §5). That matters more here than on any other sheet in the library — this record calibrates a sensor AGAINST a reference instrument, so an out-of-calibration reference invalidates every row above it.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument / Tool", "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",          "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",         "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",           "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `condensate-pipe-flood-test.json`, not the `standard` + textarea-row shape used by the AHU/FCU air measurement templates. A standard section always prints its serial and remarks columns, so a lone textarea row came out as an empty serial column, a Description column carrying the prompt, and TWO columns both headed Remarks. The source is a plain labelled box; this prints as one.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would print a one-page source on two sheets. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`.\n\nThe source has THREE rows and heads the lower two identically, \"Witnessed By\" — the roles read the same on the paper and are kept that way; the distinct `stage` values are what drive the workflow (SPEC §6), as on `ductwork-air-leakage-test.json`.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

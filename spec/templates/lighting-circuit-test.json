@@ -1,0 +1,96 @@
+{
+  "code": "LCT",
+  "title": "Lighting Circuit Test Sheet",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Lighting_Circuit_Test_Sheet.html — a project/location band, one circuit-by-circuit test table, a fixed five-function instrument table, a remarks box and a three-row sign-off. The supplied file was saved with the instrument make/model/serial/cert values filled in (Megger MIT310, Fluke 115, Megger RCDT310, Megger LTW315, Martindale CP501); those are record values — the kit changes as instruments are recalibrated or replaced — so only the function names are carried here. The source's own \"Rev : 0 / Date\" footer is not reproduced as a field: the printed footer already carries the template code and revision (SPEC §7), and a second revision on the same page invites the two to disagree.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",   "label": "Project",           "type": "text", "source": "project.name", "readonly": true },
+      { "id": "location",  "label": "Location",          "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "board_ref", "label": "Source / Board Ref", "type": "text", "required": true },
+      { "id": "en_source", "label": "E or N Source",      "type": "text" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "circuits",
+      "title": "Circuit Test Results",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "auto_number": true,
+      "number_label": "SN",
+      "_note": "`page_break_before` on the opening section is the grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same as `fcu-lcp-checklist.json`.\n\n**The paper's two-level header is flattened.** It spans \"Insulation Resistance\" across a P-N and a P-E sub-column; `dynamic_table` columns are flat, so the group name moves into each column's own label. Nothing is lost but the spanning cell.\n\n**Insulation readings are `text`, not `number`.** A circuit that reads above the meter's range is written \">999\", which a numeric column rejects — and on an insulation test that is the normal, passing result, so it is the one reading the sheet must never refuse. Volts is `number`: a voltage is always a figure.\n\n**Unit conflict in the source, resolved to MΩ.** The column heads read \"P-N (Ω)\" and \"P-E (Ω)\" but the cells prompt \"MΩ\". Insulation resistance is measured in megohms and a reading in ohms would be four orders out, so the megohm prompt is taken as the correct one. Worth confirming against the paper master before Rev A hardens.\n\nThe source seeds nineteen blank rows; `min_rows` is five and the engineer adds what the board needs, so a record with six circuits prints six rows rather than six plus thirteen empty ones.",
+      "columns": [
+        { "id": "room",        "label": "Room Name",              "type": "text",   "width": "20%" },
+        { "id": "circuit_ref", "label": "Circuit Ref.",           "type": "text",   "width": "15%" },
+        { "id": "ir_pn",       "label": "Insulation P-N",         "type": "text",   "unit": "MΩ", "width": "11%", "align": "center" },
+        { "id": "ir_pe",       "label": "Insulation P-E",         "type": "text",   "unit": "MΩ", "width": "11%", "align": "center" },
+        { "id": "volts",       "label": "Volts",                  "type": "number", "unit": "V",  "width": "8%",  "align": "center" },
+        { "id": "polarity",    "label": "Polarity",               "type": "status", "width": "12%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ],
+          "_note": "The paper prompts a tick or a cross. Worded Pass / Fail here so the printed cell says what it means on a signed document, and so the outcome makes a failed polarity derivable as an outstanding item (SPEC §6)." },
+        { "id": "remarks",     "label": "Remarks",                "type": "text",   "width": "23%" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "title": "Test Instrument / Tools Required",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "link_to_instrument_register": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "_note": "**Why this section starts page 2.** Measured on the live build: a page gives 877px to content, a table row costs 35px. The circuit table alone runs to the full page once a board has any number of ways — nineteen circuits fills it — so the closing blocks go overleaf and page 1 belongs to the test results.\n\nThe five function names are the paper's fixed list and are seeded as template data; make, model, serial and certificate are the engineer's, and are not.\n\n**Columns are the paper's four, which means no calibration DUE date.** This sheet records a certificate number, not an expiry. `link_to_instrument_register` is set for consistency with the other templates, but note it is a declarative flag today — nothing in the app reads it yet (record↔instrument linking is still to be built, see `lib/calibration.ts`). When it is built it will need a due date to judge expiry against, and this section would need a fifth column the paper does not have.",
+      "columns": [
+        { "id": "function",   "label": "Function",          "type": "text", "width": "30%" },
+        { "id": "make_model", "label": "Make / Model",      "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No.",        "type": "text", "width": "24%", "align": "center" },
+        { "id": "cal_cert",   "label": "Calibration Cert.", "type": "text", "width": "24%", "align": "center" }
+      ],
+      "prefilled_rows": [
+        { "function": "Insulation Resistance" },
+        { "function": "Continuity / Voltage" },
+        { "function": "RCD Test" },
+        { "function": "Earth Loop Impedance" },
+        { "function": "Polarity" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `condensate-pipe-flood-test.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a plain box; this prints as one.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would add a third sheet carrying nothing but signatures. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`.\n\nThe source's three rows, and it heads the lower two identically — \"Witnessed By\" — so the roles read the same here; the distinct `stage` values drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date — no company. The renderer always prints Company, so Tested By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

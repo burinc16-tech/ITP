@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   headRecords,
   isoClock,
   type ChecklistRecord,
   type Clock,
 } from "../data/record";
+import { downloadText, readTextFile } from "../lib/files";
+import {
+  backupFilename,
+  countsOf,
+  describeCounts,
+  parseBackup,
+} from "../lib/registry-backup";
 import type { RecordsRepo } from "../data/records-repo";
 import {
   createEquipment,
@@ -42,6 +49,8 @@ export function EquipmentTree(props: {
   const [proj, setProj] = useState({ code: "", name: "", client: "" });
   const [sys, setSys] = useState({ code: "", name: "", parent: "" });
   const [equip, setEquip] = useState({ tag: "", description: "", system: "" });
+  const [backupNote, setBackupNote] = useState<string | null>(null);
+  const backupInput = useRef<HTMLInputElement>(null);
 
   const loadProjects = useCallback(async () => {
     setProjects(await repo.listProjects());
@@ -117,6 +126,36 @@ export function EquipmentTree(props: {
     );
     setEquip({ tag: "", description: "", system: "" });
     await loadTree(selectedId);
+  };
+
+  /**
+   * Write the registry out as a file. The registry has no server copy, so this
+   * is the only backup that exists — see `lib/registry-backup.ts`.
+   */
+  const exportRegistry = async () => {
+    const backup = await repo.exportBackup(clock());
+    downloadText(
+      backupFilename(backup.exported_at),
+      JSON.stringify(backup, null, 2),
+    );
+    setBackupNote(`Saved ${describeCounts(countsOf(backup))} to your device.`);
+  };
+
+  const importRegistry = async (file: File) => {
+    try {
+      const counts = await repo.importBackup(
+        parseBackup(await readTextFile(file)),
+      );
+      await loadProjects();
+      if (selectedId) await loadTree(selectedId);
+      setBackupNote(`Restored ${describeCounts(counts)}.`);
+    } catch (err) {
+      setBackupNote(
+        err instanceof Error
+          ? err.message
+          : "That file could not be read. Choose a registry backup.",
+      );
+    }
   };
 
   const childrenOf = (id: string | null) =>
@@ -209,6 +248,45 @@ export function EquipmentTree(props: {
           >
             New project
           </button>
+        </div>
+
+        <div className="registry-backup">
+          <p className="registry-backup-why">
+            Projects, systems and equipment tags are stored on this device only.
+            Export a copy so you can restore them if this browser is cleared, or
+            load them onto another device.
+          </p>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => void exportRegistry()}
+          >
+            Export registry
+          </button>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => backupInput.current?.click()}
+          >
+            Import registry
+          </button>
+          <input
+            ref={backupInput}
+            className="visually-hidden"
+            type="file"
+            accept="application/json,.json"
+            aria-label="Registry backup file"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = ""; // so the same file can be picked twice
+              if (file) void importRegistry(file);
+            }}
+          />
+          {backupNote && (
+            <p className="registry-backup-note" role="status">
+              {backupNote}
+            </p>
+          )}
         </div>
       </div>
 

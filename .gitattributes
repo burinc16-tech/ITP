@@ -1,0 +1,8 @@
+# Normalize line endings: text files stored as LF in the repo.
+# Windows-specific scripts checked out with CRLF so they run via double-click.
+* text=auto
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.pdf binary
+*.png binary
+*.ico binary

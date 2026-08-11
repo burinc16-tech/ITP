@@ -1,0 +1,143 @@
+{
+  "code": "CFT",
+  "title": "CHW FCU Function Test",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "spec/CHW_FCU_Function_Test.html (Rev 0)",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",     "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "fcu_tag",     "label": "FCU Tag No.", "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "description", "label": "Description", "type": "textarea" },
+      { "id": "date",        "label": "Date",        "type": "date", "required": true }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "chw_measurement",
+      "no": "1",
+      "title": "Chilled Water Measurement",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "NO",
+      "_note": "LANDSCAPE, two pages — a measured departure from the source, which is a single A4 portrait sheet. Rendered portrait, this record's own readings measure 423.8mm tall against 297mm of page, and the CHW and Motor tables run 254.8mm and 236.3mm wide against 182mm of printable width. The overflow is horizontal first: the source fits 15 columns on portrait only because its header is a nested multi-row block at 7pt (\"Supply (°C)\" spanning \"Design\"/\"Actual\") with no logo band, whereas the app renders one flat header row per column. Landscape brings every table to 268.8mm inside a 269mm area — an exact fit — and the breaks split the body across two 158mm content pages plus the footer's sign-off page.\n\nThe `font_size` below applies to the on-screen form only: print-section.tsx never reads it, so the printed tables are print.css's 10pt. The measurements above were taken as-rendered and are unaffected.\n\nThe eight identity columns (Tag No … Max. Sensible) repeat on all three measurement tables. That is the paper form's own layout, not an oversight: each table lists the same FCUs, and the repo standard is that matching the original wins (CLAUDE.md). Hoisting them into one shared block would read better on screen and print wrong.",
+      "columns": [
+        { "id": "tag",       "label": "Tag. No",             "type": "text",   "width": "10%" },
+        { "id": "location",  "label": "Location",            "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "area",      "label": "Area Served",         "type": "text",   "width": "8%" },
+        { "id": "brand",     "label": "Brand",               "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "model",     "label": "Model / Serial",      "type": "text",   "width": "11%" },
+        { "id": "max_total", "label": "Max. Total",          "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "max_sens",  "label": "Max. Sensible",       "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "sup_design","label": "Supply Design",   "type": "number", "unit": "°C", "width": "6%", "align": "center" },
+        { "id": "sup_actual","label": "Supply Actual",   "type": "number", "unit": "°C", "width": "6%", "align": "center" },
+        { "id": "ret_design","label": "Return Design",   "type": "number", "unit": "°C", "width": "6%", "align": "center" },
+        { "id": "ret_actual","label": "Return Actual",   "type": "number", "unit": "°C", "width": "6%", "align": "center" },
+        { "id": "flow_design","label": "Flow Design",   "type": "number", "unit": "L/s", "width": "6%", "align": "center" },
+        { "id": "flow_actual","label": "Flow Actual",   "type": "number", "unit": "L/s", "width": "6%", "align": "center" },
+        { "id": "remarks",   "label": "Remarks",             "type": "textarea", "width": "12%" }
+      ]
+    },
+
+    {
+      "id": "air_flow_measurement",
+      "no": "2",
+      "title": "Air Flow Measurement",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "NO",
+      "columns": [
+        { "id": "tag",       "label": "Tag. No",        "type": "text",   "width": "11%" },
+        { "id": "location",  "label": "Location",       "type": "text",   "width": "9%", "carry_down": true },
+        { "id": "area",      "label": "Area Served",    "type": "text",   "width": "9%" },
+        { "id": "brand",     "label": "Brand",          "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "model",     "label": "Model / Serial", "type": "text",   "width": "12%" },
+        { "id": "max_total", "label": "Max. Total",     "type": "number", "unit": "kW", "width": "8%", "align": "center" },
+        { "id": "max_sens",  "label": "Max. Sensible",  "type": "number", "unit": "kW", "width": "8%", "align": "center" },
+        { "id": "sa_design", "label": "Air Flow Design", "type": "number", "unit": "CMH", "width": "10%", "align": "center" },
+        { "id": "sa_actual", "label": "Air Flow Actual", "type": "number", "unit": "CMH", "width": "10%", "align": "center" },
+        { "id": "remarks",   "label": "Remarks",        "type": "textarea", "width": "15%" }
+      ]
+    },
+
+    {
+      "id": "motor_measurement",
+      "no": "3",
+      "title": "FCU Motor Measurement",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "NO",
+      "columns": [
+        { "id": "tag",         "label": "Tag. No",           "type": "text",   "width": "10%" },
+        { "id": "location",    "label": "Location",          "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "area",        "label": "Area Served",       "type": "text",   "width": "8%" },
+        { "id": "brand",       "label": "Brand",             "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "model",       "label": "Model / Serial",    "type": "text",   "width": "11%" },
+        { "id": "max_total",   "label": "Max. Total",        "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "max_sens",    "label": "Max. Sensible",     "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "run_current", "label": "Run Current",   "type": "number", "unit": "A", "width": "8%", "align": "center" },
+        { "id": "fl_current",  "label": "Full Load", "type": "number", "unit": "A", "width": "8%", "align": "center" },
+        { "id": "voltage",     "label": "Voltage",           "type": "number", "unit": "V", "width": "7%", "align": "center" },
+        { "id": "rated_power", "label": "Rated Power",       "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "phase",       "label": "Phase",             "type": "text",   "width": "5%", "align": "center",
+          "_note": "Text, not number: the source form is filled \"1P\"." },
+        { "id": "remarks",     "label": "Remarks",           "type": "textarea", "width": "12%" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "no": "4",
+      "title": "Test Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "7pt",
+      "min_rows": 3,
+      "_note": "The source form carries one free-text box headed \"REMARKS / TEST INSTRUMENTS USED\", filled with a numbered list of instruments and their serial numbers. Split here into a table plus the remarks row below: only a table can be read by `link_to_instrument_register`, which is what catches an out-of-calibration instrument (SPEC §5). Three rows to match the three instruments the source form lists.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument",    "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",      "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",     "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",       "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "no": "5",
+      "title": "Remarks",
+      "type": "standard",
+      "columns": {
+        "result": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the test" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "signatures": [
+      { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+      { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_verified", "role": "Verified By",  "required": false, "stage": "client" }
+    ]
+  }
+}

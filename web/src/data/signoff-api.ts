@@ -132,7 +132,7 @@ export class SignoffClient {
   constructor(
     private readonly baseUrl: string,
     private readonly token: TokenSource,
-    private readonly fetchImpl: Fetch = fetch,
+    private readonly fetchImpl: Fetch = (input, init) => fetch(input, init),
   ) {}
 
   private authHeaders(): Record<string, string> {

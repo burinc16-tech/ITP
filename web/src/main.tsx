@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { SignLinkPage } from "./components/sign-link-page";
+import { requestPersistentStorage } from "./data/persist";
 import { TEMPLATES } from "./templates";
 
 // The main app is loaded lazily so the account-less /sign/:token page never
@@ -35,6 +36,14 @@ createRoot(root).render(
     <Root />
   </StrictMode>,
 );
+
+// Ask the browser to stop evicting this origin's storage (SPEC §8). Everything
+// the app holds is in IndexedDB and the project registry has no server copy, so
+// eviction is silent data loss. Never for a remote signer's /sign/:token visit —
+// that page stores nothing. Best-effort: a refusal changes nothing else.
+if (!signToken(window.location.pathname)) {
+  void requestPersistentStorage();
+}
 
 // Register the app-shell service worker so the tool boots offline (SPEC §8).
 // Production only (a dev-mode SW fights Vite's HMR), and never for a remote

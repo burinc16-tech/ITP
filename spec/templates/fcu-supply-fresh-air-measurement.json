@@ -1,0 +1,195 @@
+{
+  "code": "FAM",
+  "title": "FCU Supply and Fresh Air Measurement",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/FCU_Supply_and_Fresh_Air_Measurement.html — the FCU counterpart of `AHU_Supply_and_Fresh_Air_Measurement.html`. Same two-page shape (page 1 supply air, page 2 fresh air), so this template mirrors `ahu-supply-fresh-air-measurement.json` section for section; the differences are noted where they occur. Kept as its own template rather than an equipment-type variant of AAM so the printed heading reads FCU, as the paper form does. The supplied file was saved with a completed record in it (FCU-A-602, 11 Jun / 22 Jul 2025, duct 2000 × 400 and 600 × 600); those are record values, not template values, and are not carried here.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project", "label": "Project",  "type": "text", "source": "project.name", "readonly": true },
+      { "id": "fcu_tag", "label": "FCU Name", "type": "text", "source": "equipment.tag", "required": true, "bold": true },
+      { "id": "duct_ref","label": "Location", "type": "text" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "supply_details",
+      "no": "1",
+      "title": "Supply Air — Test Details",
+      "type": "field_group",
+      "_note": "Page 1 of the source. The source records a different Testing Date on each page (supply 11 Jun, fresh 22 Jul in the sample), so the date lives here and in section 5, not in the record header.",
+      "fields": [
+        { "id": "supply_test_date",      "label": "Testing Date",           "type": "date", "required": true },
+        { "id": "supply_duct_size",      "label": "Duct Size",              "type": "text", "unit": "mm" },
+        { "id": "supply_running_hz",     "label": "Running Hz",             "type": "number" },
+        { "id": "supply_design_airflow", "label": "Design Airflow",         "type": "number", "unit": "CMH" },
+        { "id": "supply_static_pressure","label": "Actual Static Pressure", "type": "number", "unit": "Pa" },
+        { "id": "supply_actual_airflow", "label": "Actual Airflow",         "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "supply_readings",
+      "no": "2",
+      "title": "Supply Air — Velocity Readings",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 2,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "`add_columns` gives this table the source's own \"+ col / ×\" behaviour (asked for by the user 2026-08-11): the seven columns below are the starting traverse, and the engineer adds or deletes test points at the duct. Headings are positional, so deleting the third of seven renumbers the rest exactly as the source does, while the column ids — and therefore the readings already typed — stay put. min_rows matches the source's two seeded rows.\n\nThis supersedes the earlier fixed-column compromise, which is still what `ahu-supply-fresh-air-measurement.json` §2 does; that template can take the same block whenever its sheet needs it.",
+      "add_columns": {
+        "id_prefix": "tp",
+        "label_prefix": "Test Point",
+        "type": "number",
+        "unit": "m/s",
+        "width": "13%",
+        "align": "center",
+        "min_count": 1
+      },
+      "columns": [
+        { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp3", "label": "Test Point 3", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp4", "label": "Test Point 4", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp5", "label": "Test Point 5", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp6", "label": "Test Point 6", "type": "number", "unit": "m/s", "width": "13%", "align": "center" },
+        { "id": "tp7", "label": "Test Point 7", "type": "number", "unit": "m/s", "width": "13%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "supply_calc",
+      "no": "3",
+      "title": "Supply Air — Calculation",
+      "type": "field_group",
+      "_note": "**Deliberate divergence from the source, matching AAM §3.** This FCU sheet computes all three values in JavaScript and locks them readonly (`data-calc=\"sum\" | \"velocity\" | \"airflow\"`), where the AHU sheet leaves them typed. The template formula engine aggregates down the columns of ONE table and cannot parse the free-text duct size, so neither the grand total (which spans seven columns) nor the airflow (which needs the duct area) can be expressed here; both are entered by the engineer. Recording them keeps the printed page identical to the paper — only the arithmetic moves back to the engineer. Wire this and AAM §3 to `lib/formula.ts` together if cross-section aggregate formulas are added.\n\nThe source's labels embed the record's own numbers (\"sum of all 14 readings\", \"velocity × 2.0 × 0.4 × 3,600 (duct 2000 × 400 mm)\"). 14 is 7 test points × 2 rows and the dimensions come from the Duct Size field, so both are record data; the labels here state the rule instead (Hard Rule #5).",
+      "fields": [
+        { "id": "supply_grand_total",   "label": "Grand Total (sum of all readings)",               "type": "number" },
+        { "id": "supply_avg_velocity",  "label": "Average velocity = Grand Total / no. of readings","type": "number", "unit": "m/s" },
+        { "id": "supply_calc_airflow",  "label": "Actual Airflow = velocity x duct area x 3,600",   "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "supply_remarks",
+      "no": "4",
+      "title": "Supply Air — Remarks",
+      "type": "standard",
+      "columns": { "result": { "label": "Remarks" } },
+      "rows": [
+        { "id": "supply_general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the supply air measurement" }
+      ]
+    },
+
+    {
+      "id": "fresh_details",
+      "no": "5",
+      "title": "Fresh Air — Test Details",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "Page 2 of the source — the one page break the source itself declares. Fresh Air Damper Opening carries no unit because the source header gives none; confirm at Rev A rather than inferring % here (same caution as `ahu-actual-site-comparison.json`).",
+      "fields": [
+        { "id": "fresh_test_date",       "label": "Testing Date",             "type": "date", "required": true },
+        { "id": "fresh_duct_size",       "label": "Duct Size",                "type": "text", "unit": "mm" },
+        { "id": "fresh_bms_airflow",     "label": "BMS Airflow",              "type": "number", "unit": "CMH" },
+        { "id": "fresh_design_airflow",  "label": "Design Airflow",           "type": "number", "unit": "CMH" },
+        { "id": "fresh_damper_opening",  "label": "Fresh Air Damper Opening", "type": "number" },
+        { "id": "fresh_adjusted_airflow","label": "Adjusted Airflow",         "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "fresh_readings",
+      "no": "6",
+      "title": "Fresh Air — Velocity Readings",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 2,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "Five test points to start, as the source's fresh air table, and the same `add_columns` behaviour as section 2 — the fresh air duct is a different size and rarely wants the same traverse as the supply.",
+      "add_columns": {
+        "id_prefix": "tp",
+        "label_prefix": "Test Point",
+        "type": "number",
+        "unit": "m/s",
+        "width": "18%",
+        "align": "center",
+        "min_count": 1
+      },
+      "columns": [
+        { "id": "tp1", "label": "Test Point 1", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp2", "label": "Test Point 2", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp3", "label": "Test Point 3", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp4", "label": "Test Point 4", "type": "number", "unit": "m/s", "width": "18%", "align": "center" },
+        { "id": "tp5", "label": "Test Point 5", "type": "number", "unit": "m/s", "width": "18%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "fresh_calc",
+      "no": "7",
+      "title": "Fresh Air — Calculation",
+      "type": "field_group",
+      "_note": "Same manual-entry departure as section 3. Where the AHU sheet has a typed \"Divisor\" row, this one counts the readings automatically (`data-calc=\"count\"`) and heads the row \"No. of readings\" — that wording is kept, since the count is what the engineer now writes in.",
+      "fields": [
+        { "id": "fresh_sum_readings", "label": "Sum of all readings",                             "type": "number" },
+        { "id": "fresh_reading_count","label": "No. of readings",                                 "type": "number" },
+        { "id": "fresh_velocity",     "label": "Velocity = sum / no. of readings",                "type": "number", "unit": "m/s" },
+        { "id": "fresh_calc_airflow", "label": "Adjusted Airflow = velocity x duct area x 3,600", "type": "number", "unit": "CMH" }
+      ]
+    },
+
+    {
+      "id": "fresh_remarks",
+      "no": "8",
+      "title": "Fresh Air — Remarks",
+      "type": "standard",
+      "columns": { "result": { "label": "Remarks" } },
+      "rows": [
+        { "id": "fresh_general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the fresh air measurement" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "no": "9",
+      "title": "Test Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 2,
+      "_note": "`page_break_before` puts this and the sign-off on a third sheet, so printed pages 1 and 2 carry exactly what the source's two pages carry — supply air, then fresh air. Measured on an empty record: page 2 needs 1122px of an available 878px if the instruments table and the sign-off block sit on it, which prints as a third sheet anyway while the footer still reads \"Page 2 of 2\". Two sheets is only reachable by dropping this table, which SPEC §5 needs.\n\nThe source carries a free-text box headed \"REMARKS / TEST INSTRUMENTS USED\" on each page. Split into the per-page remarks rows above plus this shared table, as on `ahu-actual-site-comparison.json`: only a table can be read by `link_to_instrument_register`, which is what catches an out-of-calibration instrument (SPEC §5).",
+      "columns": [
+        { "id": "instrument", "label": "Instrument", "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",   "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",  "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",    "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would print this record on three sheets where the source has two. In flow it closes page 2 directly beneath the instruments table, as the source closes each page with its signature block. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`.\n\nThe source repeats the Tested / Witnessed / Verified block on BOTH pages. One record covers both measurements here, so a single sign-off signs the whole record; the per-page test dates live in sections 1 and 5.",
+      "signatures": [
+        { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_verified", "role": "Verified By",  "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

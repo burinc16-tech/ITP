@@ -3,6 +3,7 @@ import {
   isFieldGroupSection,
   isMatrixSection,
   isStandardSection,
+  type ColumnDef,
   type DynamicTableSection,
   type Template,
 } from "@schema";
@@ -24,6 +25,29 @@ export interface RecordValues {
   tables: Record<string, TableRow[]>;
   /** Engineer-appended ad-hoc rows, keyed by section id (SPEC §12). */
   added: Record<string, AddedRow[]>;
+  /**
+   * Rows of a grouped dynamic table, keyed by section id (SPEC §12). Optional
+   * because records written before grouped tables existed simply do not carry it
+   * — read it through `groupsFor`, never by direct index.
+   */
+  groups?: Record<string, TableGroup[]>;
+  /**
+   * Column ids currently present on a flat table that allows engineer-added
+   * columns (`add_columns`, SPEC §12), keyed by section id and in printed order.
+   * Optional: a record that has never touched its columns simply does not carry
+   * it, and reads fall back to the template's own list — so every record written
+   * before the feature existed still renders. Read it through `columnsFor`.
+   */
+  columns?: Record<string, string[]>;
+}
+
+/**
+ * One group of a grouped dynamic table: the group-level field values (rendered
+ * in the spanning cells) and the body rows beneath them.
+ */
+export interface TableGroup {
+  fields: TableRow;
+  rows: TableRow[];
 }
 
 export interface RowValue {
@@ -63,9 +87,11 @@ export function emptyValues(template: Template): RecordValues {
 
   const rows: Record<string, RowValue> = {};
   const tables: Record<string, TableRow[]> = {};
+  const groups: Record<string, TableGroup[]> = {};
   for (const section of template.sections) {
     if (isDynamicTableSection(section)) {
-      tables[section.id] = initialTableRows(section);
+      if (section.row_group) groups[section.id] = initialGroups(section);
+      else tables[section.id] = initialTableRows(section);
     } else if (isStandardSection(section)) {
       for (const row of section.rows) rows[row.id] = { value: "", remarks: "" };
     } else if (isMatrixSection(section)) {
@@ -82,7 +108,141 @@ export function emptyValues(template: Template): RecordValues {
     // sign_off carries no fillable values (signature capture is Phase 3).
   }
 
-  return { variables, header, rows, tables, added: {} };
+  return { variables, header, rows, tables, added: {}, groups };
+}
+
+// --- Grouped dynamic tables (SPEC §12) ------------------------------------
+
+/** Groups of a section, tolerating records written before grouping existed. */
+export function groupsFor(
+  values: RecordValues,
+  sectionId: string,
+): TableGroup[] {
+  return values.groups?.[sectionId] ?? [];
+}
+
+function emptyGroup(section: DynamicTableSection): TableGroup {
+  const group = section.row_group;
+  const fields: TableRow = {};
+  for (const col of group?.columns ?? []) fields[col.id] = "";
+  const count = group?.rows_per_new_group ?? 1;
+  const rows: TableRow[] = [];
+  for (let i = 0; i < count; i += 1) rows.push(emptyTableRow(section));
+  return { fields, rows };
+}
+
+function initialGroups(section: DynamicTableSection): TableGroup[] {
+  const groups: TableGroup[] = [];
+  const min = section.row_group?.min_groups ?? 1;
+  while (groups.length < min) groups.push(emptyGroup(section));
+  return groups;
+}
+
+function writeGroups(
+  values: RecordValues,
+  sectionId: string,
+  next: TableGroup[],
+): RecordValues {
+  return {
+    ...values,
+    groups: { ...(values.groups ?? {}), [sectionId]: next },
+  };
+}
+
+/** Update one group-level field (a spanning cell, e.g. the VAV tag). */
+export function setGroupField(
+  values: RecordValues,
+  sectionId: string,
+  groupIndex: number,
+  columnId: string,
+  value: string,
+): RecordValues {
+  const next = groupsFor(values, sectionId).map((g, i) =>
+    i === groupIndex ? { ...g, fields: { ...g.fields, [columnId]: value } } : g,
+  );
+  return writeGroups(values, sectionId, next);
+}
+
+/** Update one body cell within a group. */
+export function setGroupCell(
+  values: RecordValues,
+  sectionId: string,
+  groupIndex: number,
+  rowIndex: number,
+  columnId: string,
+  value: string,
+): RecordValues {
+  const next = groupsFor(values, sectionId).map((g, i) =>
+    i === groupIndex
+      ? {
+          ...g,
+          rows: g.rows.map((r, j) =>
+            j === rowIndex ? { ...r, [columnId]: value } : r,
+          ),
+        }
+      : g,
+  );
+  return writeGroups(values, sectionId, next);
+}
+
+export function addGroup(
+  values: RecordValues,
+  section: DynamicTableSection,
+): RecordValues {
+  const next = [...groupsFor(values, section.id), emptyGroup(section)];
+  return writeGroups(values, section.id, next);
+}
+
+/** Remove a group, but never below the section's `min_groups` floor. */
+export function removeGroup(
+  values: RecordValues,
+  section: DynamicTableSection,
+  groupIndex: number,
+): RecordValues {
+  const current = groupsFor(values, section.id);
+  if (current.length <= (section.row_group?.min_groups ?? 1)) return values;
+  return writeGroups(
+    values,
+    section.id,
+    current.filter((_, i) => i !== groupIndex),
+  );
+}
+
+/**
+ * Append a body row to a group, seeded from the row above it. The source form
+ * copies the service area and diffuser type down, which is what an engineer
+ * adding the next diffuser on the same run almost always wants.
+ */
+export function addGroupRow(
+  values: RecordValues,
+  section: DynamicTableSection,
+  groupIndex: number,
+  seedFrom?: readonly string[],
+): RecordValues {
+  const next = groupsFor(values, section.id).map((g, i) => {
+    if (i !== groupIndex) return g;
+    const previous = g.rows[g.rows.length - 1];
+    const row = emptyTableRow(section);
+    for (const columnId of seedFrom ?? [])
+      row[columnId] = previous?.[columnId] ?? "";
+    return { ...g, rows: [...g.rows, row] };
+  });
+  return writeGroups(values, section.id, next);
+}
+
+/** Remove a body row from a group; a group always keeps at least one row. */
+export function removeGroupRow(
+  values: RecordValues,
+  section: DynamicTableSection,
+  groupIndex: number,
+  rowIndex: number,
+): RecordValues {
+  const next = groupsFor(values, section.id).map((g, i) =>
+    i !== groupIndex || g.rows.length <= 1
+      ? g
+      : { ...g, rows: g.rows.filter((_, j) => j !== rowIndex) },
+  );
+  return writeGroups(values, section.id, next);
 }
 
 // --- Ad-hoc appended rows -------------------------------------------------
@@ -210,6 +370,83 @@ export function setTableCell(
     i === index ? { ...row, [columnId]: value } : row,
   );
   return { ...values, tables: { ...values.tables, [sectionId]: next } };
+}
+
+/**
+ * The columns a flat table currently shows: the record's own list when the
+ * engineer has added or deleted any, the template's otherwise.
+ *
+ * Labels are POSITIONAL for a section that allows added columns — the third
+ * column reads "Test Point 3" whatever its id — so deleting one renumbers the
+ * rest exactly as the source sheets do, while the ids (and therefore the stored
+ * cell values) stay put.
+ */
+export function columnsFor(
+  values: RecordValues,
+  section: DynamicTableSection,
+): ColumnDef[] {
+  const spec = section.add_columns;
+  if (!spec) return section.columns;
+
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  return ids.map((id, index) => {
+    const fromTemplate = section.columns.find((c) => c.id === id);
+    return {
+      ...(fromTemplate ?? {}),
+      id,
+      label: `${spec.label_prefix} ${index + 1}`,
+      type: fromTemplate?.type ?? spec.type,
+      unit: fromTemplate?.unit ?? spec.unit,
+      width: fromTemplate?.width ?? spec.width,
+      align: fromTemplate?.align ?? spec.align,
+    } as ColumnDef;
+  });
+}
+
+/** Append one column, with the lowest id the section is not already using. */
+export function addTableColumn(
+  values: RecordValues,
+  section: DynamicTableSection,
+): RecordValues {
+  const spec = section.add_columns;
+  if (!spec) return values;
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  // Never reuse an id still in play: a recycled id would inherit the deleted
+  // column's leftover cell values on any row that was not cleared.
+  let n = ids.length + 1;
+  while (ids.includes(`${spec.id_prefix}${n}`)) n += 1;
+  return {
+    ...values,
+    columns: { ...values.columns, [section.id]: [...ids, `${spec.id_prefix}${n}`] },
+  };
+}
+
+/**
+ * Delete one column and the readings under it. Refuses to go below `min_count`
+ * (default 1) — a table with no columns is not a table.
+ */
+export function removeTableColumn(
+  values: RecordValues,
+  section: DynamicTableSection,
+  columnId: string,
+): RecordValues {
+  const spec = section.add_columns;
+  if (!spec) return values;
+  const ids = values.columns?.[section.id] ?? section.columns.map((c) => c.id);
+  if (ids.length <= (spec.min_count ?? 1)) return values;
+  if (!ids.includes(columnId)) return values;
+
+  const table = values.tables[section.id] ?? [];
+  const stripped = table.map((row) => {
+    const { [columnId]: _removed, ...rest } = row;
+    return rest;
+  });
+
+  return {
+    ...values,
+    columns: { ...values.columns, [section.id]: ids.filter((id) => id !== columnId) },
+    tables: { ...values.tables, [section.id]: stripped },
+  };
 }
 
 export function addTableRow(

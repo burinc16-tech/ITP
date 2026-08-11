@@ -1,0 +1,77 @@
+{
+  "code": "CPF",
+  "title": "Condensate Pipe Flood Test",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Condensate_Pipe_Flood_Test.html (9 July 2012, Rev 1) — the sanitary flood-test sheet retitled for ACMV condensate drain runs: same rows, same sign-off block, same footer revision. Filed under ACMV because condensate pipework is tested by that trade, and kept as its own template rather than a variant of SPF so the printed title matches the paper form the consultant accepts. The supplied file was saved with a completed record in it (client, From/To, dates); those are record values, not template values, and are not carried here.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "client",   "label": "Client",   "type": "text", "source": "project.client", "readonly": true },
+      { "id": "location", "label": "Location", "type": "text", "source": "equipment.location" },
+      { "id": "from",     "label": "From",     "type": "text", "required": true },
+      { "id": "to",       "label": "To",       "type": "text", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "flood_test",
+      "title": "Flood Test Readings",
+      "type": "standard",
+      "page_break_before": true,
+      "_note": "`page_break_before` on the opening section is what keeps this on one sheet: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same idiom as `fcu-lcp-checklist.json` and `chemical-flush-checklist.json`. Without it this record printed 3 pages, the second carrying nothing but the Remarks box.\n\nItem numbers follow the paper form, which starts at 2 — items From / To are the unnumbered rows above, carried here as header fields. The source prints Date and Time in one row (items 3 and 5); a checklist row carries a single control, so each is split into a dated row and a timed continuation row rather than adding form-specific rendering (Hard Rule #4). Design Pressure and the two pressure readings are text, not number: the paper form is filled with words as often as figures (\"NA\", \"Refer to attached test photo\").",
+      "columns": {
+        "result":  { "label": "Readings" },
+        "remarks": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "design_pressure", "no": "2", "type": "text", "description": "Design Pressure" },
+
+        { "id": "commence_date", "no": "3", "type": "date", "description": "Date — commencement of test" },
+        { "id": "commence_time",             "type": "time", "description": "Time — commencement of test" },
+
+        { "id": "pressure_commence", "no": "4", "type": "text", "description": "Pressure at commencement of Test" },
+
+        { "id": "end_date", "no": "5", "type": "date", "description": "Date — end of test" },
+        { "id": "end_time",             "type": "time", "description": "Time — end of test" },
+
+        { "id": "pressure_end", "no": "6", "type": "text", "description": "Pressure at end of Test", "photo": true,
+          "_note": "Photos attach here because the paper form's own reading is routinely \"Refer to attached test photo\". The print row appears only when photos exist, so a record without them matches the source page." },
+
+        { "id": "overall_result", "type": "status", "description": "Pass / Fail",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "fields": [
+        { "id": "remarks",          "label": "Remarks",                     "type": "textarea" },
+        { "id": "instruments_used", "label": "Remarks / Instruments Used",  "type": "text" }
+      ],
+      "_note": "Two fields because the paper form carries two: a free Remarks box and the ruled REMARKS / INSTRUMENTS USED line beneath it. The instruments line stays free text — the source form does not tabulate calibrated instruments the way the Power Turn-on form does, so no `instruments` block is declared."
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, and the source form closes the single sheet with the signature rows directly beneath the remarks. Both carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`. No `page_break_before` — it shares the page.",
+      "signatures": [
+        { "id": "sig_tested",       "role": "Tested By",       "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true,  "stage": "contractor" },
+        { "id": "sig_witnessed",    "role": "Witnessed By",    "required": false, "stage": "witness" },
+        { "id": "sig_acknowledged", "role": "Acknowledged By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

@@ -52,6 +52,10 @@ service-worker/PWA precaching (`pwa.test.ts`, `sw.behavior.test.ts`); the
 calibration register (`components/calibration-register.tsx`); and the
 outstanding-items list (`components/outstanding-list.tsx`, `lib/outstanding.ts`).
 All three §12 templates plus the heat load test are converted (`/spec/templates`).
+A fifth, `vav-air-balancing.json` (ACMV air balancing), is converted on top of the
+grouped-table extension to `dynamic_table` — `row_group` with spanning group cells
+and per-group totals, plus `calculated` columns evaluated by `lib/formula.ts`
+(SPEC §12). It has not yet been run on a live project.
 
 What remains before Phase 5 closes (§11 — each phase ends with real use on a live
 project): (1) settle the three ⛔ Rev A decisions for `heat-load-test.json` against

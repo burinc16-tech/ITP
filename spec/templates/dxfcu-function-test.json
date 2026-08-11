@@ -1,0 +1,164 @@
+{
+  "code": "DFT",
+  "title": "DX FCU Function Test",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "landscape" },
+  "source": "spec/DX_FCU_Function_Test.html (Rev 0)",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",     "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "fcu_tag",     "label": "FCU Tag No.", "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "description", "label": "Description", "type": "textarea" },
+      { "id": "date",        "label": "Date",        "type": "date", "required": true }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "air_flow_measurement",
+      "no": "1",
+      "title": "DX-FCU Air Flow Measurement (Indoor Unit)",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "LANDSCAPE, two pages — same measured departure as chwfcu-function-test.json, for the same reason: the source is a single A4 portrait sheet that fits 15 columns only via nested multi-row headers at 8px (\"Supply Air flow\" spanning \"Design\"/\"Actual\") with no logo band, whereas the app renders one flat header row per column. The break on `cu_pressure_measurement` splits the body: indoor-unit tables here, outdoor-unit tables plus instruments/remarks/sign-off there.\n\nThe six identity columns (Tag. No … Model / Serial) repeat on all four measurement tables. That is the paper form's own layout, not an oversight — the repo standard is that matching the original wins (CLAUDE.md). The source pre-fills the identity and design cells for one specific FCU (DXFCU-A-FCC-101, DAIKIN FXMQ140PAVE); those are record data, not template wording, so no `prefilled_rows` here.\n\nThe source prints the air-flow unit as \"CHM\" — a typo for CMH (it also prints \"CMH\" nowhere else and the sibling CHW FCU forms use CMH). Rendered as CMH; flag at Rev A review if the consultant requires character-fidelity to the typo.",
+      "columns": [
+        { "id": "tag",           "label": "Tag. No",        "type": "text",   "width": "11%" },
+        { "id": "location",      "label": "Location",       "type": "text",   "width": "9%", "carry_down": true },
+        { "id": "area",          "label": "Area Served",    "type": "text",   "width": "9%" },
+        { "id": "brand",         "label": "Brand",          "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "model",         "label": "Model / Serial", "type": "text",   "width": "12%" },
+        { "id": "total_cooling", "label": "Total Cooling",  "type": "number", "unit": "kW",  "width": "8%", "align": "center" },
+        { "id": "sensible",      "label": "Sensible",       "type": "number", "unit": "kW",  "width": "8%", "align": "center" },
+        { "id": "sa_design",     "label": "Supply Air Flow Design", "type": "number", "unit": "CMH", "width": "9%", "align": "center" },
+        { "id": "sa_actual",     "label": "Supply Air Flow Actual", "type": "number", "unit": "CMH", "width": "9%", "align": "center" },
+        { "id": "remarks",       "label": "Remarks",        "type": "textarea", "width": "17%" }
+      ]
+    },
+
+    {
+      "id": "fcu_power_measurement",
+      "no": "2",
+      "title": "DX-FCU Power Measurement (Indoor Unit)",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "columns": [
+        { "id": "tag",         "label": "Tag. No",           "type": "text",   "width": "11%" },
+        { "id": "location",    "label": "Location",          "type": "text",   "width": "9%", "carry_down": true },
+        { "id": "area",        "label": "Area Served",       "type": "text",   "width": "9%" },
+        { "id": "brand",       "label": "Brand",             "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "model",       "label": "Model / Serial",    "type": "text",   "width": "12%" },
+        { "id": "run_current", "label": "Running Current",   "type": "number", "unit": "A",  "width": "8%", "align": "center" },
+        { "id": "fl_current",  "label": "Full Load Current", "type": "number", "unit": "A",  "width": "8%", "align": "center" },
+        { "id": "voltage",     "label": "Voltage",           "type": "number", "unit": "V",  "width": "7%", "align": "center" },
+        { "id": "rated_power", "label": "Rated Power",       "type": "number", "unit": "kW", "width": "7%", "align": "center" },
+        { "id": "phase",       "label": "Phase",             "type": "text",   "width": "5%", "align": "center",
+          "_note": "Text, not number: the source form is filled \"1P\" (and \"3P\" on the CU table)." },
+        { "id": "remarks",     "label": "Remarks",           "type": "textarea", "width": "16%" }
+      ]
+    },
+
+    {
+      "id": "cu_pressure_measurement",
+      "no": "3",
+      "title": "DX CU Pressure Measurement (Outdoor Unit)",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "Sections 3 and 4 record the OUTDOOR unit (condensing unit): `tag` here is the CU tag — the source sample reads DXCU-A-NR-401 against the indoor DXFCU-A-FCC-101 — and `model` is a single \"Model\" cell on the paper, no serial. Pressure is the source's \"CU PRESSURE H/L (PSI)\" pair.",
+      "columns": [
+        { "id": "tag",         "label": "Tag. No",          "type": "text",   "width": "11%" },
+        { "id": "location",    "label": "Location",         "type": "text",   "width": "9%", "carry_down": true },
+        { "id": "area",        "label": "Area Served",      "type": "text",   "width": "9%" },
+        { "id": "brand",       "label": "Brand",            "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "model",       "label": "Model",            "type": "text",   "width": "12%" },
+        { "id": "air_flow",    "label": "Air Flow",         "type": "number", "unit": "CMH", "width": "9%", "align": "center" },
+        { "id": "cooling_cap", "label": "Cooling Capacity", "type": "number", "unit": "kW",  "width": "9%", "align": "center" },
+        { "id": "press_high",  "label": "CU Pressure High", "type": "number", "unit": "PSI", "width": "8%", "align": "center" },
+        { "id": "press_low",   "label": "CU Pressure Low",  "type": "number", "unit": "PSI", "width": "8%", "align": "center" },
+        { "id": "remarks",     "label": "Remarks",          "type": "textarea", "width": "17%" }
+      ]
+    },
+
+    {
+      "id": "cu_power_measurement",
+      "no": "4",
+      "title": "DX CU Power Measurement (Outdoor Unit)",
+      "type": "dynamic_table",
+      "font_size": "7pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "columns": [
+        { "id": "tag",         "label": "Tag. No",           "type": "text",   "width": "10%" },
+        { "id": "location",    "label": "Location",          "type": "text",   "width": "8%", "carry_down": true },
+        { "id": "area",        "label": "Area Served",       "type": "text",   "width": "8%" },
+        { "id": "brand",       "label": "Brand",             "type": "text",   "width": "7%", "carry_down": true },
+        { "id": "model",       "label": "Model",             "type": "text",   "width": "11%" },
+        { "id": "air_flow",    "label": "Air Flow",          "type": "number", "unit": "CMH", "width": "7%", "align": "center" },
+        { "id": "cooling_cap", "label": "Cooling Capacity",  "type": "number", "unit": "kW",  "width": "7%", "align": "center" },
+        { "id": "run_current", "label": "Running Current",   "type": "number", "unit": "A",   "width": "7%", "align": "center" },
+        { "id": "fl_current",  "label": "Full Load Current", "type": "number", "unit": "A",   "width": "7%", "align": "center" },
+        { "id": "voltage",     "label": "Voltage",           "type": "number", "unit": "V",   "width": "6%", "align": "center" },
+        { "id": "rated_power", "label": "Rated Power",       "type": "number", "unit": "kW",  "width": "6%", "align": "center" },
+        { "id": "phase",       "label": "Phase",             "type": "text",   "width": "4%", "align": "center" },
+        { "id": "remarks",     "label": "Remarks",           "type": "textarea", "width": "12%" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "no": "5",
+      "title": "Test Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "7pt",
+      "min_rows": 3,
+      "_note": "The source form carries one free-text box headed \"REMARKS / TEST INSTRUMENTS USED\", filled with a numbered list of instruments and their serial numbers (multimeter, clamp meter, balometer). Split here into a table plus the remarks row below, exactly as on chwfcu-function-test.json: only a table can be read by `link_to_instrument_register`, which is what catches an out-of-calibration instrument (SPEC §5). Three rows to match the three instruments the source form lists.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument",    "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",      "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",     "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",       "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "no": "6",
+      "title": "Remarks",
+      "type": "standard",
+      "columns": {
+        "result": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "general_remarks", "type": "textarea",
+          "description": "Remarks / observations recorded during the test" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "signatures": [
+      { "id": "sig_tested",   "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+      { "id": "sig_witness",  "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_verified", "role": "Verified By",  "required": false, "stage": "client" }
+    ]
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "code": "DAL",
+  "title": "Ductwork Air Leakage Test",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Ductwork_Air_Leakage_Test.html (Rev 0)",
+
+  "header": {
+    "title": "Request For Inspection",
+    "fields": [
+      { "id": "project",      "label": "Project",       "type": "text", "source": "project.name", "readonly": true },
+      { "id": "equip_doc_no", "label": "Equip Doc No",  "type": "text", "source": "equipment.tag", "required": true },
+      { "id": "service",      "label": "Service",       "type": "text", "default": "ACMV Installation" },
+      { "id": "insp_no",      "label": "Insp No",       "type": "text" },
+      { "id": "date",         "label": "Date",          "type": "date", "required": true },
+      { "id": "insp_item",    "label": "Inspection Item", "type": "text", "required": true },
+      { "id": "served_area",  "label": "Equipment / Material Served Area", "type": "text" },
+      { "id": "system_ref",   "label": "System Reference", "type": "text", "default": "ACMV" },
+      { "id": "drawing_ref",  "label": "Drawing Reference", "type": "text", "source": "equipment.drawing_ref" },
+      { "id": "location",     "label": "Location",      "type": "text", "source": "equipment.location" },
+      { "id": "duct_ref",     "label": "Ductwork Tested (as marked on drawing)", "type": "text" }
+    ]
+  },
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" },
+
+  "sections": [
+    {
+      "id": "primary_data",
+      "title": "PRIMARY DATA",
+      "type": "standard",
+      "columns": {
+        "result": { "label": "Value" }
+      },
+      "_note": "Items 1, 2, 3 and 5 of the paper form. Item 4 is the duct section table and follows as its own section, so the numbering here skips 4 rather than renumbering the form. The form's top-right cell — a marked-up drawing extract captioned \"(Highlight The Ductwork Which Is Tested)\" over a designation such as \"SAD\" — is carried as the header field `duct_ref`: only the designation is a value, and the marked-up drawing is evidence that belongs in the photo attachment pages (SPEC §12).",
+      "rows": [
+        { "id": "pressure_class", "no": "1", "type": "dropdown",
+          "description": "Pressure Classification * (Class A = Below 501 Pa; Class B = 501~1000 Pa; Class C = 1001~2000 Pa; Class D = 2001~2500 Pa)",
+          "options": ["Class A", "Class B", "Class C", "Class D"],
+          "_note": "A dropdown rather than free text: the four classes are fixed by DW/143 and the class chosen sets the test pressure in the next row." },
+
+        { "id": "test_pressure", "no": "2", "type": "number", "unit": "Pa",
+          "description": "Testing Pressure. Remarks: Maximum duct pressure rating of relevant class is adopted as testing pressure, or test at fan S.P. when it is above 2500 Pa." },
+
+        { "id": "leakage_factor", "no": "3", "type": "number", "unit": "L/s/M2",
+          "description": "Leakage Factor (referring to DW/143)",
+          "emphasis": [{ "text": "DW/143", "colour": "#0070C0" }] },
+
+        { "id": "max_leakage", "no": "5", "type": "number", "unit": "L/s",
+          "description": "Maximum permitted leakage = Area x Leakage Factor",
+          "_note": "Entered, not calculated. `formula` on a standard row is not evaluated by the renderer — `calculated` is a dynamic-table column type only (SPEC §12) — and the two inputs live in different sections, which the row-scoped evaluator cannot reach. The engineer reads the area off the duct-section totals line and multiplies by row 3, exactly as on the paper form. Making this computable would need a cross-section formula scope, which is a schema change, not a template one." }
+      ]
+    },
+
+    {
+      "id": "duct_sections",
+      "no": "4",
+      "title": "Duct Sections Under Test",
+      "type": "dynamic_table",
+      "min_rows": 4,
+      "columns": [
+        { "id": "section",   "label": "Section", "type": "text", "width": "12%", "align": "center",
+          "_note": "Typed, not auto-numbered: the paper form letters its sections A, B, C, D and `auto_number` produces 1..n." },
+        { "id": "size",      "label": "Width and Depth or Diameter", "type": "text", "unit": "M", "width": "28%", "align": "center",
+          "_note": "Text, not number: the source form is filled \"2.6 X 0.35\" for rectangular duct and a single figure for round." },
+        { "id": "periphery", "label": "Periphery", "type": "number", "unit": "M", "width": "18%", "align": "center" },
+        { "id": "length",    "label": "Length",    "type": "number", "unit": "M", "width": "18%", "align": "center" },
+        { "id": "area",      "label": "Area",      "type": "calculated", "unit": "M2", "width": "24%", "align": "center",
+          "formula": "periphery * length", "decimals": 3 }
+      ],
+      "totals": {
+        "label": "Total >>>",
+        "cells": [
+          { "column": "area", "aggregate": "sum", "unit": " (M2)", "decimals": 3 }
+        ]
+      }
+    },
+
+    {
+      "id": "measured_data",
+      "title": "MEASURED DATA",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Reading" },
+        "remarks": { "label": "Remarks" }
+      },
+      "rows": [
+        { "id": "static_pressure", "no": "1", "type": "number", "unit": "Pa",
+          "description": "Duct Static Pressure Reading", "remarks": true, "photo": true,
+          "_note": "Photos attach here — the manometer display is the evidence a witness looks for." },
+
+        { "id": "flow_device", "no": "2", "type": "number", "unit": "m3/h",
+          "description": "Reading of Flow Measuring Device", "remarks": true },
+
+        { "id": "flow_ls", "no": "2a", "type": "number", "unit": "L/s",
+          "description": "Reading of Flow Measuring Device, converted",
+          "_note": "The paper form writes the m3/h reading and its L/s equivalent in one row, separated by \"=\". Two rows here because a standard row carries one value; the conversion is not calculated for the same reason as `max_leakage`." },
+
+        { "id": "leakage_rate", "no": "3", "type": "number", "unit": "L/s",
+          "description": "Air flow Leakage Rate (must be less than the maximum permitted leakage)", "remarks": true },
+
+        { "id": "test_result", "no": "4", "type": "pass_fail_na",
+          "description": "Test Result (refer to device)", "labels": ["Passed", "Failed", "N/A"], "remarks": true },
+
+        { "id": "test_duration", "no": "5", "type": "number", "unit": "Min.",
+          "description": "Duration of Test (normally 15 minutes)", "remarks": true }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "title": "Testing Instruments",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "link_to_instrument_register": true,
+      "min_rows": 2,
+      "font_size": "8pt",
+      "_note": "The paper form fixes three instrument lines (air flow meter, vertical tube manometer, inclined manometer) then repeats Serial No / CAL Date / DUE Date once per meter. A table instead: the same form is used with one meter or two, and this shape is what `link_to_instrument_register` reads so an out-of-calibration instrument is caught (SPEC §5).",
+      "columns": [
+        { "id": "instrument", "label": "Testing Instrument", "type": "text", "width": "26%" },
+        { "id": "make",       "label": "Make",               "type": "text", "width": "18%" },
+        { "id": "model",      "label": "Model No",           "type": "text", "width": "18%" },
+        { "id": "serial_no",  "label": "Serial No",          "type": "text", "width": "18%" },
+        { "id": "cal_date",   "label": "CAL Date",           "type": "date", "width": "10%", "align": "center" },
+        { "id": "due_date",   "label": "DUE Date",           "type": "date", "width": "10%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "type": "sign_off",
+      "layout": "two_column",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, and the source form closes page 2 with the instruments block directly above the signatures. Both carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. No `page_break_before` — it shares the instruments page.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client",
+          "_note": "The source form draws the second witness block in the right-hand column only, below the first — two witnessing parties, main contractor and consultant/client." }
+      ]
+    }
+  ]
+}

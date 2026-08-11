@@ -25,7 +25,7 @@ const trimBase = (base: string): string => base.replace(/\/$/, "");
 export class AuthClient {
   constructor(
     private readonly baseUrl: string,
-    private readonly fetchImpl: typeof fetch = fetch,
+    private readonly fetchImpl: typeof fetch = (input, init) => fetch(input, init),
   ) {}
 
   /** Log in; resolves to a session or throws with a user-facing message. */

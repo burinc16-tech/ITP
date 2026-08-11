@@ -1,3 +1,9 @@
+import {
+  buildBackup,
+  countsOf,
+  type RegistryBackup,
+  type RegistryCounts,
+} from "../lib/registry-backup";
 import type { ChecklistDb } from "./db";
 import type { Equipment, Project, SystemNode } from "./registry";
 
@@ -54,5 +60,30 @@ export class RegistryRepo {
   /** Every equipment tag across all projects, for cross-project views. */
   async listAllEquipment(): Promise<Equipment[]> {
     return this.db.equipment.toArray();
+  }
+
+  /** The whole registry as a backup file's contents (SPEC §4). */
+  async exportBackup(now: string): Promise<RegistryBackup> {
+    const [projects, systems, equipment] = await Promise.all([
+      this.listProjects(),
+      this.listAllSystems(),
+      this.listAllEquipment(),
+    ]);
+    return buildBackup({ projects, systems, equipment, now });
+  }
+
+  /**
+   * Merge a backup into this device's registry — upsert by id, like every other
+   * registry write. Merging rather than replacing is what makes one file serve
+   * both jobs: restoring a cleared browser, and carrying a project to a second
+   * device without wiping what that device already has. Ids are UUIDv7 from the
+   * machine that created them (Hard Rule #2), so entries only ever overwrite
+   * themselves.
+   */
+  async importBackup(backup: RegistryBackup): Promise<RegistryCounts> {
+    await this.db.projects.bulkPut(backup.projects);
+    await this.db.systems.bulkPut(backup.systems);
+    await this.db.equipment.bulkPut(backup.equipment);
+    return countsOf(backup);
   }
 }

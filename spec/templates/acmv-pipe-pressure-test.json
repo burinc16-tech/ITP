@@ -1,0 +1,127 @@
+{
+  "code": "APT",
+  "title": "ACMV Pipe Pressure Test",
+  "rev": "A",
+  "discipline": "ACMV",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/ACMV_Pipe_Pressure_Test.html (Rev 0)",
+
+  "header": {
+    "title": "Report Details",
+    "fields": [
+      { "id": "contractor", "label": "Contractor", "type": "text", "default": "Kenyon Pte Ltd" },
+      { "id": "ref_no",     "label": "Ref. No.",   "type": "text" },
+      { "id": "area",       "label": "Area",       "type": "text", "required": true },
+      { "id": "sheet_no",   "label": "Sheet",      "type": "number", "default": 1 },
+      { "id": "sheet_of",   "label": "of",         "type": "number", "default": 1 },
+      { "id": "date",       "label": "Date",       "type": "date" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "line_reference",
+      "no": "1",
+      "title": "PART 1: Piping — Line Reference Data (use a continuation sheet attached if more than one P&ID / ISO)",
+      "type": "field_group",
+      "_note": "This is the same four-part pressure test report as `plumbing-pressure-test.json` (PPT), issued for ACMV pipework rather than plumbing and sanitary. Diffed against the plumbing source: the parts, fields and wording match; only the sheet title, the discipline, and the sign-off's Company / Designation lines differ. Kept as its own template rather than widening PPT — a template carries one discipline, and the repo already runs near-identical siblings this way (`chwfcu-air-balancing` / `dxfcu-air-balancing`). If the two forms are ever revised together, revise both.\n\nUnlike PPT there is no unlabelled note box beside Line No: the ACMV sheet spans the row with a single input.\n\nThe sheet asks each signer for a Designation as well as a Name and Company; `signatureSchema` carries role and company only, so that line is not captured. Adding it is a schema change, not a template one.",
+      "fields": [
+        { "id": "pid_no",  "label": "P&ID No's", "type": "text" },
+        { "id": "pid_rev", "label": "P&ID Rev",  "type": "text" },
+        { "id": "dwg_no",  "label": "Dwg. No's", "type": "text", "source": "equipment.drawing_ref" },
+        { "id": "dwg_rev", "label": "Dwg. Rev",  "type": "text" },
+        { "id": "line_no", "label": "Line No",   "type": "text" }
+      ]
+    },
+
+    {
+      "id": "gauge_data",
+      "no": "2",
+      "title": "PART 2: Pressure Gauge & Chart Recorder Data",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Details" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "One section per paper Part. Rows rather than a field group because the two certificate questions are three-state controls, which a field group cannot render; the `group` labels also disambiguate the repeated Calibration Date / Expiry Date rows. Not wired to the app's calibration register — the sheet records one fixed gauge and one fixed chart recorder rather than a table of instruments, so no `instruments` block is declared. Same call as PPT.",
+      "rows": [
+        { "id": "pg_no",    "type": "text", "group": "Pressure Gauge", "description": "Pressure Gauge No's" },
+        { "id": "pg_range", "type": "text", "group": "Pressure Gauge", "description": "Pressure Gauge Range (Bar / Psi)" },
+        { "id": "pg_cal",   "type": "date", "group": "Pressure Gauge", "description": "Calibration Date" },
+        { "id": "pg_exp",   "type": "date", "group": "Pressure Gauge", "description": "Expiry Date" },
+
+        { "id": "cr_no",    "type": "text", "group": "Chart Recorder", "description": "Chart Recorder No's" },
+        { "id": "cr_range", "type": "text", "group": "Chart Recorder", "description": "Chart Recorder Range (Bar / Psi)" },
+        { "id": "cr_cal",   "type": "date", "group": "Chart Recorder", "description": "Calibration Date" },
+        { "id": "cr_exp",   "type": "date", "group": "Chart Recorder", "description": "Expiry Date" },
+
+        { "id": "tg_cert", "type": "pass_fail_na", "group": "Certificates",
+          "description": "Test Gauge Calibration Certificate attached",
+          "labels": ["YES", "NO", "N/A"], "remarks": true },
+        { "id": "cr_cert", "type": "pass_fail_na", "group": "Certificates",
+          "description": "Chart Recorder Calibration Certificate attached",
+          "labels": ["YES", "NO", "N/A"], "remarks": true,
+          "_note": "Both certificate rows carry a remarks cell because N/A requires a remark (SPEC §5) — and N/A is the routine answer here when no chart recorder is used." }
+      ]
+    },
+
+    {
+      "id": "test_data",
+      "no": "3",
+      "title": "PART 3: Test Data",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Reading" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "Type of Test and Test Medium are `status` rows with `neutral` outcomes — they classify the test, they do not pass or fail it, so they must not reach the outstanding-items list. Each keeps its own \"Other — please state\" text row, as on the sheet. Pressures and temperatures stay text, not number: the sheet's own placeholders are filled with the unit inline (\"152 psi\") and with \"NA\".\n\nThe break gives Part 3 its own sheet. Measured with every field filled: Parts 1–2 come to 213.6mm of a 245mm body, Part 3 to 214.6mm, and Part 4 to 106.8mm on the page PrintView gives the footer. Part 3 and Part 4 together measured 321.4mm — 76mm over — which is why the sign-off is the footer rather than an in-flow section.",
+      "rows": [
+        { "id": "start_date", "type": "date", "group": "Test Data", "description": "Start Date" },
+        { "id": "end_date",   "type": "date", "group": "Test Data", "description": "End Date" },
+        { "id": "design_p",   "type": "text", "group": "Test Data", "description": "Design Pressure" },
+
+        { "id": "test_type", "type": "status", "group": "Type of Test", "description": "Type of Test",
+          "states": [
+            { "value": "hydrostatic", "label": "Hydrostatic", "outcome": "neutral" },
+            { "value": "pneumatic",   "label": "Pneumatic",   "outcome": "neutral" },
+            { "value": "other",       "label": "Other",       "outcome": "neutral" }
+          ] },
+        { "id": "test_type_other", "type": "text", "group": "Type of Test", "description": "Other type of test — please state" },
+
+        { "id": "test_medium", "type": "status", "group": "Test Medium", "description": "Test Medium",
+          "states": [
+            { "value": "water", "label": "Water", "outcome": "neutral" },
+            { "value": "other", "label": "Other", "outcome": "neutral" }
+          ] },
+        { "id": "test_medium_other", "type": "text", "group": "Test Medium", "description": "Other test medium — please state" },
+
+        { "id": "start_time",  "type": "time",     "group": "Test Duration", "description": "Start Time" },
+        { "id": "finish_time", "type": "time",     "group": "Test Duration", "description": "Finish Time" },
+        { "id": "duration",    "type": "duration", "group": "Test Duration", "description": "Duration" },
+
+        { "id": "rp_start",  "type": "text", "group": "Recorded Test Pressure (Bar / Psi)", "description": "Start" },
+        { "id": "rp_finish", "type": "text", "group": "Recorded Test Pressure (Bar / Psi)", "description": "Finish", "photo": true,
+          "_note": "Photos attach to the finishing pressure — the gauge photo is the evidence a witness looks for. The print row appears only when photos exist, so a record without them matches the source page." },
+
+        { "id": "tt_start",  "type": "text", "group": "Test Temperature (°C)", "description": "Start" },
+        { "id": "tt_finish", "type": "text", "group": "Test Temperature (°C)", "description": "Finish" },
+
+        { "id": "remarks", "type": "textarea", "group": "Remarks / Exceptions",
+          "description": "Remarks / Exceptions — attach test certificates, calibration reports etc. as necessary to this report" }
+      ]
+    }
+  ],
+
+  "footer": {
+    "no": "4",
+    "title": "PART 4: Test result witnessed and certified as satisfactory. Pipeline(s) to be drained and re-instated for pre-commissioning.",
+    "signatures": [
+      { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+      { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+      { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+    ]
+  }
+}

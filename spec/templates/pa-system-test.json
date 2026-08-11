@@ -1,0 +1,69 @@
+{
+  "code": "PAS",
+  "title": "Public Address System Test Sheet",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Public_Address_System_Test_Sheet.html — a one-page sheet: a banner carrying Client and Location, a title block with the drawing number and the instruction \"To check ALL PA Announcement are audible\", one location-by-location audibility table, a combined remarks/instruments box and a three-row sign-off. The supplied file was saved with a completed record in it (Apple South Asia Pte Ltd; AMK 2&3 (Infra Project); drawings KEN-24-0065-P2-EL-602_1 & KEN-24-0065-P2-EL-601; row 1 reading \"Pls refer to attached Drawing\"); those are record values, not template values, and are not carried here.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",    "label": "Project",     "type": "text", "source": "project.name", "readonly": true },
+      { "id": "client",     "label": "Client",      "type": "text", "source": "project.client", "readonly": true },
+      { "id": "location",   "label": "Location",    "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "drawing_no", "label": "Drawing No.", "type": "text" },
+      { "id": "test_date",  "label": "Date",        "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "audibility",
+      "title": "To check ALL PA Announcement are audible",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 8,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "`page_break_before` on the opening section is the grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same as `fire-pwd-intercom-test.json`.\n\nThe source's instruction line — \"To check ALL PA Announcement are audible\" — is the section title rather than a field: it is fixed wording on the paper, not something a record fills in, and a section title is where this library already carries a sentence (see the ACMV pressure test's PART 4 heading).\n\n**The two sound-level columns are `text`, not `number`.** A dBA reading is a figure, but the supplied record writes \"Pls refer to attached Drawing\" into the Location, Ambient and PA cells where the levels are marked up on the drawing instead — a numeric column would refuse the record this sheet is actually issued with, and matching the original wins (CLAUDE.md). The unit still prints, so a bare figure reads as dBA. Worth confirming against the paper master before Rev A hardens.\n\nNo pass/fail `limit` is declared. The paper states no acceptance criterion — the usual one is a margin over ambient, which differs by project — so the engineer's own Pass/Fail call is the result, and inventing a bound here would fail rows the consultant would accept.\n\nThe source's Pass/Fail dropdown is Pass / Fail / N/A with a blank default; the outcomes make a Fail derivable as an outstanding item (SPEC §6).\n\nThe source seeds eighteen blank rows and grows by cloning the WHOLE sheet — its \"+ Add page\" button copies header and sign-off too, purely to get more rows, then renumbers the S/N across pages. Here the table grows and the record stays one document with one sign-off; `min_rows` is eight and the engineer adds what the walk-round needs, so a record with ten locations prints ten rows rather than ten plus eight empty ones.",
+      "columns": [
+        { "id": "location",  "label": "Location / Zone",  "type": "text", "width": "30%" },
+        { "id": "ambient",   "label": "Ambient Noise",    "type": "text", "unit": "dBA", "width": "15%", "align": "center" },
+        { "id": "pa_level",  "label": "PA Sound Level",   "type": "text", "unit": "dBA", "width": "15%", "align": "center" },
+        { "id": "result",    "label": "Pass / Fail",      "type": "status", "width": "12%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "remark",    "label": "Remark",           "type": "text", "width": "28%" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks / Instruments Used",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `lighting-circuit-test.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a plain ruled box; this prints as one.\n\nThe box is the paper's only record of the sound level meter used — it heads REMARKS/INSTRUMENTS USED and gives no instrument table — so no `instruments` block is declared. When the record↔instrument linking lands (`lib/calibration.ts`), this template will want a proper instrument section rather than a prose box.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks / Instruments Used", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would print a one-page source on two sheets. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `fire-pwd-intercom-test.json`.\n\nThe source's three rows, and it heads the lower two identically — \"Witnessed By\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date — no company column. The renderer always prints Company, so Tested By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

@@ -49,6 +49,48 @@ describe("RegistryRepo", () => {
     expect(equipment[0]!.tag).toBe("DB-1");
   });
 
+  it("exports the whole registry and restores it into an empty device", async () => {
+    const source = freshRepo();
+    const projectId = uuidv7();
+    const sysId = uuidv7();
+    await source.addProject(
+      createProject({ id: projectId, now: "t", code: "AMK3", name: "AMK", client: "C" }),
+    );
+    await source.addSystem(createSystem({ id: sysId, projectId, name: "ACMV", code: "A" }));
+    await source.addEquipment(
+      createEquipment({ id: uuidv7(), projectId, systemId: sysId, tag: "AHU-B-102" }),
+    );
+
+    const backup = await source.exportBackup("2026-08-10T00:00:00.000Z");
+    expect(backup.projects).toHaveLength(1);
+
+    // A cleared browser: nothing local, everything comes back from the file.
+    const restored = freshRepo();
+    expect(await restored.listProjects()).toHaveLength(0);
+    const counts = await restored.importBackup(backup);
+    expect(counts).toEqual({ projects: 1, systems: 1, equipment: 1 });
+    expect((await restored.listProjects())[0]!.name).toBe("AMK");
+    expect((await restored.listEquipment(projectId))[0]!.tag).toBe("AHU-B-102");
+  });
+
+  it("merges an import into an existing device rather than wiping it", async () => {
+    const device = freshRepo();
+    const mine = uuidv7();
+    await device.addProject(
+      createProject({ id: mine, now: "t", code: "MINE", name: "Mine", client: "C" }),
+    );
+
+    const other = freshRepo();
+    const theirs = uuidv7();
+    await other.addProject(
+      createProject({ id: theirs, now: "t", code: "THEIRS", name: "Theirs", client: "C" }),
+    );
+
+    await device.importBackup(await other.exportBackup("t"));
+    const codes = (await device.listProjects()).map((p) => p.code).sort();
+    expect(codes).toEqual(["MINE", "THEIRS"]);
+  });
+
   it("upserts a project by id rather than duplicating", async () => {
     const repo = freshRepo();
     const id = uuidv7();

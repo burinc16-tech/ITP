@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanitary Pipe Flood Test</title>
+<style>
+  :root{ --line:#000; --hdr:#d9d9d9; --accent:#1f5fa8; }
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial, Helvetica, sans-serif; margin:0; background:#eceff1; color:#000; }
+
+  .toolbar{ position:sticky; top:0; z-index:50; background:#263238; color:#fff;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 14px; }
+  .toolbar b{ font-size:14px; margin-right:6px; }
+  .toolbar button{ font:600 13px Arial; padding:8px 14px; border:0; border-radius:6px;
+    cursor:pointer; background:var(--accent); color:#fff; }
+  .toolbar button.sec{ background:#546e7a; }
+  .toolbar button:hover{ filter:brightness(1.1); }
+  .toolbar .status{ font-size:12px; opacity:.85; margin-left:auto; }
+
+  .sheet{ width:820px; max-width:100%; margin:16px auto; background:#fff; border:2px solid var(--line); }
+  table.form{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.form td{ border:1px solid var(--line); padding:3px 6px; font-size:12.5px; vertical-align:middle; height:26px; }
+  .lbl{ font-weight:bold; white-space:nowrap; }
+  .center{ text-align:center; }
+  .band{ background:var(--hdr); font-weight:bold; }
+  .title{ text-align:center; font-size:19px; font-weight:bold; letter-spacing:.5px; padding:6px; }
+  input.titlefield{ width:100%; text-align:center; font:bold 19px Arial, Helvetica, sans-serif;
+    letter-spacing:.5px; color:#000; background:transparent; border:0; border-bottom:1px dotted transparent;
+    padding:0; margin:0; }
+  input.titlefield:hover{ border-bottom:1px dotted #90a4ae; }
+  input.titlefield:focus{ outline:none; border-bottom:1.5px solid var(--accent); background:#eef4fc; }
+  .title.band{ padding:4px 6px; }
+  .logo img{ max-width:120px; max-height:66px; height:auto; display:block; }
+  .colhdr{ background:var(--hdr); font-weight:bold; text-align:center; }
+
+  input.f, textarea.f{ font:12.5px Arial; border:0; border-bottom:1px dotted #9aa; background:transparent;
+    padding:1px 2px; color:#00308f; font-weight:600; width:auto; }
+  input.f:focus, textarea.f:focus{ outline:none; border-bottom:1.5px solid var(--accent); background:#eef4fc; }
+  textarea.f{ resize:vertical; border:1px solid #cfd8dc; width:100%; display:block; }
+  .remarks textarea{ min-height:70px; }
+
+  .flexrow{ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; width:100%; }
+  .grow{ flex:1 1 40px; min-width:30px; }
+
+  label.cb{ display:inline-flex; align-items:center; gap:4px; margin:0 16px 0 0; font-weight:bold; cursor:pointer; white-space:nowrap; }
+  label.cb input{ width:15px; height:15px; accent-color:var(--accent); cursor:pointer; margin:0; }
+
+  .sigwrap{ position:relative; }
+  canvas.sig{ width:100%; height:54px; border:1px solid #cfd8dc; background:#fff;
+    touch-action:none; display:block; border-radius:3px; }
+  .sigclear{ position:absolute; top:2px; right:2px; font:10px Arial; padding:0 6px;
+    border:1px solid #b0bec5; background:#fafafa; border-radius:4px; cursor:pointer; color:#455; }
+  .sigclear:hover{ background:#eceff1; }
+
+  .footer{ text-align:right; font-size:11px; padding:2px 8px; color:#333; }
+
+  @media print{
+    body{ background:#fff; }
+    .toolbar, .sigclear, .noprint{ display:none !important; }
+    .sheet{ margin:0; border:2px solid #000; width:100%; }
+    table.form td{ font-size:11px; height:22px; padding:2px 5px; }
+    input.f, textarea.f{ font-size:11px; color:#00308f; border-bottom:1px solid #999; background:transparent !important; }
+    textarea.f{ border:1px solid #999; }
+    .remarks textarea{ min-height:56px; }
+    canvas.sig{ height:48px; }
+    .title{ font-size:17px; }
+    input.titlefield{ font-size:17px; color:#000; border-bottom:0 !important; background:transparent !important; }
+    @page{ size:A4 portrait; margin:9mm; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar noprint">
+  <b id="toolbarTitle">Sanitary Pipe Flood Test</b>
+  <button onclick="saveAsPDF()">🖨️ Save / Print as PDF</button>
+  <button class="sec" onclick="saveAsHTML()">💾 Save as HTML (keep entries)</button>
+  <button class="sec" onclick="restoreAutosave()">↺ Restore last autosave</button>
+  <button class="sec" onclick="clearAllSignatures()">✍️ Clear signatures</button>
+  <span class="status" id="status">Ready</span>
+</div>
+
+<div class="sheet" id="sheet">
+<table class="form">
+  <colgroup>
+    <col style="width:8.34%"><col style="width:8.34%"><col style="width:8.34%">
+    <col style="width:8.33%"><col style="width:8.33%"><col style="width:8.33%">
+    <col style="width:8.33%"><col style="width:8.33%"><col style="width:8.33%">
+    <col style="width:8.33%"><col style="width:8.33%"><col style="width:8.33%">
+  </colgroup>
+
+  <!-- HEADER BAND: logo + client/location -->
+  <tr>
+    <td class="logo" colspan="3"><img src="data:image/png;base64,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" alt="Logo"></td>
+    <td colspan="9">
+      <div class="flexrow"><span class="lbl">Client:</span><input class="f grow" data-k="client" value="Apple South Asia AMK 2&amp;3"></div>
+      <div class="flexrow"><span class="lbl">Location:</span><input class="f grow" data-k="location" value="12 Ang Mo Kio Street 64, Singapore 569088"></div>
+    </td>
+  </tr>
+
+  <!-- TITLE -->
+  <tr><td class="title band" colspan="12"><input class="titlefield" data-k="doctitle" value="Sanitary Pipe Flood Test" title="Click to edit the form title" aria-label="Form title"></td></tr>
+
+  <!-- FROM / TO -->
+  <tr>
+    <td class="lbl" colspan="1">From</td>
+    <td colspan="11"><input class="f grow" data-k="from" value="AMK3 Level 1 Kitchen (FT-2, 3 &amp; 17)" style="width:100%"></td>
+  </tr>
+  <tr>
+    <td class="lbl" colspan="1">To</td>
+    <td colspan="11"><input class="f grow" data-k="to" value="AMK3 Level 1 Kitchen (FT-2, 3 &amp; 17)" style="width:100%"></td>
+  </tr>
+
+  <!-- TABLE HEADER -->
+  <tr>
+    <td class="colhdr" colspan="1">Item</td>
+    <td class="colhdr" colspan="6">Description</td>
+    <td class="colhdr" colspan="5">Readings</td>
+  </tr>
+
+  <!-- ITEM 2: Design Pressure -->
+  <tr>
+    <td class="center" colspan="1">2</td>
+    <td colspan="6"><span class="lbl">Design Pressure</span></td>
+    <td colspan="5"><input class="f grow" data-k="r_design" value="NA" style="width:100%"></td>
+  </tr>
+  <!-- ITEM 3: Date / Time -->
+  <tr>
+    <td class="center" colspan="1">3</td>
+    <td colspan="6"><div class="flexrow"><span class="lbl">Date:</span><input class="f grow" data-k="d_start" value="19 Jun 2026"></div></td>
+    <td colspan="5"><div class="flexrow"><span class="lbl">Time:</span><input class="f grow" data-k="t_start" value="09:38 AM"></div></td>
+  </tr>
+  <!-- ITEM 4: Pressure at commencement -->
+  <tr>
+    <td class="center" colspan="1">4</td>
+    <td colspan="6"><span class="lbl">Pressure at commencement of Test</span></td>
+    <td colspan="5"><input class="f grow" data-k="r_commence" value="NA" style="width:100%"></td>
+  </tr>
+  <!-- ITEM 5: Date / Time -->
+  <tr>
+    <td class="center" colspan="1">5</td>
+    <td colspan="6"><div class="flexrow"><span class="lbl">Date:</span><input class="f grow" data-k="d_end" value="19 Jun 2026"></div></td>
+    <td colspan="5"><div class="flexrow"><span class="lbl">Time:</span><input class="f grow" data-k="t_end" value="01:41 PM"></div></td>
+  </tr>
+  <!-- ITEM 6: Pressure at end -->
+  <tr>
+    <td class="center" colspan="1">6</td>
+    <td colspan="6"><span class="lbl">Pressure at end of Test</span></td>
+    <td colspan="5"><input class="f grow" data-k="r_end" value="Refer to attached test photo" style="width:100%"></td>
+  </tr>
+  <!-- PASS / FAIL -->
+  <tr>
+    <td colspan="1"></td>
+    <td colspan="6"><span class="lbl">Pass / Fail</span></td>
+    <td colspan="5"><div class="flexrow">
+      <label class="cb"><input type="checkbox" data-k="pass"> Pass</label>
+      <label class="cb"><input type="checkbox" data-k="fail"> Fail</label>
+    </div></td>
+  </tr>
+
+  <!-- REMARKS -->
+  <tr><td class="remarks" colspan="12">
+    <span class="lbl">Remarks:</span>
+    <textarea class="f" data-k="remarks"></textarea>
+  </td></tr>
+
+  <!-- SIGN-OFF -->
+  <tr><td class="band" colspan="12">REMARKS / INSTRUMENTS USED:</td></tr>
+  <tr><td colspan="12"><input class="f" data-k="instruments" value="" style="width:100%;border-bottom:1px dotted #9aa"></td></tr>
+  <tr>
+    <td class="colhdr" colspan="2">&nbsp;</td>
+    <td class="colhdr" colspan="3">Name</td>
+    <td class="colhdr" colspan="4">Signature</td>
+    <td class="colhdr" colspan="3">Date</td>
+  </tr>
+  <tbody id="signrows"></tbody>
+</table>
+<div class="footer">9 July 2012&nbsp;&nbsp;Rev 1</div>
+</div>
+
+<script>
+/* ============ Sign-off rows ============ */
+const roles = [["Tested By","tst"],["Witnessed By","wit"],["Acknowledged By","ack"]];
+const sr = document.getElementById('signrows');
+// Only build rows on a fresh form. A re-opened saved file already contains the
+// rows (with their saved values) serialized in #signrows, so skip rebuilding.
+if(sr.children.length===0) roles.forEach(([role,key])=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=
+    '<td colspan="2"><span class="lbl">'+role+'</span></td>'+
+    '<td colspan="3"><input class="f grow" data-k="'+key+'_name" value="" style="width:100%"></td>'+
+    '<td colspan="4"><div class="sigwrap">'+
+        '<canvas class="sig" data-sig="'+key+'"></canvas>'+
+        '<button type="button" class="sigclear" onclick="clearSig(\''+key+'\')">Clear</button>'+
+        '<input type="hidden" data-k="'+key+'_sig" value="">'+
+      '</div></td>'+
+    '<td colspan="3"><input class="f grow" data-k="'+key+'_date" value="" style="width:100%"></td>';
+  sr.appendChild(tr);
+});
+
+/* ============ Signature pads ============ */
+const pads = {};
+function initPad(canvas){
+  const key=canvas.dataset.sig; const ctx=canvas.getContext('2d');
+  function fit(){
+    const r=canvas.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
+    canvas.width=Math.max(1,Math.round(r.width*dpr)); canvas.height=Math.max(1,Math.round(r.height*dpr));
+    ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr,dpr);
+    ctx.lineWidth=1.8; ctx.lineCap='round'; ctx.strokeStyle='#0a2472';
+  }
+  let drawing=false,last=null;
+  function pos(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+  function down(e){ drawing=true; last=pos(e); e.preventDefault(); }
+  function move(e){ if(!drawing)return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; markDirty(); e.preventDefault(); }
+  function up(){ drawing=false; }
+  canvas.addEventListener('mousedown',down); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  canvas.addEventListener('touchstart',down,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',up);
+  pads[key]={canvas,ctx,fit}; fit();
+}
+function clearSig(key){ const p=pads[key]; if(!p)return; p.ctx.clearRect(0,0,p.canvas.width,p.canvas.height); field(key+'_sig').value=''; markDirty(); }
+function clearAllSignatures(){ Object.keys(pads).forEach(clearSig); setStatus('Signatures cleared'); }
+
+/* ============ Helpers ============ */
+function allFields(){ return document.querySelectorAll('[data-k]'); }
+function field(k){ return document.querySelector('[data-k="'+k+'"]'); }
+function setStatus(t){ const s=document.getElementById('status'); if(s){s.textContent=t; clearTimeout(s._t); s._t=setTimeout(()=>s.textContent='Ready',2500);} }
+
+function syncToDOM(){
+  Object.keys(pads).forEach(key=>{ const c=pads[key].canvas; field(key+'_sig').value=isCanvasBlank(c)?'':c.toDataURL('image/png'); });
+  allFields().forEach(el=>{
+    if(el.type==='checkbox'){ if(el.checked) el.setAttribute('checked','checked'); else el.removeAttribute('checked'); }
+    else if(el.tagName==='TEXTAREA'){ el.textContent=el.value; }
+    else { el.setAttribute('value',el.value); }
+  });
+}
+function isCanvasBlank(c){ const b=document.createElement('canvas'); b.width=c.width; b.height=c.height; return c.toDataURL()===b.toDataURL(); }
+
+function restoreSignatures(){
+  Object.keys(pads).forEach(key=>{
+    const el=field(key+'_sig'); if(!el)return; const data=el.value;
+    if(data && data.startsWith('data:image')){
+      const p=pads[key]; const img=new Image(); p._restoreImg=img;
+      img.onload=()=>{ const r=p.canvas.getBoundingClientRect(); p.ctx.drawImage(img,0,0,r.width,r.height); };
+      img.src=data; if(img.complete && img.naturalWidth) img.onload();
+    }
+  });
+}
+
+/* ============ Save as PDF ============ */
+function saveAsPDF(){ syncToDOM(); setStatus('Opening print dialog…'); setTimeout(()=>window.print(),150); }
+
+/* ============ Save as HTML (with entries embedded) ============ */
+function saveAsHTML(){
+  syncToDOM();
+  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  const blob=new Blob([html],{type:'text/html'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const slug=s=>(s||'').replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
+  const ttl=slug(field('doctitle')?field('doctitle').value:'').slice(0,40)||'Form';
+  const ref=slug(field('from')?field('from').value:'').slice(0,30);
+  a.href=url; a.download=ttl+(ref?'_'+ref:'')+'.html';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  setStatus('Saved HTML with your entries ✓');
+}
+
+/* ============ localStorage autosave ============ */
+const LS_KEY='sanitary_flood_test_autosave_v1';
+function collectData(){ syncToDOM(); const d={}; allFields().forEach(el=>{ d[el.dataset.k]=(el.type==='checkbox')?el.checked:el.value; }); return d; }
+function applyData(d){ allFields().forEach(el=>{ const k=el.dataset.k; if(!(k in d))return; if(el.type==='checkbox') el.checked=!!d[k]; else el.value=d[k]; }); restoreSignatures(); syncTitle(); }
+function autosave(){ try{ localStorage.setItem(LS_KEY,JSON.stringify(collectData())); setStatus('Autosaved ✓'); }catch(e){} }
+function restoreAutosave(){ try{ const raw=localStorage.getItem(LS_KEY); if(!raw){ setStatus('No autosave found'); return; } applyData(JSON.parse(raw)); setStatus('Restored last autosave ✓'); }catch(e){ setStatus('Restore failed'); } }
+let dirtyT=null; function markDirty(){ clearTimeout(dirtyT); dirtyT=setTimeout(autosave,1200); }
+
+/* ============ Init ============ */
+function syncTitle(){
+  const el=field('doctitle'); if(!el) return;
+  const t=el.value.trim()||'Test Record';
+  const tb=document.getElementById('toolbarTitle'); if(tb) tb.textContent=t;
+  document.title=t;
+}
+window.addEventListener('load',()=>{
+  document.querySelectorAll('canvas.sig').forEach(initPad);
+  restoreSignatures();
+  allFields().forEach(el=>{ el.addEventListener(el.type==='checkbox'?'change':'input', markDirty); });
+  const t=field('doctitle');
+  if(t){ t.addEventListener('input',syncTitle); syncTitle(); }
+});
+window.addEventListener('beforeprint',syncToDOM);
+</script>
+</body>
+</html>

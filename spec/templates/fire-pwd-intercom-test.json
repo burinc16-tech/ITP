@@ -1,0 +1,100 @@
+{
+  "code": "FPI",
+  "title": "Check List & Test Report for Fire Intercom & PWD Intercom",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Fire_and_PWD_Intercom_Test_Report.html — a one-page sheet: a document block, a three-item readiness checklist ticked YES / N/A / NO, a zone table where each zone heading carries a Call Function and a Fault Condition result, and a three-column sign-off. The supplied file was saved with a completed record in it (Apple AMK 2&3 Level 1; PWD Zone 1 and Fire Intercom Zones 67, 68, 72, 73, 74); those are record values, not template values, and are not carried here — including the SYSTEM field's \"P&S\", which is left blank for the engineer rather than carried as a default that may not be right for the next panel.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "project",      "label": "Project Name", "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ref_no",       "label": "Ref. No.",     "type": "text" },
+      { "id": "test_date",    "label": "Date",         "type": "date", "required": true },
+      { "id": "description",  "label": "Description",  "type": "text" },
+      { "id": "location",     "label": "Location",     "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "drawing_no",   "label": "Drawing No.",  "type": "text" },
+      { "id": "drawing_rev",  "label": "Drawing Rev",  "type": "text" },
+      { "id": "system",       "label": "System",       "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "readiness",
+      "title": "Readiness Checks",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / N/A / No" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "`page_break_before` on the opening section is what keeps this on one sheet: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same idiom as `fcu-lcp-checklist.json`.\n\nThe source's eight document fields are the record header rather than a section of their own: they are one grid on the paper, directly under the banner, and the header info block prints them the same way without spending a section heading on them.\n\nThe three readiness items are the paper's, verbatim. `status` rather than `pass_fail_na` so the choices read YES / N/A / NO in the sheet's own order and wording; the outcomes make a \"No\" derivable as an outstanding item (SPEC §6). The paper has no remarks column against these items — the renderer always prints one, so it is labelled and left for whatever the engineer needs to qualify a N/A with.",
+      "rows": [
+        { "id": "rd_01", "no": "1", "type": "status", "remarks": true,
+          "description": "Control panel is ready to test",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_02", "no": "2", "type": "status", "remarks": true,
+          "description": "Battery back-up is ready to test",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_03", "no": "3", "type": "status", "remarks": true,
+          "description": "Zone number labeled on site and provided at the control panel",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "zones",
+      "title": "Zone Tests",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 3,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "**One row per zone, where the paper spends three.** The source writes a zone heading — \"1. PWD Zone 1\", \"2. Fire Intercom Zone 67\" — and hangs two bulleted sub-items beneath it, Call Function and Fault Condition, each with its own Passed / Failed / N/A dropdown. The two sub-items are the same for every zone, so they are columns, and a zone becomes a single row. That prints the same information in a third of the height and, more to the point, lets a panel with twenty zones be one record.\n\nThe zone name is record data and typed per row — the source makes it an editable field for the same reason (Hard Rule #5). Numbering comes from `auto_number`, which is what the source's own \"1.\", \"2.\", \"3.\" prefixes are.\n\n**Why this section starts page 2.** Measured on the live build: a page gives 877px to content, a zone row costs 35px, and the document block, readiness table, zone table and sign-off together come to 924px even with the table at its minimum three rows — 59px past A4, which prints as a second sheet while the footer still reads \"Page 1 of 1\". One sheet holds only a single-zone record, and this form exists for panels with many (six on the source sample). Breaking here gives 347px on page 1 and 660px on page 2 at six zones, with room for about twelve before page 2 needs its own break.\n\nThis is also what replaces the source's \"+ Add page\" button: that clones the whole sheet, header and sign-off included, purely to get more zone rows. Here the table grows and the record stays one document with one sign-off.",
+      "columns": [
+        { "id": "zone",      "label": "Zone / Test",     "type": "text",   "width": "46%" },
+        { "id": "call_fn",   "label": "Call Function",   "type": "status", "width": "27%", "align": "center",
+          "states": [
+            { "value": "passed", "label": "Passed", "outcome": "pass" },
+            { "value": "failed", "label": "Failed", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] },
+        { "id": "fault_cond", "label": "Fault Condition", "type": "status", "width": "27%", "align": "center",
+          "states": [
+            { "value": "passed", "label": "Passed", "outcome": "pass" },
+            { "value": "failed", "label": "Failed", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would print a one-page source on two sheets. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `ductwork-air-leakage-test.json`.\n\nThe source's three columns, and it heads the lower two identically — \"WITNESS BY\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6), as on `sensor-calibration-record.json`.\n\nThe paper's sign block carries only Name, Signature and Date — no company column. The renderer always prints Company, so Performed By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the two witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_performed", "role": "Performed By", "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witness By",   "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witness By",   "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

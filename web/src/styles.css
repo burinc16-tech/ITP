@@ -136,6 +136,80 @@ body {
   cursor: pointer;
 }
 
+/* Inspection Request (RFI) cover page controls (handover task 2). */
+.cover-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cover-options {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.cover-options-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.cover-discipline {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.cover-discipline legend {
+  font-weight: 700;
+  padding: 0 0.3rem;
+}
+.cover-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+.cover-other {
+  flex: 1 1 12rem;
+  min-height: var(--touch);
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+}
+.cover-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem 0.9rem;
+}
+.cover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cover-field input {
+  min-height: var(--touch);
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text, inherit);
+  font-weight: 400;
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -389,6 +463,80 @@ input[readonly] {
   cursor: pointer;
 }
 
+/* Add row / add column sit side by side under a table that allows both. */
+.table-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Delete-this-column control, in the column heading (SPEC §12). Smaller than the
+ * 40px row control on purpose: it lives inside a heading cell that also has to
+ * hold the label, and deleting a whole column of readings should take a
+ * deliberate tap rather than sit under the thumb. */
+.col-remove {
+  display: block;
+  margin: 0.25rem auto 0;
+  min-height: 28px;
+  min-width: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fail-bg);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.col-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Grouped dynamic table (SPEC §12): spanning group cells, a computed column and
+   a per-group totals line. Touch targets stay full size — this is filled on a
+   tablet in a plant room, not at a desk. */
+.grouped-table .col-group {
+  background: var(--bg);
+  vertical-align: top;
+}
+.grouped-table-group + .grouped-table-group {
+  border-top: 2px solid var(--border);
+}
+.grouped-table .col-computed {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 700;
+}
+.grouped-table-totals td {
+  background: var(--bg);
+  font-weight: 700;
+}
+.grouped-table-totals .totals-label {
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+.grouped-table-tools td {
+  border-top: 0;
+  padding: 0.35rem;
+}
+.grouped-table-tools .row-add {
+  margin-top: 0;
+  margin-right: 0.5rem;
+}
+.row-remove-group {
+  min-height: var(--touch);
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fail-bg);
+  cursor: pointer;
+}
+.row-remove-group:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Sign-off */
 .signatures {
   display: grid;
@@ -589,6 +737,42 @@ input[readonly] {
   font-size: 0.85rem;
 }
 
+/* Photo Attachment panel (SPEC §12) — appendix photos filled on the record. */
+.appendix-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.appendix-panel-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.appendix-panel-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.appendix-photo-item {
+  width: 180px;
+}
+.appendix-photo-item .photo-thumb {
+  width: 180px;
+  height: 135px;
+}
+.appendix-caption-input {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  font-size: 0.9rem;
+}
+.appendix-caption-text {
+  white-space: pre-line;
+}
+
 /* Page break between template pages */
 .page-break {
   margin: 1.5rem 0;
@@ -786,6 +970,26 @@ input[readonly] {
   background: var(--surface);
   color: var(--text);
   font: inherit;
+}
+/* Registry backup: the only copy of the project tree that outlives this browser. */
+.registry-backup {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-basis: 100%;
+}
+.registry-backup-why {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: 62ch;
+}
+.registry-backup-note {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 .registry-adders {
   display: flex;
