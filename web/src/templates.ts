@@ -18,6 +18,7 @@ import acmvPipePressureTestRaw from "../../spec/templates/acmv-pipe-pressure-tes
 import ahuActualSiteComparisonRaw from "../../spec/templates/ahu-actual-site-comparison.json";
 import chemicalFlushChecklistRaw from "../../spec/templates/chemical-flush-checklist.json";
 import ahuSupplyFreshAirRaw from "../../spec/templates/ahu-supply-fresh-air-measurement.json";
+import paSystemTestRaw from "../../spec/templates/pa-system-test.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -45,4 +46,5 @@ export const TEMPLATES: Template[] = [
   parseTemplate(ahuActualSiteComparisonRaw),
   parseTemplate(chemicalFlushChecklistRaw),
   parseTemplate(ahuSupplyFreshAirRaw),
+  parseTemplate(paSystemTestRaw),
 ];
