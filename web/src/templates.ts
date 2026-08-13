@@ -25,6 +25,8 @@ import staircasePressurizationRaw from "../../spec/templates/staircase-pressuriz
 import firePwdIntercomRaw from "../../spec/templates/fire-pwd-intercom-test.json";
 import lightingCircuitTestRaw from "../../spec/templates/lighting-circuit-test.json";
 import paSystemTestRaw from "../../spec/templates/pa-system-test.json";
+import fireAlarmChecklistRaw from "../../spec/templates/fire-alarm-checklist.json";
+import fireAlarmTestRaw from "../../spec/templates/fire-alarm-test.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -59,4 +61,6 @@ export const TEMPLATES: Template[] = [
   parseTemplate(firePwdIntercomRaw),
   parseTemplate(lightingCircuitTestRaw),
   parseTemplate(paSystemTestRaw),
+  parseTemplate(fireAlarmChecklistRaw),
+  parseTemplate(fireAlarmTestRaw),
 ];

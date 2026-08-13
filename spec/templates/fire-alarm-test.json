@@ -1,0 +1,63 @@
+{
+  "code": "FAT",
+  "title": "Fire Alarm System Test",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Fire_Alarm_Test_Form.html — a three-field project band, one device-by-device test table seeded with seventeen blank rows, and a three-row sign-off. The device sibling of `fire-alarm-checklist.json` (FAS): that sheet asks whether the installation is ready, this one records what each device did when it was tested. The supplied file was saved with a client's project name and a level's worth of room names already typed into the project band; those are record values, not template wording, and are not carried here — read them off the source file if you need them.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "project",   "label": "Project",   "type": "text", "source": "project.name", "readonly": true },
+      { "id": "test_area", "label": "Test Area", "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "test_date", "label": "Test Date", "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "devices",
+      "title": "Device Test Results",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "_note": "The sheet's three project fields are the record header rather than a section of their own: they are one band on the paper, directly under the title, and the header info block prints them the same way without spending a section heading on them.\n\n**No `auto_number`.** Every other test table here opens with a printed serial, but this paper's first column is Zone Number — a value the engineer writes, not a count — and a serial ahead of it would be a column the sheet does not have. The zone is therefore an ordinary `text` column and the table prints exactly the paper's seven.\n\n**The paper's two-level header is flattened.** It spans Device Operation and Labeling over a shared \"Yes/No\" sub-row; `dynamic_table` columns are flat, so the sub-heading is dropped and the answer wording lives in each column's own states. Nothing is lost but the spanning cell — same treatment as `lighting-circuit-test.json`.\n\n**Device Operation and Labeling offer Yes / No / N/A, not the bare Yes/No the headings promise** — that is what the sheet's own dropdowns list, and a device that is legitimately unlabelled needs the third answer. The outcomes make a \"No\" derivable as an outstanding item (SPEC §6).\n\nLocation, Device, Function and Remark are `text`: the paper writes prose in all four (a location reads \"Material Lab 2 — near door\"), and there is no fixed list to constrain them to.\n\n**Column widths are the paper's own percentages, and they are also the best available.** Measured against a filled record: widening Device and Function so a name like \"Manual Call Point\" stops wrapping makes the table *taller*, not shorter, because the width comes out of Location, which carries the longest text — 62.7mm for four rows at the paper's widths against 67.8mm and 73mm for two wider-device variants. Matching the original wins here on both counts (SPEC §5).\n\nThe source seeds seventeen blank rows; `min_rows` is five and the engineer adds what the area needs, so a record covering six devices prints six rows rather than six plus eleven empty ones. That is also what replaces the sheet's \"+ Add row\" button.\n\n`page_break_before` on the opening section is a no-op for layout — it is already page 1 — but `paginate` gives every section its own page unless at least one declares a break, so it is what lets the sign-off declare its own.",
+      "columns": [
+        { "id": "zone",     "label": "Zone Number",      "type": "text",   "width": "10%", "align": "center" },
+        { "id": "location", "label": "Location",         "type": "text",   "width": "26%" },
+        { "id": "device",   "label": "Device",           "type": "text",   "width": "13%" },
+        { "id": "function", "label": "Function",         "type": "text",   "width": "13%" },
+        { "id": "operation", "label": "Device Operation", "type": "status", "width": "9%", "align": "center",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "N/A", "outcome": "na" }
+          ] },
+        { "id": "labeling", "label": "Labeling",         "type": "status", "width": "9%", "align": "center",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" },
+            { "value": "na",  "label": "N/A", "outcome": "na" }
+          ] },
+        { "id": "remark",   "label": "Remark",           "type": "text",   "width": "20%" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign Off",
+      "type": "sign_off",
+      "page_break_before": true,
+      "_note": "**Why the sign-off takes its own sheet.** Measured on the live build against a 232.2mm page body: the title and header band cost 54.7mm, the table's heading row 14.4mm, and a *filled* device row 14.4mm — 19.5mm where the location runs long, because Location, Device and Function all wrap at these widths. Page 1 therefore holds about ten tested devices. The sign-off grid is 94.1mm: sharing the sheet would cap the table at about four, which no real test area fits. Giving the signatures page 2 buys six more devices and keeps them on one continuous table.\n\n**Ten devices is a ceiling, not a guarantee — and it is below the seventeen rows the paper rules.** The renderer paginates on section boundaries only, so a table longer than its page does not continue overleaf; it overflows the sheet and the footer's \"Page X of Y\" stops being true (SPEC §7). Every `dynamic_table` template here has the same ceiling — `lighting-circuit-test.json` records its own as nineteen circuits — and the answer is the same: split a large test area across records, one per area, which is what `scope: location` is for. An unused row costs only 4.2mm, so a *blank* form still prints all seventeen on one sheet.\n\nAn in-flow `sign_off` section rather than the top-level `footer` even so: both routes carry the same slots through `collectSignatureSlots`, but the footer is always *last*, whereas a section can be paginated with the rest of the record — and if the table ever outgrows page 1 the signatures still follow it rather than floating to a fixed page. Same idiom as `lighting-circuit-test.json`.\n\nUnlike most of these sheets this one **does** rule a Company column, so the renderer's Company row matches the paper rather than adding to it. Test By defaults to Kenyon Pte Ltd and stays editable; the two witness companies are left blank for whoever attends. The paper heads the lower two rows identically — \"Witness by\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6).",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Test By",    "company_default": "Kenyon Pte Ltd", "required": true,  "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witness By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witness By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

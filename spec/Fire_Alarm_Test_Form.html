@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fire Alarm System Test</title>
+<style>
+  :root{
+    --ink:#1a1d21;
+    --line:#8b909a;
+    --line-soft:#c9cdd4;
+    --accent:#b3261e;
+    --paper:#ffffff;
+    --bg:#eef0f3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:Arial, Helvetica, sans-serif;
+    color:var(--ink);
+    font-size:13px;
+  }
+  .toolbar{
+    position:sticky;top:0;z-index:50;
+    background:#fff;border-bottom:1px solid var(--line-soft);
+    padding:10px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  }
+  .toolbar .spacer{flex:1;}
+  button{
+    font-family:inherit;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:8px 14px;border-radius:4px;
+  }
+  button:hover{background:#f3f4f6;}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  button.primary:hover{background:#93201a;}
+  .sheet{
+    max-width:860px;margin:24px auto;background:var(--paper);
+    padding:32px 32px;box-shadow:0 1px 4px rgba(0,0,0,.12);
+  }
+  h1{
+    text-align:center;font-size:22px;margin:0 0 20px;
+    letter-spacing:.5px;border-bottom:3px double var(--ink);padding-bottom:10px;
+  }
+  .meta{width:100%;border-collapse:collapse;margin-bottom:16px;}
+  .meta td{padding:4px 6px;vertical-align:bottom;}
+  .meta .lbl{white-space:nowrap;font-weight:bold;width:1%;}
+  .meta input{
+    width:100%;border:none;border-bottom:1px solid var(--ink);
+    font:inherit;padding:3px 4px;background:transparent;outline:none;
+  }
+  table.grid{width:100%;border-collapse:collapse;table-layout:fixed;}
+  table.grid th, table.grid td{
+    border:1px solid var(--ink);padding:4px;vertical-align:middle;text-align:center;
+  }
+  table.grid th{background:#f0f1f3;font-size:12px;padding:6px 4px;}
+  table.grid input, table.grid textarea, table.grid select{
+    width:100%;border:none;font:inherit;background:transparent;outline:none;
+    text-align:center;padding:4px 2px;resize:vertical;min-height:24px;
+  }
+  table.grid textarea{text-align:left;display:block;}
+  table.grid td:focus-within{background:#fdf6e9;}
+  .col-zone{width:9%;}
+  .col-loc{width:26%;}
+  .col-dev{width:13%;}
+  .col-func{width:13%;}
+  .col-yn{width:9%;}
+  .col-remark{width:21%;}
+  .rowctl{margin:8px 0 24px;display:flex;gap:8px;}
+  .rowctl button{font-size:12px;padding:5px 10px;}
+  h2{font-size:14px;margin:26px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
+  table.sign{width:100%;border-collapse:collapse;}
+  table.sign th, table.sign td{border:1px solid var(--ink);padding:4px;text-align:center;}
+  table.sign th{background:#f0f1f3;font-size:12px;padding:6px 4px;}
+  table.sign .role{font-weight:bold;text-align:left;white-space:nowrap;width:11%;padding-left:8px;}
+  table.sign input{width:100%;border:none;font:inherit;background:transparent;outline:none;text-align:center;padding:6px 2px;}
+  .sigcell{width:24%;position:relative;padding:2px;}
+  canvas.sigpad{
+    width:100%;height:64px;display:block;touch-action:none;background:#fff;cursor:crosshair;
+  }
+  .sigclear{
+    position:absolute;top:2px;right:2px;font-size:10px;padding:1px 6px;
+    border:1px solid var(--line-soft);background:#fff;border-radius:3px;opacity:.7;
+  }
+  .sigclear:hover{opacity:1;}
+  .hint{color:#6b7078;font-size:11px;margin-top:6px;}
+  @media print{
+    .toolbar,.rowctl,.sigclear,.hint,.no-print{display:none !important;}
+    body{background:#fff;font-size:9.5px;}
+    h1{font-size:16px;margin-bottom:12px;padding-bottom:6px;}
+    table.grid th, table.grid td{padding:3px 2px;}
+    table.grid th{font-size:9px;}
+    table.sign th{font-size:9px;}
+    canvas.sigpad{height:48px;}
+    h2{margin:14px 0 6px;font-size:11px;}
+    .sheet{box-shadow:none;margin:0;max-width:none;padding:0;}
+    table.grid td:focus-within{background:transparent;}
+    @page{size:A4 portrait;margin:10mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <button class="primary" onclick="savePDF()">Save as PDF</button>
+  <button onclick="saveHTML()">Save as HTML</button>
+  <span class="spacer"></span>
+  <span class="hint" style="margin:0;">Fill in the form, sign in the signature boxes, then save.</span>
+</div>
+
+<div class="sheet">
+  <h1>Fire Alarm System Test</h1>
+
+  <table class="meta">
+    <tr>
+      <td class="lbl">Project:</td>
+      <td colspan="3"><input type="text" name="project" value="APPLE AMK1 Material Lab 2"></td>
+    </tr>
+    <tr>
+      <td class="lbl">Test Area:</td>
+      <td><input type="text" name="test_area" value="Level 1 (Material Lab 2, Townes Lab 2, Future Store and AHU &amp; Elect RM)"></td>
+      <td class="lbl">Test Date:</td>
+      <td style="width:18%;"><input type="date" name="test_date"></td>
+    </tr>
+  </table>
+
+  <table class="grid" id="testTable">
+    <thead>
+      <tr>
+        <th class="col-zone" rowspan="2">Zone Number</th>
+        <th class="col-loc" rowspan="2">Location</th>
+        <th class="col-dev" rowspan="2">Device</th>
+        <th class="col-func" rowspan="2">Function</th>
+        <th class="col-yn">Device Operation</th>
+        <th class="col-yn">Labeling</th>
+        <th class="col-remark" rowspan="2">Remark</th>
+      </tr>
+      <tr>
+        <th class="col-yn">Yes/No</th>
+        <th class="col-yn">Yes/No</th>
+      </tr>
+    </thead>
+    <tbody id="testBody"><!-- rows injected --></tbody>
+  </table>
+
+  <div class="rowctl no-print">
+    <button type="button" onclick="addRow()">+ Add row</button>
+    <button type="button" onclick="removeRow()">&minus; Remove last row</button>
+  </div>
+
+  <h2>Sign Off</h2>
+  <table class="sign">
+    <thead>
+      <tr>
+        <th></th>
+        <th style="width:20%;">Name</th>
+        <th style="width:20%;">Company</th>
+        <th style="width:24%;">Signature</th>
+        <th style="width:14%;">Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="role">Test By:</td>
+        <td><input type="text" name="test_by_name"></td>
+        <td><input type="text" name="test_by_company"></td>
+        <td class="sigcell"><canvas class="sigpad" data-sig="sig1"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></td>
+        <td><input type="date" name="test_by_date"></td>
+      </tr>
+      <tr>
+        <td class="role">Witness by:</td>
+        <td><input type="text" name="wit1_name"></td>
+        <td><input type="text" name="wit1_company"></td>
+        <td class="sigcell"><canvas class="sigpad" data-sig="sig2"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></td>
+        <td><input type="date" name="wit1_date"></td>
+      </tr>
+      <tr>
+        <td class="role">Witness by:</td>
+        <td><input type="text" name="wit2_name"></td>
+        <td><input type="text" name="wit2_company"></td>
+        <td class="sigcell"><canvas class="sigpad" data-sig="sig3"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></td>
+        <td><input type="date" name="wit2_date"></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="hint">Sign with mouse, finger, or stylus in the Signature boxes. Use &ldquo;Save as HTML&rdquo; to keep an editable filled copy, or &ldquo;Save as PDF&rdquo; for a final record.</p>
+</div>
+
+<script>
+/* ---------- test table rows ---------- */
+function rowHTML(){
+  return '<tr>'
+    +'<td><input type="text"></td>'
+    +'<td><textarea rows="1"></textarea></td>'
+    +'<td><input type="text"></td>'
+    +'<td><input type="text"></td>'
+    +'<td><select><option value=""></option><option>Yes</option><option>No</option><option>N/A</option></select></td>'
+    +'<td><select><option value=""></option><option>Yes</option><option>No</option><option>N/A</option></select></td>'
+    +'<td><textarea rows="1"></textarea></td>'
+    +'</tr>';
+}
+function addRow(){document.getElementById('testBody').insertAdjacentHTML('beforeend',rowHTML());}
+function removeRow(){
+  var b=document.getElementById('testBody');
+  if(b.rows.length>1)b.deleteRow(b.rows.length-1);
+}
+(function init(){
+  var b=document.getElementById('testBody');
+  if(b.rows.length===0){for(var i=0;i<17;i++)addRow();}
+})();
+
+/* ---------- signature pads ---------- */
+function setupPad(cv){
+  var ctx=cv.getContext('2d'),drawing=false,last=null;
+  function resize(){
+    var data=cv.toDataURL();
+    var r=cv.getBoundingClientRect();
+    if(r.width===0)return;
+    var img=new Image();
+    img.onload=function(){cv.width=r.width;cv.height=r.height;ctx.lineWidth=1.6;ctx.lineCap='round';ctx.strokeStyle='#111';ctx.drawImage(img,0,0,cv.width,cv.height);};
+    img.src=data;
+    cv.width=r.width;cv.height=r.height;
+    ctx.lineWidth=1.6;ctx.lineCap='round';ctx.strokeStyle='#111';
+  }
+  resize();window.addEventListener('resize',resize);
+  function pos(e){
+    var r=cv.getBoundingClientRect();
+    var p=e.touches?e.touches[0]:e;
+    return{x:p.clientX-r.left,y:p.clientY-r.top};
+  }
+  function start(e){drawing=true;last=pos(e);e.preventDefault();}
+  function move(e){
+    if(!drawing)return;
+    var p=pos(e);
+    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+    last=p;cv.dataset.signed='1';e.preventDefault();
+  }
+  function end(){drawing=false;}
+  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false});
+  cv.addEventListener('touchmove',move,{passive:false});
+  cv.addEventListener('touchend',end);
+}
+document.querySelectorAll('canvas.sigpad').forEach(setupPad);
+function clearSig(btn){
+  var cv=btn.parentElement.querySelector('canvas');
+  cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+  delete cv.dataset.signed;
+}
+
+/* ---------- save as PDF (print) ---------- */
+function savePDF(){window.print();}
+
+/* ---------- save as HTML (filled snapshot, still editable) ---------- */
+function saveHTML(){
+  // persist input/textarea/select values into attributes so they survive serialization
+  document.querySelectorAll('input').forEach(function(i){i.setAttribute('value',i.value);});
+  document.querySelectorAll('textarea').forEach(function(t){t.textContent=t.value;});
+  document.querySelectorAll('select').forEach(function(s){
+    Array.prototype.forEach.call(s.options,function(o){
+      if(o.value===s.value)o.setAttribute('selected','selected');else o.removeAttribute('selected');
+    });
+  });
+  var doc=document.documentElement.cloneNode(true);
+  // replace each canvas in the clone with its drawn image (kept re-signable via reload note)
+  var live=document.querySelectorAll('canvas.sigpad');
+  var cloned=doc.querySelectorAll('canvas.sigpad');
+  for(var i=0;i<live.length;i++){
+    cloned[i].setAttribute('data-image',live[i].dataset.signed?live[i].toDataURL('image/png'):'');
+  }
+  // inject restore script so saved file redraws signatures on open
+  var restore=doc.querySelector('#restoreSig');
+  if(!restore){
+    var s=doc.ownerDocument.createElement('script');
+    s.id='restoreSig';
+    s.textContent="window.addEventListener('load',function(){document.querySelectorAll('canvas.sigpad').forEach(function(cv){var d=cv.getAttribute('data-image');if(d){var img=new Image();img.onload=function(){cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);cv.dataset.signed='1';};img.src=d;}});});";
+    doc.querySelector('body').appendChild(s);
+  }
+  var html='<!DOCTYPE html>\n'+doc.outerHTML;
+  var blob=new Blob([html],{type:'text/html'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  var d=new Date().toISOString().slice(0,10);
+  a.download='Fire_Alarm_Test_Form_'+d+'.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
