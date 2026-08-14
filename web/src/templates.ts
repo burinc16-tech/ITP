@@ -27,6 +27,7 @@ import lightingCircuitTestRaw from "../../spec/templates/lighting-circuit-test.j
 import paSystemTestRaw from "../../spec/templates/pa-system-test.json";
 import fireAlarmChecklistRaw from "../../spec/templates/fire-alarm-checklist.json";
 import fireAlarmTestRaw from "../../spec/templates/fire-alarm-test.json";
+import hoseReelPressureTestRaw from "../../spec/templates/hose-reel-pipe-pressure-test.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -63,4 +64,5 @@ export const TEMPLATES: Template[] = [
   parseTemplate(paSystemTestRaw),
   parseTemplate(fireAlarmChecklistRaw),
   parseTemplate(fireAlarmTestRaw),
+  parseTemplate(hoseReelPressureTestRaw),
 ];
