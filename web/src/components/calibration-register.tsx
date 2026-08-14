@@ -52,6 +52,11 @@ export function CalibrationRegister(props: {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    // Show what is on the device first, then reconcile with the server: the
+    // register must stay usable in a plant room with no signal, and a merge that
+    // fails or hangs should never leave the screen empty.
+    setInstruments(await repo.list());
+    await repo.syncDown();
     setInstruments(await repo.list());
   }, [repo]);
 

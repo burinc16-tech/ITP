@@ -1,5 +1,6 @@
 import type { Attachment } from "./attachment";
 import type { AuditEntry } from "./audit";
+import type { Instrument } from "./instrument";
 import type { ChecklistRecord } from "./record";
 import type { CapturedSignature } from "./signature";
 import type { Transport } from "./sync-queue";
@@ -57,6 +58,16 @@ export interface SyncLayer {
   pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
   /** Fetch one attachment's image bytes (with auth), or null. Best-effort. */
   pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
+  /**
+   * Push one calibration-register instrument (SPEC §10 screen 9). Upsert,
+   * last-write-wins on `updated_at`; a removal rides as a tombstone. Best-effort.
+   */
+  pushInstrument(instrument: Instrument): Promise<void>;
+  /**
+   * Read the server's register, tombstones included, or null when
+   * unavailable/offline/local-only. Best-effort.
+   */
+  pullInstruments(): Promise<Instrument[] | null>;
 }
 
 /**
@@ -94,6 +105,15 @@ export class PassthroughSync implements SyncLayer {
   }
 
   async pullAttachmentImage(_recordId: string, _attachmentId: string): Promise<Blob | null> {
+    return null;
+  }
+
+  async pushInstrument(_instrument: Instrument): Promise<void> {
+    // No queue, no network — the instrument is durable in Dexie.
+  }
+
+  async pullInstruments(): Promise<Instrument[] | null> {
+    // Local-only mode: there is no server to read from.
     return null;
   }
 }
@@ -245,6 +265,66 @@ export class ApiSync implements SyncLayer {
       this.authHeader(),
     );
   }
+
+  async pushInstrument(instrument: Instrument): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/instruments`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(instrumentBody(instrument)),
+      });
+    } catch (err) {
+      // Local save already succeeded; the next syncDown re-pushes it.
+      console.warn("instrument push failed (kept locally)", err);
+    }
+  }
+
+  async pullInstruments(): Promise<Instrument[] | null> {
+    const body = await getJson<{ instruments: ServerInstrument[] }>(
+      `${this.baseUrl}/api/instruments`,
+      this.authHeader(),
+    );
+    return body?.instruments ? body.instruments.map(fromServerInstrument) : null;
+  }
+}
+
+/** An instrument row as the API returns it — SQLite has no boolean, so 0/1. */
+interface ServerInstrument {
+  id: string;
+  serial_no?: string;
+  description?: string;
+  cal_cert_url?: string;
+  cal_date?: string;
+  cal_due_date?: string;
+  updated_at?: string;
+  deleted?: number;
+}
+
+function fromServerInstrument(row: ServerInstrument): Instrument {
+  return {
+    id: row.id,
+    serial_no: row.serial_no ?? "",
+    description: row.description ?? "",
+    cal_cert_url: row.cal_cert_url ?? "",
+    cal_date: row.cal_date ?? "",
+    cal_due_date: row.cal_due_date ?? "",
+    updated_at: row.updated_at,
+    deleted: row.deleted === 1,
+  };
+}
+
+/** JSON body for an instrument push; the tombstone crosses the wire as 0/1. */
+function instrumentBody(instrument: Instrument): Record<string, unknown> {
+  return {
+    id: instrument.id,
+    serial_no: instrument.serial_no,
+    description: instrument.description,
+    cal_cert_url: instrument.cal_cert_url,
+    cal_date: instrument.cal_date,
+    cal_due_date: instrument.cal_due_date,
+    updated_at: instrument.updated_at ?? new Date().toISOString(),
+    deleted: instrument.deleted ? 1 : 0,
+  };
 }
 
 /** JSON body for an attachment push — the image rides as a `data:` URL. */
@@ -434,5 +514,23 @@ export class ApiTransport implements Transport {
       `${this.baseUrl}/api/records/${recordId}/attachments/${attachmentId}`,
       this.authHeader(),
     );
+  }
+
+  /** Throws on a retryable failure, per this class's contract. */
+  async pushInstrument(instrument: Instrument): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/instruments`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...this.authHeader() },
+      body: JSON.stringify(instrumentBody(instrument)),
+    });
+    classifyResponse(res, "instrument push");
+  }
+
+  async pullInstruments(): Promise<Instrument[] | null> {
+    const body = await getJson<{ instruments: ServerInstrument[] }>(
+      `${this.baseUrl}/api/instruments`,
+      this.authHeader(),
+    );
+    return body?.instruments ? body.instruments.map(fromServerInstrument) : null;
   }
 }

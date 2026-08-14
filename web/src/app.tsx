@@ -50,7 +50,6 @@ const repo = new RecordsRepo(db);
 const signaturesRepo = new SignaturesRepo(db);
 const auditRepo = new AuditRepo(db);
 const registryRepo = new RegistryRepo(db);
-const instrumentsRepo = new InstrumentsRepo(db);
 const attachmentsRepo = new AttachmentsRepo(db);
 const outboxRepo = new OutboxRepo(db);
 // Push to the Worker API when configured (VITE_API_URL), else stay local-only.
@@ -77,6 +76,11 @@ const queuedSync = apiUrl
     })
   : null;
 const sync: SyncLayer = queuedSync ?? new PassthroughSync();
+// Built after `sync` because the calibration register is shared reference data
+// that has to reach the other devices — the repo pushes each edit and merges the
+// server's copy back in (SPEC §10 screen 9). With no API configured this falls
+// back to the pass-through and the register stays local, as before.
+const instrumentsRepo = new InstrumentsRepo(db, sync);
 // How often the app re-drains the outbox to retry entries whose backoff has
 // elapsed (SPEC §8). Matched to the backoff floor, not the 5-min cap, so early
 // retries stay responsive; each tick only sends what is actually due.

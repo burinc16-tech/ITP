@@ -19,6 +19,19 @@ export interface Instrument {
   cal_date: string;
   /** Date the calibration expires, `YYYY-MM-DD`. */
   cal_due_date: string;
+  /**
+   * UTC ISO timestamp of the last edit (Hard Rule #3). Carried on every push so
+   * the server can drop a stale write from a device that has been offline since
+   * before the row changed. Optional so rows written before the register synced
+   * still load; treat a missing value as the epoch — anything else wins over it.
+   */
+  updated_at?: string;
+  /**
+   * Tombstone. A removal has to travel between devices, so a deleted row is kept
+   * and flagged rather than dropped — a hard delete would be re-created by the
+   * next push from a device that still held it. Filtered out of `list()`.
+   */
+  deleted?: boolean;
 }
 
 export function createInstrument(opts: {
@@ -28,6 +41,8 @@ export function createInstrument(opts: {
   calCertUrl?: string;
   calDate: string;
   calDueDate: string;
+  updatedAt?: string;
+  deleted?: boolean;
 }): Instrument {
   return {
     id: opts.id,
@@ -36,5 +51,7 @@ export function createInstrument(opts: {
     cal_cert_url: opts.calCertUrl ?? "",
     cal_date: opts.calDate,
     cal_due_date: opts.calDueDate,
+    updated_at: opts.updatedAt ?? new Date().toISOString(),
+    deleted: opts.deleted ?? false,
   };
 }

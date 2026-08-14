@@ -6,6 +6,7 @@ import { AttachmentsRepo } from "./attachments-repo";
 import { createAuditEntry, type AuditEntry } from "./audit";
 import { AuditRepo } from "./audit-repo";
 import { ChecklistDb } from "./db";
+import type { Instrument } from "./instrument";
 import { OutboxRepo } from "./outbox";
 import { createDraft, type ChecklistRecord } from "./record";
 import { RecordsRepo } from "./records-repo";
@@ -22,6 +23,7 @@ class FakeTransport implements Transport {
   readonly signatures: string[] = [];
   readonly audits: string[] = [];
   readonly attachments: string[] = [];
+  readonly instruments: string[] = [];
   failNext = 0;
   readonly conflictIds = new Set<string>();
 
@@ -55,6 +57,13 @@ class FakeTransport implements Transport {
     return null;
   }
   async pullAttachmentImage(): Promise<Blob | null> {
+    return null;
+  }
+  async pushInstrument(i: Instrument): Promise<void> {
+    this.maybeFail();
+    this.instruments.push(i.id);
+  }
+  async pullInstruments(): Promise<Instrument[] | null> {
     return null;
   }
 }
