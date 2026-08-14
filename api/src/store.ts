@@ -263,6 +263,35 @@ export interface AttachmentRow {
   created_at: string;
 }
 
+/**
+ * One test instrument in the calibration register (SPEC §4, §10 screen 9).
+ * Reference data, not evidence: a renewed certificate edits the row in place, so
+ * this syncs as an upsert by client id rather than insert-once. `deleted` is a
+ * tombstone — a removal has to travel between devices, and a hard delete would
+ * just be re-created by the next push from a device that still held the row.
+ */
+export interface InstrumentRow {
+  id: string;
+  serial_no: string;
+  description: string;
+  cal_cert_url: string;
+  cal_date: string;
+  cal_due_date: string;
+  updated_at: string;
+  deleted: number;
+}
+
+export interface InstrumentStore {
+  /**
+   * Upsert by client id, last-write-wins on `updated_at`. An older push (a
+   * device that has been offline since before the row was edited) must not
+   * clobber a newer one, so a stale write is dropped rather than applied.
+   */
+  upsert(row: InstrumentRow): Promise<void>;
+  /** Every row including tombstones — the client needs those to apply deletes. */
+  list(): Promise<InstrumentRow[]>;
+}
+
 export interface AttachmentStore {
   /** Upsert by client id (last-write-wins) — a caption edit re-pushes the row. */
   upsert(row: AttachmentRow): Promise<void>;
@@ -424,6 +453,51 @@ export class R2SignatureImageStore implements SignatureImageStore {
 const ATTACHMENT_COLUMNS =
   "id, record_id, field_id, kind, image_key, caption, device_id, created_at";
 
+const INSTRUMENT_COLUMNS =
+  "id, serial_no, description, cal_cert_url, cal_date, cal_due_date, updated_at, deleted";
+
+export class D1InstrumentStore implements InstrumentStore {
+  constructor(private readonly db: D1Database) {}
+
+  async upsert(i: InstrumentRow): Promise<void> {
+    // The WHERE on the DO UPDATE is the last-write-wins guard: a push carrying an
+    // older `updated_at` than the stored row is ignored, so a device that has been
+    // offline since before an edit cannot resurrect the superseded values.
+    await this.db
+      .prepare(
+        `INSERT INTO instruments (${INSTRUMENT_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           serial_no    = excluded.serial_no,
+           description  = excluded.description,
+           cal_cert_url = excluded.cal_cert_url,
+           cal_date     = excluded.cal_date,
+           cal_due_date = excluded.cal_due_date,
+           updated_at   = excluded.updated_at,
+           deleted      = excluded.deleted
+         WHERE excluded.updated_at >= instruments.updated_at`,
+      )
+      .bind(
+        i.id,
+        i.serial_no,
+        i.description,
+        i.cal_cert_url,
+        i.cal_date,
+        i.cal_due_date,
+        i.updated_at,
+        i.deleted,
+      )
+      .run();
+  }
+
+  async list(): Promise<InstrumentRow[]> {
+    const res = await this.db
+      .prepare(`SELECT ${INSTRUMENT_COLUMNS} FROM instruments`)
+      .all<InstrumentRow>();
+    return res.results ?? [];
+  }
+}
+
 export class D1AttachmentStore implements AttachmentStore {
   constructor(private readonly db: D1Database) {}
 
@@ -522,6 +596,19 @@ export class MemorySignatureImageStore implements SignatureImageStore {
   }
   async get(key: string): Promise<Uint8Array | null> {
     return this.map.get(key)?.data ?? null;
+  }
+}
+
+export class MemoryInstrumentStore implements InstrumentStore {
+  readonly rows = new Map<string, InstrumentRow>();
+  async upsert(row: InstrumentRow): Promise<void> {
+    const existing = this.rows.get(row.id);
+    // Last-write-wins, but a stale push never clobbers a newer row.
+    if (existing && existing.updated_at > row.updated_at) return;
+    this.rows.set(row.id, { ...row });
+  }
+  async list(): Promise<InstrumentRow[]> {
+    return [...this.rows.values()].map((r) => ({ ...r }));
   }
 }
 

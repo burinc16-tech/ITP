@@ -1,0 +1,66 @@
+{
+  "code": "EBD",
+  "title": "Emergency Light Battery Duration Test Sheet",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/UFO_Battery_Test.html — a one-page sheet: a client/location band, a drawing-number line, one fitting-by-fitting table of start time, finish time and result, a combined remarks-and-instruments box and a three-row sign-off. The file is named for the UFO fitting it was last used on, but its printed title is the general one and that is what is carried here. It was saved with a record in it (Apple South Asia Pte Ltd; AMK3, L-1 (FCC Room); drawing KEN-24-0065-P2-EL-201_2; row 1 tested 11:30–13:30 Pass, \"Please refer to attached mark up drawing\"); all of that is record data — the client and room change with every sheet — so none of it is seeded. The source's own \"Rev : / Date\" footer is not reproduced as a field: the printed footer already carries the template code and revision (SPEC §7), and a second revision on the same page invites the two to disagree.",
+
+  "header": {
+    "title": "Test Details",
+    "fields": [
+      { "id": "client",     "label": "Client",         "type": "text", "required": true },
+      { "id": "location",   "label": "Location",       "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "drawing_no", "label": "Drawing Number", "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "fittings",
+      "title": "Battery Duration Test — minimum duration 120 mins",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "`page_break_before` on the opening section is the grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. With the table at its minimum the whole sheet fits one page, as the source does; a record with many fittings simply grows onto a second.\n\n**The source's footnote is folded into the section title.** The paper prints \"* Minimum duration 120 mins\" under the table, and that qualifier belongs on the signed document — it is the acceptance criterion the results are read against. A section carries no printed-note field of its own (`_status` exists but means \"unconfirmed, settle before Rev A\", not \"print this\"), so the words move into the heading rather than being dropped. They are the paper's own, not new wording.\n\n**No computed duration column, deliberately.** Start and finish are `time`, and it is tempting to subtract them into a duration and test it against the 120 minutes. The paper has neither column nor check, the engineer reads the two times and marks the result, and inventing a third column would mean the printed sheet no longer matches the master. If a duration is wanted later it is a `calculated` column and a Rev B.\n\n**Result is `status`, not `pass_fail_na`.** The source's dropdown reads Pass / Fail / N/A in that order and those exact words; `status` reproduces them, and the outcomes make a failed fitting derivable as an outstanding item (SPEC §6).\n\nThe source seeds twenty-one blank rows; `min_rows` is five and the engineer adds what the floor actually has, so a record with six fittings prints six rows rather than six plus fifteen empty ones.",
+      "columns": [
+        { "id": "location",    "label": "Location (also mark locations on drawings)", "type": "text",   "width": "46%" },
+        { "id": "start_time",  "label": "Test Start Time",  "type": "time",   "width": "15%", "align": "center" },
+        { "id": "finish_time", "label": "Test Finish Time", "type": "time",   "width": "15%", "align": "center" },
+        { "id": "result",      "label": "Pass or Fail",     "type": "status", "width": "24%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks / Instruments Used",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `lighting-circuit-test.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a plain box; this prints as one.\n\n**This is why the template declares no `instruments` block.** The sibling electrical sheets carry a four-column instrument table and point `instruments.source_section` at it; this paper has no such table — it folds the instruments into the remarks box, one free-text field. Declaring `instruments.required` with no table to satisfy it would gate the record against a section that does not exist, so the box is carried as the paper has it.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks / Instruments Used", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would print a one-page source on two sheets. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `lighting-circuit-test.json`.\n\nThe source's three rows, and it heads the lower two identically — \"Witnessed By\" — so the roles read the same here; the distinct `stage` values drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date — no company. The renderer always prints Company, so Tested By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the witness companies are left blank for whoever attends.\n\nThe paper names a Client in its header but no Project, and none is added: the record is already tied to a project through the register, and a header row the master does not have would print blank on every sheet (matching the original wins, SPEC §5).",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "required": true,  "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

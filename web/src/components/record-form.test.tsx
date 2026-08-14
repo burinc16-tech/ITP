@@ -131,6 +131,8 @@ describe("RecordForm — local-first save path", () => {
       pushAttachment: vi.fn().mockResolvedValue(undefined),
       pullAttachments: vi.fn().mockResolvedValue(null),
       pullAttachmentImage: vi.fn().mockResolvedValue(null),
+      pushInstrument: vi.fn().mockResolvedValue(undefined),
+      pullInstruments: vi.fn().mockResolvedValue(null),
     };
 
     render(

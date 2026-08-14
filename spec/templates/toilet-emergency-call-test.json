@@ -1,0 +1,108 @@
+{
+  "code": "TEC",
+  "title": "Check List & Test Report for Toilet Emergency Call",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Toilet_Emergency_Call_Test.html — the toilet emergency-call sibling of `fire-pwd-intercom-test.json`, and the same sheet down to the banner: a document block, the same three-item readiness checklist ticked YES / N/A / NO, a zone table whose headings each carry two bulleted sub-tests, and the same three-column sign-off. It differs only in what is tested per zone — Emergency Call Function and Siren / Lamp Function — and in the third readiness item's wording, which is carried verbatim from this file rather than from its sibling. The supplied file is a blank form (no record values to strip), and its six generic \"Toilet E-call Zone n\" headings are the form's own scaffolding, so they are seeded here; see the zone section note.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "project",     "label": "Project Name", "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ref_no",      "label": "Ref. No.",     "type": "text" },
+      { "id": "test_date",   "label": "Date",         "type": "date", "required": true },
+      { "id": "description", "label": "Description",  "type": "text" },
+      { "id": "location",    "label": "Location",     "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "drawing_no",  "label": "Drawing No.",  "type": "text" },
+      { "id": "drawing_rev", "label": "Drawing Rev",  "type": "text" },
+      { "id": "system",      "label": "System",       "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "readiness",
+      "title": "Readiness Checks",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / N/A / No" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "`page_break_before` on the opening section is what keeps this on one sheet: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same idiom as `fire-pwd-intercom-test.json`.\n\nThe source's eight document fields are the record header rather than a section of their own: they are one grid on the paper, directly under the banner, and the header info block prints them the same way without spending a section heading on them. The paper seeds Drawing REV with \"0\"; that is a record value about a specific drawing, not a template default, so it is left blank.\n\nThe three readiness items are the paper's, verbatim — item 3 reads \"Zone number labeling provided at control panel\" here, shorter than the intercom sheet's wording, and is kept as written (matching the original wins, SPEC §5). `status` rather than `pass_fail_na` so the choices read YES / N/A / NO in the sheet's own order and wording; the outcomes make a \"No\" derivable as an outstanding item (SPEC §6). The paper has no remarks column against these items — the renderer always prints one, so it is labelled and left for whatever the engineer needs to qualify a N/A with.",
+      "rows": [
+        { "id": "rd_01", "no": "1", "type": "status", "remarks": true,
+          "description": "Control panel is ready to test",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_02", "no": "2", "type": "status", "remarks": true,
+          "description": "Battery back-up is ready to test",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_03", "no": "3", "type": "status", "remarks": true,
+          "description": "Zone number labeling provided at control panel",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "zones",
+      "title": "Zone Tests",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 1,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "**One row per zone, where the paper spends three.** The source writes a zone heading — \"1. Toilet E-call Zone 1\" — and hangs two bulleted sub-items beneath it, Emergency Call Function and Siren / Lamp Function, each with its own Passed / Failed / N/A dropdown. The two sub-items are the same for every zone, so they are columns, and a zone becomes a single row. That prints the same information in a third of the height and, more to the point, lets a block with twenty toilets be one record. Same shape as `fire-pwd-intercom-test.json`.\n\n**The six zone names ARE seeded here, unlike the intercom sheet.** That template leaves them blank because its source was a filled record whose headings named real panels (\"Fire Intercom Zone 67\") — record data. This source is a blank form and its headings are generic scaffolding, so the six are carried as `prefilled_rows`; the engineer renames what the block actually has. They are seeded WITHOUT the source's \"1.\" … \"6.\" prefixes: `auto_number` already prints the serial, and carrying both would number every row twice — and would misnumber the moment a zone is deleted. `min_rows` is 1 rather than 6 so a two-toilet block can delete the spare rows; the seed decides what a blank record starts with, `min_rows` only sets the floor.\n\n**Why this section starts page 2.** Measured on the live build for the identical intercom sheet: a page gives 877px to content, a zone row costs 35px, and the document block, readiness table, zone table and sign-off together overrun A4 even at the table's minimum. Breaking here gives page 1 to the document and readiness blocks and page 2 to the zones and sign-off, with room for about twelve zones before page 2 needs its own break.\n\nThis is also what replaces the source's \"+ Add page\" button: that clones the whole sheet, header and sign-off included, purely to get more zone rows. Here the table grows and the record stays one document with one sign-off.",
+      "columns": [
+        { "id": "zone",       "label": "Zone / Test",              "type": "text",   "width": "46%" },
+        { "id": "ecall_fn",   "label": "Emergency Call Function",  "type": "status", "width": "27%", "align": "center",
+          "states": [
+            { "value": "passed", "label": "Passed", "outcome": "pass" },
+            { "value": "failed", "label": "Failed", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] },
+        { "id": "siren_lamp", "label": "Siren / Lamp Function",    "type": "status", "width": "27%", "align": "center",
+          "states": [
+            { "value": "passed", "label": "Passed", "outcome": "pass" },
+            { "value": "failed", "label": "Failed", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "zone": "Toilet E-call Zone 1" },
+        { "zone": "Toilet E-call Zone 2" },
+        { "zone": "Toilet E-call Zone 3" },
+        { "zone": "Toilet E-call Zone 4" },
+        { "zone": "Toilet E-call Zone 5" },
+        { "zone": "Toilet E-call Zone 6" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would add a third sheet carrying nothing but signatures. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `fire-pwd-intercom-test.json`.\n\nThe source's three columns, and it heads the lower two identically — \"WITNESS BY\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date — no company column. The renderer always prints Company, so Performed By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the two witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_performed", "role": "Performed By", "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witness By",   "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witness By",   "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

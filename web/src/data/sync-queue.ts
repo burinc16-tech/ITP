@@ -1,6 +1,7 @@
 import type { Attachment } from "./attachment";
 import type { AttachmentsRepo } from "./attachments-repo";
 import type { AuditEntry } from "./audit";
+import type { Instrument } from "./instrument";
 import { isoClock } from "./record";
 import type { ChecklistRecord } from "./record";
 import type { AuditRepo } from "./audit-repo";
@@ -32,6 +33,10 @@ export interface Transport {
   pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
   /** Best-effort fetch of one attachment's image bytes, or null. */
   pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
+  /** Push one calibration-register instrument. Throws on a retryable failure. */
+  pushInstrument(instrument: Instrument): Promise<void>;
+  /** Best-effort read of the server's register (tombstones included), or null. */
+  pullInstruments(): Promise<Instrument[] | null>;
 }
 
 export interface QueuedSyncDeps {
@@ -122,6 +127,25 @@ export class QueuedSync implements SyncLayer {
 
   pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
     return this.deps.transport.pullAttachmentImage(recordId, attachmentId);
+  }
+
+  /**
+   * Instruments do not ride the outbox. They are reference data, not evidence:
+   * losing a push costs nothing permanent because `InstrumentsRepo.syncDown`
+   * compares both sides and re-pushes whatever the server is missing, so the
+   * register self-heals on the next visit. Swallowing here keeps a failed push
+   * from breaking the local write, which has already succeeded.
+   */
+  async pushInstrument(instrument: Instrument): Promise<void> {
+    try {
+      await this.deps.transport.pushInstrument(instrument);
+    } catch (err) {
+      console.warn("instrument push failed (kept locally, retried on next sync)", err);
+    }
+  }
+
+  pullInstruments(): Promise<Instrument[] | null> {
+    return this.deps.transport.pullInstruments();
   }
 
   /** Pending pushes not yet delivered — the §8 on-screen count. */

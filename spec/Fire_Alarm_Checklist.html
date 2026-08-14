@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check List for Fire Alarm System</title>
+<style>
+  :root{--ink:#1a1d21;--line:#8b909a;--line-soft:#c9cdd4;--accent:#b3261e;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#eef0f3;font-family:Arial,Helvetica,sans-serif;color:var(--ink);font-size:13px;}
+  .toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line-soft);padding:10px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .toolbar .spacer{flex:1;}
+  button{font-family:inherit;font-size:13px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:4px;}
+  button:hover{background:#f3f4f6;}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  button.primary:hover{background:#93201a;}
+  .hint{color:#6b7078;font-size:11px;}
+
+  /* A4 sheet: 210mm wide */
+  .sheet{width:210mm;min-height:297mm;margin:24px auto;background:#fff;padding:12mm 12mm;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+
+  table.doc{width:100%;border-collapse:collapse;table-layout:fixed;}
+  table.doc td, table.doc th{border:1px solid var(--ink);padding:4px 6px;vertical-align:middle;}
+  .banner td{text-align:center;}
+  .banner img{max-height:52px;max-width:100%;display:block;margin:0 auto;}
+  .banner .title{font-size:16px;font-weight:bold;line-height:1.35;}
+  td.lbl{font-weight:bold;white-space:nowrap;width:1%;}
+  td.fld input{width:100%;border:none;font:inherit;background:transparent;outline:none;padding:2px;}
+
+  td.item{text-align:left;}
+  td.item.blank .num{margin-right:4px;}
+  .itemtext{width:88%;border:none;border-bottom:1px dotted var(--line-soft);font:inherit;outline:none;background:transparent;padding:2px;}
+  td.chk{width:11mm;text-align:center;}
+  td.chk input[type=checkbox]{width:15px;height:15px;cursor:pointer;}
+  tr.cat td{background:#f0f1f3;}
+  th.chkhead{width:11mm;text-align:center;background:#f0f1f3;font-size:12px;}
+  th.itemhead{background:#f0f1f3;}
+
+  .remarks-title td{font-weight:bold;}
+  td.remarks{height:auto;padding:0;}
+  td.remarks textarea{width:100%;border:none;font:inherit;outline:none;resize:vertical;min-height:88px;padding:6px;background:
+    repeating-linear-gradient(transparent,transparent 21px,var(--line-soft) 21px,var(--line-soft) 22px);line-height:22px;display:block;}
+
+  table.sign{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:-1px;}
+  td.signcol{border:1px solid var(--ink);padding:0;vertical-align:top;width:33.33%;}
+  .signhead{font-weight:bold;font-size:11px;text-align:center;background:#f0f1f3;border-bottom:1px solid var(--ink);padding:5px 4px;min-height:34px;display:flex;align-items:center;justify-content:center;}
+  .signrow{display:flex;align-items:stretch;border-bottom:1px solid var(--ink);}
+  .signrow:last-child{border-bottom:none;}
+  .signrow>span:first-child{width:34%;font-size:10px;font-weight:bold;border-right:1px solid var(--ink);padding:6px 4px;display:flex;align-items:center;}
+  .signrow input{flex:1;min-width:0;border:none;font:inherit;font-size:11px;outline:none;padding:4px;background:transparent;}
+  .sigwrap{flex:1;position:relative;min-width:0;}
+  canvas.sigpad{width:100%;height:52px;display:block;touch-action:none;background:#fff;cursor:crosshair;}
+  .sigclear{position:absolute;top:2px;right:2px;font-size:9px;padding:0 5px;border:1px solid var(--line-soft);background:#fff;border-radius:3px;opacity:.7;}
+  .sigclear:hover{opacity:1;}
+
+  @media print{
+    .toolbar,.sigclear,.hint,.no-print{display:none !important;}
+    body{background:#fff;}
+    .sheet{box-shadow:none;margin:0;width:auto;min-height:0;padding:0;}
+    @page{size:A4 portrait;margin:10mm;}
+    td.chk input[type=checkbox]{width:12px;height:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <button class="primary" onclick="savePDF()">Save as PDF</button>
+  <button onclick="saveHTML()">Save as HTML</button>
+  <span class="spacer"></span>
+  <span class="hint">Fill in the checklist, sign in the signature boxes, then save.</span>
+</div>
+
+<div class="sheet">
+  <table class="doc">
+    <tr class="banner">
+      <td style="width:22%;"><img src="data:image/png;base64,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" alt="Kenyon logo"></td>
+      <td style="width:56%;" class="title">Check List for<br>Fire Alarm System</td>
+      <td style="width:22%;"><img src="data:image/jpeg;base64,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" alt="Logo"></td>
+    </tr>
+  </table>
+
+  <table class="doc" style="margin-top:-1px;">
+    <tr>
+      <td class="lbl">PROJECT NAME:</td>
+      <td class="fld" colspan="3"><input type="text" name="project_name"></td>
+    </tr>
+    <tr>
+      <td class="lbl">REF. NO.:</td>
+      <td class="fld"><input type="text" name="ref_no"></td>
+      <td class="lbl">DATE:</td>
+      <td class="fld"><input type="date" name="date"></td>
+    </tr>
+    <tr>
+      <td class="lbl">DRAWING No.:</td>
+      <td class="fld"><input type="text" name="drawing_no" style="width:70%;"> <strong>REV:</strong> <input type="text" name="rev" style="width:18%;border:none;font:inherit;outline:none;background:transparent;"></td>
+      <td class="lbl">LOCATION:</td>
+      <td class="fld"><input type="text" name="location"></td>
+    </tr>
+  </table>
+
+  <table class="doc" style="margin-top:-1px;">
+    <tr>
+      <th class="itemhead"></th>
+      <th class="chkhead">YES</th>
+      <th class="chkhead">N/A</th>
+      <th class="chkhead">NO</th>
+    </tr>
+    <tr class="cat"><td class="item" colspan="1"><strong>General:</strong></td><td class="chk"></td><td class="chk"></td><td class="chk"></td></tr>
+<tr><td class="item">1. Verify that all fire alarm system documentation (Plan Layout, Schematic, etc.) is complete and available.</td><td class="chk"><input type="checkbox" data-grp="r1"></td><td class="chk"><input type="checkbox" data-grp="r1"></td><td class="chk"><input type="checkbox" data-grp="r1"></td></tr>
+<tr><td class="item">2. Verify that all devices are located as per approved fire alarm shop drawings.</td><td class="chk"><input type="checkbox" data-grp="r2"></td><td class="chk"><input type="checkbox" data-grp="r2"></td><td class="chk"><input type="checkbox" data-grp="r2"></td></tr>
+<tr><td class="item">3. Verify that detectors / call points zoning and location reflected to the PC graphic.</td><td class="chk"><input type="checkbox" data-grp="r3"></td><td class="chk"><input type="checkbox" data-grp="r3"></td><td class="chk"><input type="checkbox" data-grp="r3"></td></tr>
+<tr class="cat"><td class="item" colspan="1"><strong>Field Devices:</strong></td><td class="chk"></td><td class="chk"></td><td class="chk"></td></tr>
+<tr><td class="item">4. Ensure manual call points, smoke detectors and other field devices is installed correctly and easy to access.</td><td class="chk"><input type="checkbox" data-grp="r4"></td><td class="chk"><input type="checkbox" data-grp="r4"></td><td class="chk"><input type="checkbox" data-grp="r4"></td></tr>
+<tr><td class="item">5. Ensure all devices are free from physical damage and correctly labeled.</td><td class="chk"><input type="checkbox" data-grp="r5"></td><td class="chk"><input type="checkbox" data-grp="r5"></td><td class="chk"><input type="checkbox" data-grp="r5"></td></tr>
+<tr><td class="item">6. Check the mounting height and positioning as per design specifications and local standard.</td><td class="chk"><input type="checkbox" data-grp="r6"></td><td class="chk"><input type="checkbox" data-grp="r6"></td><td class="chk"><input type="checkbox" data-grp="r6"></td></tr>
+<tr class="cat"><td class="item" colspan="1"><strong>Notification Appliances:</strong></td><td class="chk"></td><td class="chk"></td><td class="chk"></td></tr>
+<tr><td class="item">7. Ensure alarm bells and strobe lights are properly installed and visible.</td><td class="chk"><input type="checkbox" data-grp="r7"></td><td class="chk"><input type="checkbox" data-grp="r7"></td><td class="chk"><input type="checkbox" data-grp="r7"></td></tr>
+<tr><td class="item">8. Ensure all devices are free from physical damage and correctly labeled.</td><td class="chk"><input type="checkbox" data-grp="r8"></td><td class="chk"><input type="checkbox" data-grp="r8"></td><td class="chk"><input type="checkbox" data-grp="r8"></td></tr>
+<tr><td class="item">9. Check the mounting height and positioning as per design specifications and local standard.</td><td class="chk"><input type="checkbox" data-grp="r9"></td><td class="chk"><input type="checkbox" data-grp="r9"></td><td class="chk"><input type="checkbox" data-grp="r9"></td></tr>
+<tr class="cat"><td class="item" colspan="1"><strong>Wiring and Connections:</strong></td><td class="chk"></td><td class="chk"></td><td class="chk"></td></tr>
+<tr><td class="item">10. Ensure all wiring free of physical damage, proper labeling, and secure connections.</td><td class="chk"><input type="checkbox" data-grp="r10"></td><td class="chk"><input type="checkbox" data-grp="r10"></td><td class="chk"><input type="checkbox" data-grp="r10"></td></tr>
+<tr><td class="item">11. Ensure cable management is neat, with no exposed or loose wires.</td><td class="chk"><input type="checkbox" data-grp="r11"></td><td class="chk"><input type="checkbox" data-grp="r11"></td><td class="chk"><input type="checkbox" data-grp="r11"></td></tr>
+<tr><td class="item">12. Confirm that all connections are properly terminated and protected.</td><td class="chk"><input type="checkbox" data-grp="r12"></td><td class="chk"><input type="checkbox" data-grp="r12"></td><td class="chk"><input type="checkbox" data-grp="r12"></td></tr>
+<tr><td class="item blank"><span class="num">13.</span><input type="text" class="itemtext" placeholder=""></td><td class="chk"><input type="checkbox" data-grp="r13"></td><td class="chk"><input type="checkbox" data-grp="r13"></td><td class="chk"><input type="checkbox" data-grp="r13"></td></tr>
+<tr><td class="item blank"><span class="num">14.</span><input type="text" class="itemtext" placeholder=""></td><td class="chk"><input type="checkbox" data-grp="r14"></td><td class="chk"><input type="checkbox" data-grp="r14"></td><td class="chk"><input type="checkbox" data-grp="r14"></td></tr>
+<tr><td class="item blank"><span class="num">15.</span><input type="text" class="itemtext" placeholder=""></td><td class="chk"><input type="checkbox" data-grp="r15"></td><td class="chk"><input type="checkbox" data-grp="r15"></td><td class="chk"><input type="checkbox" data-grp="r15"></td></tr>
+<tr><td class="item blank"><span class="num">16.</span><input type="text" class="itemtext" placeholder=""></td><td class="chk"><input type="checkbox" data-grp="r16"></td><td class="chk"><input type="checkbox" data-grp="r16"></td><td class="chk"><input type="checkbox" data-grp="r16"></td></tr>
+  </table>
+
+  <table class="doc" style="margin-top:-1px;">
+    <tr class="remarks-title"><td><strong>REMARKS (if any):</strong></td></tr>
+    <tr><td class="remarks"><textarea name="remarks" rows="5"></textarea></td></tr>
+  </table>
+
+  <table class="sign">
+    <tr>
+      <td class="signcol">
+        <div class="signhead">PERFORMED BY SUB / MAIN CONTRACTOR</div>
+        <div class="signrow"><span>NAME</span><input type="text" name="perf_name"></div>
+        <div class="signrow siglabel"><span>SIGNATURE</span>
+          <span class="sigwrap"><canvas class="sigpad" data-sig="perf"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></span>
+        </div>
+        <div class="signrow"><span>DATE / TIME</span><input type="datetime-local" name="perf_dt"></div>
+      </td>
+      <td class="signcol">
+        <div class="signhead">WITNESSED BY</div>
+        <div class="signrow"><span>NAME</span><input type="text" name="wit1_name"></div>
+        <div class="signrow siglabel"><span>SIGNATURE</span>
+          <span class="sigwrap"><canvas class="sigpad" data-sig="wit1"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></span>
+        </div>
+        <div class="signrow"><span>DATE / TIME</span><input type="datetime-local" name="wit1_dt"></div>
+      </td>
+      <td class="signcol">
+        <div class="signhead">WITNESSED BY</div>
+        <div class="signrow"><span>NAME</span><input type="text" name="wit2_name"></div>
+        <div class="signrow siglabel"><span>SIGNATURE</span>
+          <span class="sigwrap"><canvas class="sigpad" data-sig="wit2"></canvas><button type="button" class="sigclear" onclick="clearSig(this)">Clear</button></span>
+        </div>
+        <div class="signrow"><span>DATE / TIME</span><input type="datetime-local" name="wit2_dt"></div>
+      </td></tr>
+  </table>
+  <p class="hint no-print">Tick one column (YES / N/A / NO) per item &mdash; ticking one clears the others. Sign with mouse, finger, or stylus.</p>
+</div>
+
+<script>
+/* one tick per row */
+document.querySelectorAll('td.chk input[type=checkbox]').forEach(function(cb){
+  cb.addEventListener('change',function(){
+    if(cb.checked){
+      document.querySelectorAll('input[data-grp="'+cb.dataset.grp+'"]').forEach(function(o){if(o!==cb)o.checked=false;});
+    }
+  });
+});
+
+/* signature pads */
+function setupPad(cv){
+  var ctx=cv.getContext('2d'),drawing=false,last=null;
+  function resize(){
+    var r=cv.getBoundingClientRect();
+    if(r.width===0)return;
+    var data=cv.width?cv.toDataURL():null;
+    cv.width=r.width;cv.height=r.height;
+    ctx.lineWidth=1.5;ctx.lineCap='round';ctx.strokeStyle='#111';
+    if(data&&cv.dataset.signed){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0,cv.width,cv.height);};img.src=data;}
+  }
+  resize();window.addEventListener('resize',resize);
+  function pos(e){var r=cv.getBoundingClientRect();var p=e.touches?e.touches[0]:e;return{x:p.clientX-r.left,y:p.clientY-r.top};}
+  function start(e){drawing=true;last=pos(e);e.preventDefault();}
+  function move(e){if(!drawing)return;var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;cv.dataset.signed='1';e.preventDefault();}
+  function end(){drawing=false;}
+  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false});cv.addEventListener('touchmove',move,{passive:false});cv.addEventListener('touchend',end);
+}
+document.querySelectorAll('canvas.sigpad').forEach(setupPad);
+function clearSig(btn){var cv=btn.parentElement.querySelector('canvas');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);delete cv.dataset.signed;}
+
+/* save as PDF */
+function savePDF(){window.print();}
+
+/* save as HTML with values + signatures baked in */
+function saveHTML(){
+  document.querySelectorAll('input[type=text],input[type=date],input[type=datetime-local]').forEach(function(i){i.setAttribute('value',i.value);});
+  document.querySelectorAll('input[type=checkbox]').forEach(function(c){if(c.checked)c.setAttribute('checked','checked');else c.removeAttribute('checked');});
+  document.querySelectorAll('textarea').forEach(function(t){t.textContent=t.value;});
+  var doc=document.documentElement.cloneNode(true);
+  var live=document.querySelectorAll('canvas.sigpad'),cl=doc.querySelectorAll('canvas.sigpad');
+  for(var i=0;i<live.length;i++){cl[i].setAttribute('data-image',live[i].dataset.signed?live[i].toDataURL('image/png'):'');}
+  if(!doc.querySelector('#restoreSig')){
+    var s=document.createElement('script');s.id='restoreSig';
+    s.textContent="window.addEventListener('load',function(){document.querySelectorAll('canvas.sigpad').forEach(function(cv){var d=cv.getAttribute('data-image');if(d){var img=new Image();img.onload=function(){cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);cv.dataset.signed='1';};img.src=d;}});});";
+    doc.querySelector('body').appendChild(s);
+  }
+  var blob=new Blob(['<!DOCTYPE html>\n'+doc.outerHTML],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='Fire_Alarm_Checklist_'+new Date().toISOString().slice(0,10)+'.html';
+  a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+{
+  "code": "FAS",
+  "title": "Check List for Fire Alarm System",
+  "rev": "A",
+  "discipline": "Electrical",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Fire_Alarm_Checklist.html — a single A4 portrait sheet: the banner, a six-field document block, one table of twelve worded items ticked YES / N/A / NO under four bold category headings, four blank numbered rows (13–16), a REMARKS box, and a three-column sign block. The supplied file is a blank form, so there are no record values to strip.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "project",     "label": "Project Name", "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ref_no",      "label": "Ref. No.",     "type": "text" },
+      { "id": "test_date",   "label": "Date",         "type": "date", "required": true },
+      { "id": "drawing_no",  "label": "Drawing No.",  "type": "text" },
+      { "id": "drawing_rev", "label": "Drawing Rev",  "type": "text" },
+      { "id": "location",    "label": "Location",     "type": "text", "source": "equipment.location", "required": true, "bold": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "checklist",
+      "title": "Fire Alarm System Checklist",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / N/A / No" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The sheet's six document fields are the record header rather than a section of their own: they are one grid on the paper, directly under the banner, and the header info block prints them the same way without spending a section heading on them. Drawing No. and REV share a cell on the paper; they are two header fields here because a revision is its own value. Same treatment as `toilet-emergency-call-test.json`.\n\n**One table with `group` headings — the paper's own layout.** The sheet is a single table whose shaded bold rows (General / Field Devices / Notification Appliances / Wiring and Connections) head runs of items; consecutive rows sharing a `group` render exactly that way (`print-group-row`). A section per category would instead print four section titles and four repeated column-header rows, none of which the paper has. Same idiom as `chemical-flush-checklist.json`.\n\n**Why the table is nevertheless split in two — measured on the live build, 2026-08-13.** A print page gives its body 232.2mm. The whole checklist on one page came to 243.7mm (title 8.2 + 4mm, document block 32.5 + 6mm, table 192.9) and pushed the sheet to 308.4mm against A4's 297 — it silently spilled onto a third physical sheet, and the footer that did print read \"Page 1 of 2\" on a three-sheet document (SPEC §7). Even with no added rows it was 234.3mm, 2.1mm over: four of the twelve descriptions wrap to two lines at this column width, and the print table's font size is fixed (the template's `font_size` is honoured on screen only). So the last category moves to page 2 — see `checklist_cont`. That leaves this page 197.1mm of 232.2, about 35mm spare.\n\n`status` rather than `pass_fail_na` so the three choices read YES / N/A / NO in the sheet's own order and wording, and so an added row can carry the same words — `add_row_template` has no `labels` key. The outcomes make a \"No\" derivable as an outstanding item (SPEC §6).\n\n**Items 5 and 8 are word-for-word identical on the paper** (\"Ensure all devices are free from physical damage and correctly labeled\"), as are 6 and 9 — the sheet repeats the same two checks under Field Devices and again under Notification Appliances, because they are answered separately for each. Both pairs are carried verbatim; matching the original wins (SPEC §5). The ids keep them apart (`fd_*` vs `na_*`).\n\n`page_break_before` on the opening section is a no-op for layout — it is already page 1 — but `paginate` gives every section its own page unless at least one declares a break, so it is what puts the two closing blocks together on page 2 rather than on a page each.",
+      "rows": [
+        { "id": "gen_01", "no": "1", "group": "General", "type": "status", "remarks": true,
+          "description": "Verify that all fire alarm system documentation (Plan Layout, Schematic, etc.) is complete and available.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "gen_02", "no": "2", "group": "General", "type": "status", "remarks": true,
+          "description": "Verify that all devices are located as per approved fire alarm shop drawings.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "gen_03", "no": "3", "group": "General", "type": "status", "remarks": true,
+          "description": "Verify that detectors / call points zoning and location reflected to the PC graphic.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+
+        { "id": "fd_01", "no": "4", "group": "Field Devices", "type": "status", "remarks": true,
+          "description": "Ensure manual call points, smoke detectors and other field devices is installed correctly and easy to access.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "fd_02", "no": "5", "group": "Field Devices", "type": "status", "remarks": true,
+          "description": "Ensure all devices are free from physical damage and correctly labeled.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "fd_03", "no": "6", "group": "Field Devices", "type": "status", "remarks": true,
+          "description": "Check the mounting height and positioning as per design specifications and local standard.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+
+        { "id": "na_01", "no": "7", "group": "Notification Appliances", "type": "status", "remarks": true,
+          "description": "Ensure alarm bells and strobe lights are properly installed and visible.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "na_02", "no": "8", "group": "Notification Appliances", "type": "status", "remarks": true,
+          "description": "Ensure all devices are free from physical damage and correctly labeled.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "na_03", "no": "9", "group": "Notification Appliances", "type": "status", "remarks": true,
+          "description": "Check the mounting height and positioning as per design specifications and local standard.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "checklist_cont",
+      "title": "Fire Alarm System Checklist (cont.)",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / N/A / No" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The tail of the same table, carried onto page 2 because the whole of it does not fit on one — the measurement is in `checklist`. The split falls on a category boundary so the break lands where the paper already draws a shaded heading, and the continuation reprints the column headings, which is how a continued table reads on paper. Nothing else about the rows changes: the numbering runs on from 12, and `checklist` and this section carry the same `columns` labels.\n\n**The sheet's four blank rows (13–16) are `allow_add_rows` here, not four empty template rows**: an engineer's added wording is record data, never template wording (SPEC §12, Hard Rule #5), and a record that needs none prints none rather than four ruled empty lines. They belong to this section because the paper puts its blanks at the end of the table. `editable_no` and `editable_group` let an added row carry its own number and its own category heading.\n\nMeasured with every item answered: this page comes to 215.1mm of the 232.2mm body — the three items, the remarks box and the sign-off — leaving about 17mm, so one or two added rows print here before the record needs a third sheet. That is the trade every `allow_add_rows` template makes (`chemical-flush-checklist.json` makes the same one); page 1 has 35mm spare that added rows cannot reach, because a row appends to the section it belongs to.",
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [
+          { "value": "yes", "label": "Yes", "outcome": "pass" },
+          { "value": "na",  "label": "N/A", "outcome": "na" },
+          { "value": "no",  "label": "No",  "outcome": "fail" }
+        ],
+        "remarks": true,
+        "editable_no": true,
+        "editable_group": true
+      },
+      "rows": [
+        { "id": "wir_01", "no": "10", "group": "Wiring and Connections", "type": "status", "remarks": true,
+          "description": "Ensure all wiring free of physical damage, proper labeling, and secure connections.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "wir_02", "no": "11", "group": "Wiring and Connections", "type": "status", "remarks": true,
+          "description": "Ensure cable management is neat, with no exposed or loose wires.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "wir_03", "no": "12", "group": "Wiring and Connections", "type": "status", "remarks": true,
+          "description": "Confirm that all connections are properly terminated and protected.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks (if any)",
+      "type": "field_group",
+      "_note": "The sheet's ruled REMARKS box. A field group rather than a one-row standard section, which would print a spurious column header (`fcu-lcp-checklist.json`).\n\nNo break: it closes page 2 under the tail of the checklist, which is where the paper puts it — directly below the table and above the sign block. Measured at 33.1mm with the title and its margin.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would add a third sheet carrying nothing but signatures where the paper is one. Sharing the closing sheet with the remarks box keeps the record to two. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged.\n\nThe paper's three columns, headed \"PERFORMED BY SUB / MAIN CONTRACTOR\" and then \"WITNESSED BY\" twice; the roles read the same here and the distinct `stage` values are what drive the workflow (SPEC §6). The sign block carries only Name, Signature and Date / Time — no company column — so Performed By defaults to Kenyon Pte Ltd and stays editable (the sheet allows a subcontractor to sign it), and the two witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_performed", "role": "Performed By Sub / Main Contractor", "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

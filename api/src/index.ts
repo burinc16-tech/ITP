@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import {
   D1AttachmentStore,
   D1AuditStore,
+  D1InstrumentStore,
   D1RecordStore,
   D1SessionStore,
   D1SignatureRequestStore,
@@ -39,6 +40,7 @@ export default {
       audit: new D1AuditStore(env.DB),
       images: new R2SignatureImageStore(env.SIGNATURES),
       attachments: new D1AttachmentStore(env.DB),
+      instruments: new D1InstrumentStore(env.DB),
       users: new D1UserStore(env.DB),
       sessions: new D1SessionStore(env.DB),
       email,

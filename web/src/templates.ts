@@ -25,6 +25,12 @@ import staircasePressurizationRaw from "../../spec/templates/staircase-pressuriz
 import firePwdIntercomRaw from "../../spec/templates/fire-pwd-intercom-test.json";
 import lightingCircuitTestRaw from "../../spec/templates/lighting-circuit-test.json";
 import paSystemTestRaw from "../../spec/templates/pa-system-test.json";
+import powerCircuitTestRaw from "../../spec/templates/power-circuit-test.json";
+import toiletEmergencyCallRaw from "../../spec/templates/toilet-emergency-call-test.json";
+import emergencyLightBatteryRaw from "../../spec/templates/emergency-light-battery-duration.json";
+import fireAlarmChecklistRaw from "../../spec/templates/fire-alarm-checklist.json";
+import fireAlarmTestRaw from "../../spec/templates/fire-alarm-test.json";
+import hoseReelPressureTestRaw from "../../spec/templates/hose-reel-pipe-pressure-test.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -59,4 +65,10 @@ export const TEMPLATES: Template[] = [
   parseTemplate(firePwdIntercomRaw),
   parseTemplate(lightingCircuitTestRaw),
   parseTemplate(paSystemTestRaw),
+  parseTemplate(powerCircuitTestRaw),
+  parseTemplate(toiletEmergencyCallRaw),
+  parseTemplate(emergencyLightBatteryRaw),
+  parseTemplate(fireAlarmChecklistRaw),
+  parseTemplate(fireAlarmTestRaw),
+  parseTemplate(hoseReelPressureTestRaw),
 ];

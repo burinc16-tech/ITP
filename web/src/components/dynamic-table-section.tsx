@@ -128,6 +128,7 @@ function FlatTableSection(props: {
                         id={`${section.id}-${index}-${col.id}`}
                         ariaLabel={`${col.label} row ${index + 1}`}
                         limit={col.limit}
+                        states={col.states}
                         align={col.align}
                       />
                     </td>
@@ -272,6 +273,7 @@ function GroupedTableSection(props: {
                             id={`${section.id}-g${gi}-${col.id}`}
                             ariaLabel={`${col.label} ${group.label} ${gi + 1}`}
                             limit={col.limit}
+                            states={col.states}
                             align={col.align}
                           />
                         </td>
@@ -299,6 +301,7 @@ function GroupedTableSection(props: {
                             id={`${section.id}-g${gi}-r${ri}-${col.id}`}
                             ariaLabel={`${col.label} ${group.label} ${gi + 1} row ${ri + 1}`}
                             limit={col.limit}
+                            states={col.states}
                             align={col.align}
                           />
                         </td>

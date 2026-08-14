@@ -7,6 +7,8 @@ import type {
   AuditRow,
   AuditStore,
   IncomingRecord,
+  InstrumentRow,
+  InstrumentStore,
   RecordStore,
   SessionStore,
   SignatureImageStore,
@@ -21,6 +23,7 @@ import {
   CLOSED_REQUEST_STATUSES,
   MemoryAttachmentStore,
   MemoryAuditStore,
+  MemoryInstrumentStore,
   MemorySessionStore,
   MemorySignatureImageStore,
   MemorySignatureRequestStore,
@@ -95,6 +98,8 @@ export interface AppDeps {
   images?: SignatureImageStore;
   /** Photo attachment metadata store (§8); image bytes reuse `images` (R2). */
   attachments?: AttachmentStore;
+  /** Calibration register (§10 screen 9) — shared reference data, not per-record. */
+  instruments?: InstrumentStore;
   /** Auth stores (task 4). Default to in-memory fakes; seed a user to log in. */
   users?: UserStore;
   sessions?: SessionStore;
@@ -118,6 +123,7 @@ export function createApp(deps: AppDeps) {
   const audit = deps.audit ?? new MemoryAuditStore();
   const images = deps.images ?? new MemorySignatureImageStore();
   const attachments = deps.attachments ?? new MemoryAttachmentStore();
+  const instruments = deps.instruments ?? new MemoryInstrumentStore();
   const users = deps.users ?? new MemoryUserStore();
   const sessions = deps.sessions ?? new MemorySessionStore();
   const email = deps.email ?? new MemoryEmailSender();
@@ -251,6 +257,42 @@ export function createApp(deps: AppDeps) {
     const record = await store.get(c.req.param("id"));
     if (!record) return c.json({ error: "not found" }, 404);
     return c.json(record);
+  });
+
+  // --- Calibration register (SPEC §4, §10 screen 9) ------------------------
+  // Shared reference data, so unlike every other sync route these are not nested
+  // under a record. Upsert by client id, last-write-wins on `updated_at`; deletes
+  // travel as tombstones (`deleted: 1`) because a hard delete on one device would
+  // otherwise be undone by the next push from a device that still held the row.
+
+  app.get("/api/instruments", requireUser, async (c) => {
+    // Tombstones are included deliberately: the client needs them to apply a
+    // delete made on another device.
+    return c.json({ instruments: await instruments.list() });
+  });
+
+  app.post("/api/instruments", requireUser, async (c) => {
+    let body: Partial<InstrumentRow>;
+    try {
+      body = await c.req.json<Partial<InstrumentRow>>();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body?.id || !body?.updated_at) {
+      return c.json({ error: "invalid instrument" }, 400);
+    }
+    const row: InstrumentRow = {
+      id: body.id,
+      serial_no: body.serial_no ?? "",
+      description: body.description ?? "",
+      cal_cert_url: body.cal_cert_url ?? "",
+      cal_date: body.cal_date ?? "",
+      cal_due_date: body.cal_due_date ?? "",
+      updated_at: body.updated_at,
+      deleted: body.deleted ? 1 : 0,
+    };
+    await instruments.upsert(row);
+    return c.json({ applied: true });
   });
 
   // --- Sync push: append-only evidence (SPEC §8, §12) ----------------------
