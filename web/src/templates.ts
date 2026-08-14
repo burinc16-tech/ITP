@@ -31,6 +31,7 @@ import emergencyLightBatteryRaw from "../../spec/templates/emergency-light-batte
 import fireAlarmChecklistRaw from "../../spec/templates/fire-alarm-checklist.json";
 import fireAlarmTestRaw from "../../spec/templates/fire-alarm-test.json";
 import hoseReelPressureTestRaw from "../../spec/templates/hose-reel-pipe-pressure-test.json";
+import sprinklerPressureTestRaw from "../../spec/templates/sprinkler-pipe-pressure-test.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -71,4 +72,5 @@ export const TEMPLATES: Template[] = [
   parseTemplate(fireAlarmChecklistRaw),
   parseTemplate(fireAlarmTestRaw),
   parseTemplate(hoseReelPressureTestRaw),
+  parseTemplate(sprinklerPressureTestRaw),
 ];
