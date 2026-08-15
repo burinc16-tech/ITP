@@ -1,0 +1,64 @@
+{
+  "code": "MVR",
+  "title": "Energy / Water Meter Verification Record",
+  "rev": "A",
+  "discipline": "Plumbing & Sanitary",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Meter_Verification_Record.html — a one-page sheet and the closest sibling in the library to `sensor-calibration-record.json`: a three-field document band, one add/delete-row table comparing a BMS figure against the meter's own with the offset between them, a ruled remarks box and a three-row sign-off. It differs from that sheet in carrying a fixed unit — every column is m³, printed as the table's second header row — where the sensor sheet's unit follows the sensor type. The file arrived saved with one job's record in it (Apple AMK 2 Level 4; ref P&S-08; 7 November 2024; the L-4 P&S Riser meters NWM-B-401 and CWM-B-401 reading 6.65 / 6.70 and 11.10 / 11.10); that is record data and none of it is carried here. The sheet is headed Energy / Water and its sample is water; an energy meter is verified on the same form, which is why the title keeps both words.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "project",   "label": "Project",  "type": "text", "required": true },
+      { "id": "ref_no",    "label": "Ref No",   "type": "text" },
+      { "id": "test_date", "label": "Date",     "type": "date", "required": true }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "meters",
+      "title": "Meter Verification",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "The source's three document fields are the record header rather than a section of their own — one small grid on the paper, directly under the banner. **Project is a plain editable field, not `source: project.name` + `readonly`**: that pairing is declared on several templates but nothing populates it, so the cell prints permanently blank (an app-wide gap). The paper prints a project name, so this asks for one.\n\n`page_break_before` on the opening section is the grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. With the table at its minimum the whole record fits one sheet, as the source does.\n\n**The source's two header rows collapse into one.** The paper writes \"BMS Reading / Meter Reading / Offset\" across the top and \"(m³)\" under each; a `unit` on the column prints as \"BMS Reading (m³)\", the same words in one row. That also makes the readings `number` rather than the `text` that `sensor-calibration-record.json` uses — that sheet leaves the unit to the engineer because it serves temperature, humidity and flow sensors alike, while this one is m³ on every row.\n\n**Deliberate divergence: Offset is derived, not typed.** The paper leaves it an input; here it is `meter - bms`, evaluated by `lib/formula.ts` and printed read-only. The offset of a meter verification is that subtraction by definition — the sample sheet's 6.70 − 6.65 = 0.05 and 11.10 − 11.10 = 0.0 — and a typed cell is a transcription error waiting to reach a signed document. Blank propagates, so a row with no readings prints an empty offset rather than 0.00. The sensor sheet keeps its offset typed for the opposite reason: its readings may not be numeric. One cosmetic consequence: the renderer appends a computed cell's unit to the value, so an offset prints \"0.05m³\" where the paper's typed cell is a bare number under an (m³) heading. Dropping the `unit` would take (m³) off the heading too — which the paper does print — so the unit stays.\n\n`min_rows` is 5. The source seeds ten numbered rows and fills two; those blanks are its scaffolding, and a record with three meters should print three lines rather than three plus seven ruled empty ones. Rows are added and deleted as the riser needs, which is what replaces the sheet's \"+ Add row\" and \"+ Add page\" buttons.",
+      "columns": [
+        { "id": "room",     "label": "Room / Location", "type": "text",   "width": "20%" },
+        { "id": "meter_id", "label": "Meter ID",        "type": "text",   "width": "16%" },
+        { "id": "bms",      "label": "BMS Reading",     "type": "number", "unit": "m³", "width": "13%", "align": "center" },
+        { "id": "meter",    "label": "Meter Reading",   "type": "number", "unit": "m³", "width": "13%", "align": "center" },
+        { "id": "offset",   "label": "Offset",          "type": "calculated", "formula": "meter - bms", "unit": "m³", "decimals": 2, "width": "12%", "align": "center" },
+        { "id": "remarks",  "label": "Remarks",         "type": "text",   "width": "26%" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `sensor-calibration-record.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a ruled box headed REMARKS; this prints as one field.\n\n**No instruments block, unlike the sensor sheet.** That record calibrates a sensor against a reference instrument, so an expired certificate invalidates it; this one reads a meter's own display against what the BMS reports and uses no instrument. The paper has no instrument list either, and declaring `instruments.required` with no table to satisfy it would gate the record against a section that does not exist (same call as `emergency-light-battery-duration.json`).",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "page_break_before": true,
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged, and this one can share a page. Same idiom as `sensor-calibration-record.json`.\n\n**The break is here, measured on the live build.** The paper is one sheet, and so is the sensor sheet this is modelled on — but that one is denser: with a three-meter record the document block, the five-row table, the remarks box and this grid came to 1225px against A4's 1122.5px, which prints a second physical sheet while the footer still reads \"Page 1 of 1\" (SPEC §7). Breaking before the sign-off keeps the paper's own page-1 order — table, then remarks — and leaves page 1 about 365px of headroom, roughly ten more meters, before it needs a break of its own.\n\nThe source's three rows, and it heads the lower two identically — \"Witnessed by\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date. The renderer always prints Company, so Tested By is Kenyon Pte Ltd and locked, exactly as on the sensor sheet this one is modelled on; the two witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested By",    "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witnessed By", "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witnessed By", "required": false, "stage": "client" }
+      ]
+    }
+  ]
+}

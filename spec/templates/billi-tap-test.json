@@ -1,0 +1,152 @@
+{
+  "code": "PBT",
+  "title": "Check List & Test Report for P&S Billi Tap",
+  "rev": "A",
+  "discipline": "Plumbing & Sanitary",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Billi_Tap_Test_Report.html — the plumbing issue of the same sheet the repo already carries for the fire/PWD intercom (FPI) and the toilet emergency call (TEC): the same banner, the same eight-field document block, a readiness checklist ticked YES / N/A / NO, a results block whose headings each carry bulleted sub-tests, an instruments-and-remarks box and the same three-column sign-off. It differs in what is tested — a boiling/chilled tap's operation voltage, operation current, hot temperature and flow rate, each with a Reading beside its Passed / Failed — and in carrying four readiness items rather than three. The file arrived seeded with one job's values (project \"APPLE AMK3 Level 6 (Phase 2)\", description \"Billi Tap\", location \"Breakout Area\", system \"Plumbing\", drawing rev \"0\", the two \"L-4 Breakout Area\" tap names and the three instruments with their serial numbers); all of that is record data and none of it is carried here, on the same reading as FPI's \"P&S\" system field.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "project",     "label": "Project Name", "type": "text", "source": "project.name", "readonly": true },
+      { "id": "ref_no",      "label": "Ref. No.",     "type": "text" },
+      { "id": "test_date",   "label": "Date",         "type": "date", "required": true },
+      { "id": "description", "label": "Description",  "type": "text" },
+      { "id": "location",    "label": "Location",     "type": "text", "source": "equipment.location", "required": true, "bold": true },
+      { "id": "drawing_no",  "label": "Drawing No.",  "type": "text" },
+      { "id": "drawing_rev", "label": "Drawing Rev",  "type": "text" },
+      { "id": "system",      "label": "System",       "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "readiness",
+      "title": "Readiness Checks",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Yes / N/A / No" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "`page_break_before` on the opening section is the grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same as `fire-pwd-intercom-test.json`.\n\nThe source's eight document fields are the record header rather than a section of their own — one grid on the paper, directly under the banner — and they are the same eight ids as FPI and TEC, which the parity test pins.\n\n**The paper's four items, with one word dropped from items 3 and 4.** The sheet writes them \"L-4 Breakout Area Billi Tap-1 / Tap-2 is working in order\"; the area prefix is a specific job's and is carried by the record's own Location field, so the steps read \"Billi Tap-1 is working in order\". Nothing else is reworded (Hard Rule #5, SPEC §5.1) — the alternative, a `{{area}}` variable interpolated into the step, asks the engineer for a value the header already holds.\n\n`allow_add_rows` is what generalises the sheet past the two taps it is drawn for: a third tap's line is added as record data with its own number (`editable_no`), never as template wording. It is also what replaces the source's \"+ Add page\" button, which clones the whole sheet — header, instruments and sign-off included — to ask this same question about one more tap.\n\n`status` rather than `pass_fail_na` so the choices read YES / N/A / NO in the sheet's own order and wording; the outcomes make a \"No\" derivable as an outstanding item (SPEC §6). The paper has no remarks column against these items — the renderer always prints one, so it is labelled and left for whatever the engineer needs to qualify a N/A with.",
+      "allow_add_rows": true,
+      "add_row_template": {
+        "type": "status",
+        "states": [
+          { "value": "yes", "label": "Yes", "outcome": "pass" },
+          { "value": "na",  "label": "N/A", "outcome": "na" },
+          { "value": "no",  "label": "No",  "outcome": "fail" }
+        ],
+        "remarks": true,
+        "editable_no": true
+      },
+      "rows": [
+        { "id": "rd_01", "no": "1", "type": "status", "remarks": true,
+          "description": "Solenoid valve has been provided and interlock with water leak detection system",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_02", "no": "2", "type": "status", "remarks": true,
+          "description": "Drip tray has been provided",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_03", "no": "3", "type": "status", "remarks": true,
+          "description": "Billi Tap-1 is working in order",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "rd_04", "no": "4", "type": "status", "remarks": true,
+          "description": "Billi Tap-2 is working in order",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "na",  "label": "N/A", "outcome": "na" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "taps",
+      "title": "Tap Test Results",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 4,
+      "auto_number": true,
+      "number_label": "S/N",
+      "_note": "**The paper's own layout, as a table that can grow.** The source writes a heading — \"5. L-4 Breakout Area - Billi Tap-1 results\" — and hangs four bulleted sub-tests beneath it, Operation Voltage, Operation Current, Temperature (Hot) and Flow Rate, each with a Reading and a Passed / Failed; then it repeats the whole block for the second tap, and offers \"+ Add page\" — which clones the sheet, header and sign-off included — for a third. Here that is one table of tap-and-test rows: the record stays one document with one sign-off however many taps the pantry has, and the printed sheet reads down the page exactly as the paper does.\n\n**Why not a column per sub-test.** One row per tap with the four sub-tests as columns — the shape `fire-pwd-intercom-test.json` uses for its two — needs ten columns here, because each sub-test carries both of the paper's cells. Measured in the live print view: that table came out 806px wide against the 688px A4 portrait body and ran off the right edge of the sheet, and it only fitted once the headings were cut to \"Voltage Reading\" / \"Voltage Result\". Keeping the paper's wording is worth four rows per tap (SPEC §5, matching the original wins).\n\n**The eight rows are seeded, and the tap names with them.** The four test names are the paper's wording and must not be typed per record (Hard Rule #5); seeding them is the only way a flat table can carry them. The tap names are seeded WITHOUT the source's \"L-4 Breakout Area\" prefix — that is one job's area and the record's Location field carries it — leaving the sheet's own \"Billi Tap-1\" / \"Billi Tap-2\" scaffolding, which the engineer renames to what the pantry actually has. Same call as `toilet-emergency-call-test.json`, whose six zone headings are seeded for the same reason. `min_rows` is 4, one tap's worth, so a single-tap record can delete the spare block.\n\n**Readings are free text with no declared unit, as on the paper.** The source's Reading cells are plain inputs and the engineer writes \"230 V\", \"4.2 A\", \"98 °C\". Declaring `number` + `unit` would print a unit in the heading that the master sheet does not have, and would reject a reading written as a range or with a qualifier. If units are wanted on the printed form they are a Rev B, agreed against the paper.",
+      "columns": [
+        { "id": "tap",     "label": "Tap",             "type": "text",   "width": "26%" },
+        { "id": "test",    "label": "Test",            "type": "text",   "width": "30%" },
+        { "id": "reading", "label": "Reading",         "type": "text",   "width": "20%", "align": "center" },
+        { "id": "result",  "label": "Passed / Failed", "type": "status", "width": "24%", "align": "center",
+          "states": [
+            { "value": "passed", "label": "Passed", "outcome": "pass" },
+            { "value": "failed", "label": "Failed", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "tap": "Billi Tap-1", "test": "Operation Voltage" },
+        { "tap": "Billi Tap-1", "test": "Operation Current" },
+        { "tap": "Billi Tap-1", "test": "Temperature (Hot)" },
+        { "tap": "Billi Tap-1", "test": "Flow Rate" },
+        { "tap": "Billi Tap-2", "test": "Operation Voltage" },
+        { "tap": "Billi Tap-2", "test": "Operation Current" },
+        { "tap": "Billi Tap-2", "test": "Temperature (Hot)" },
+        { "tap": "Billi Tap-2", "test": "Flow Rate" }
+      ]
+    },
+
+    {
+      "id": "instruments",
+      "title": "Instruments Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 3,
+      "_note": "**The page breaks here, measured on the live build.** Page 1 is the document block, the readiness checks and the tap table; with this section on it too a two-tap record came to 1157px against A4's 1122.5px, which prints a third sheet while the footer still reads \"of 2\". Moved to page 2 it sits above the remarks box and the sign-off grid (666px of the 875px body between the three), and page 1 keeps about 140px of headroom — two or three more taps, or the long \"L-6 Breakout Area Billi Tap-1\" style of name, which wraps a row from 54px to 112px in a 20% column.\n\nThe source heads this \"REMARKS: Instruments used;\" and lists three editable lines — an IR thermometer, a multimeter and a clamp meter, each written as name, model and serial number in one string. A table instead, the library's four-column instrument block (`sensor-calibration-record.json`, `staircase-pressurization.json`): it splits what the paper already writes, and only a table can be read by `link_to_instrument_register` (SPEC §5), which is what ties a reading to a calibration certificate.\n\n**CAL Due is the one column the paper does not have.** It is carried on every instrument table in the library and is the whole point of the calibration register — a tap temperature measured with an out-of-calibration thermometer is not evidence. The three instruments themselves are NOT seeded: their serial numbers name three specific units in the company's kit, and a template that seeds them prints a serial the engineer may not have used.\n\n`min_rows` is 3, the number the paper lists.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument / Tool", "type": "text", "width": "34%" },
+        { "id": "model",      "label": "Model No",          "type": "text", "width": "22%" },
+        { "id": "serial_no",  "label": "Serial No",         "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "CAL Due",           "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, as on `sensor-calibration-record.json`: a `standard` section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column plus two columns both headed Remarks. The source is a ruled box under the instrument lines; this prints as one field.\n\nNo break of its own — it follows the instruments onto page 2, which is where the source has it: the box sits under the instrument lines on the paper too.",
+      "fields": [
+        { "id": "general_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "title": "Sign-off",
+      "type": "sign_off",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, which would add a third sheet carrying nothing but signatures. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged. Same idiom as `fire-pwd-intercom-test.json`.\n\nThe source's three columns, and it heads the lower two identically — \"WITNESS BY\" — so the roles read the same here; the distinct `stage` values are what drive the workflow (SPEC §6).\n\nThe paper's sign block carries only Name, Signature and Date — no company column. The renderer always prints Company, so Performed By defaults to Kenyon Pte Ltd and stays editable (unlocked, as on `staircase-pressurization.json`); the two witness companies are left blank for whoever attends.",
+      "signatures": [
+        { "id": "sig_performed", "role": "Performed By", "company_default": "Kenyon Pte Ltd", "required": true, "stage": "contractor" },
+        { "id": "sig_witness_1", "role": "Witness By",   "required": false, "stage": "witness" },
+        { "id": "sig_witness_2", "role": "Witness By",   "required": false, "stage": "client" }
+      ]
+    }
+  ],
+
+  "instruments": { "required": true, "min": 1, "source_section": "instruments" }
+}
