@@ -33,6 +33,7 @@ import fireAlarmTestRaw from "../../spec/templates/fire-alarm-test.json";
 import hoseReelPressureTestRaw from "../../spec/templates/hose-reel-pipe-pressure-test.json";
 import sprinklerPressureTestRaw from "../../spec/templates/sprinkler-pipe-pressure-test.json";
 import billiTapTestRaw from "../../spec/templates/billi-tap-test.json";
+import meterVerificationRaw from "../../spec/templates/meter-verification-record.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -75,4 +76,5 @@ export const TEMPLATES: Template[] = [
   parseTemplate(hoseReelPressureTestRaw),
   parseTemplate(sprinklerPressureTestRaw),
   parseTemplate(billiTapTestRaw),
+  parseTemplate(meterVerificationRaw),
 ];
