@@ -58,4 +58,90 @@ describe("CalibrationRegister", () => {
     expect(screen.getByText("30/06/2027")).toBeInTheDocument(); // dd/mm/yyyy display
     expect(screen.getByText("1 valid")).toBeInTheDocument();
   });
+
+  /**
+   * The certificate number is what an auditor quotes when asking for the original
+   * document, so it is the link text rather than a generic word. Rows written
+   * before the register carried a number must still render a usable link.
+   */
+  it("labels the certificate link with the certificate number", async () => {
+    const repo = freshRepo();
+    await repo.add(
+      createInstrument({
+        id: uuidv7(),
+        serialNo: "W8045321",
+        calCertUrl: "/calibration-certs/clamp.pdf",
+        certNo: "BLE2604334-2",
+        calDate: "2026-05-08",
+        calDueDate: "2027-05-07",
+      }),
+    );
+
+    render(<CalibrationRegister repo={repo} today={today} />);
+
+    const link = await screen.findByRole("link", { name: "BLE2604334-2" });
+    expect(link).toHaveAttribute("href", "/calibration-certs/clamp.pdf");
+  });
+
+  it("falls back to a generic link label when the certificate number is blank", async () => {
+    const repo = freshRepo();
+    await repo.add(
+      createInstrument({
+        id: uuidv7(),
+        serialNo: "NO-NUMBER",
+        calCertUrl: "/calibration-certs/old.pdf",
+        calDate: "2026-05-08",
+        calDueDate: "2027-05-07",
+      }),
+    );
+
+    render(<CalibrationRegister repo={repo} today={today} />);
+
+    expect(await screen.findByRole("link", { name: "Certificate" })).toBeInTheDocument();
+  });
+
+  /** A number with no file still identifies the document; show it as plain text. */
+  it("shows the certificate number even when no file is linked", async () => {
+    const repo = freshRepo();
+    await repo.add(
+      createInstrument({
+        id: uuidv7(),
+        serialNo: "PAPER-ONLY",
+        certNo: "CTT 2428-25",
+        calDate: "2026-05-08",
+        calDueDate: "2027-05-07",
+      }),
+    );
+
+    render(<CalibrationRegister repo={repo} today={today} />);
+
+    expect(await screen.findByText("CTT 2428-25")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("keeps the certificate number when an instrument is edited", async () => {
+    const user = userEvent.setup();
+    const repo = freshRepo();
+    await repo.add(
+      createInstrument({
+        id: uuidv7(),
+        serialNo: "EDIT-ME",
+        calCertUrl: "/calibration-certs/edit.pdf",
+        certNo: "GCC251722",
+        calDate: "2026-05-08",
+        calDueDate: "2027-05-07",
+      }),
+    );
+
+    render(<CalibrationRegister repo={repo} today={today} />);
+    await screen.findByText("EDIT-ME");
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText("Certificate number")).toHaveValue("GCC251722");
+
+    await user.type(screen.getByLabelText("Instrument description"), "Sound level meter");
+    await user.click(screen.getByRole("button", { name: "Save instrument" }));
+
+    expect(await screen.findByRole("link", { name: "GCC251722" })).toBeInTheDocument();
+  });
 });

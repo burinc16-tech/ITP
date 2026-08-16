@@ -38,6 +38,7 @@ const body = (over: Record<string, unknown> = {}) => ({
   serial_no: "W8045321",
   description: "Clamp Meter",
   cal_cert_url: "certs/clamp.pdf",
+  cert_no: "BLE2604334-2",
   cal_date: "2026-05-07",
   cal_due_date: "2027-05-07",
   updated_at: "2026-08-11T00:00:00.000Z",
@@ -70,7 +71,33 @@ describe("api /api/instruments", () => {
     const res = await app.request("/api/instruments", { headers: authed });
     const json = (await res.json()) as { instruments: Array<Record<string, unknown>> };
     expect(json.instruments).toHaveLength(1);
-    expect(json.instruments[0]).toMatchObject({ id: "i1", serial_no: "W8045321", deleted: 0 });
+    expect(json.instruments[0]).toMatchObject({
+      id: "i1",
+      serial_no: "W8045321",
+      cert_no: "BLE2604334-2",
+      deleted: 0,
+    });
+  });
+
+  /**
+   * A device running a build from before the certificate number existed pushes no
+   * `cert_no`. That is a valid register row, not a malformed one — rejecting it
+   * would strand every edit made on that device until it updated.
+   */
+  it("accepts a push from a client that sends no certificate number", async () => {
+    const { app, authed } = await make();
+    const { cert_no: _omitted, ...withoutCertNo } = body();
+
+    const post = await app.request("/api/instruments", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(withoutCertNo),
+    });
+    expect(post.status).toBe(200);
+
+    const res = await app.request("/api/instruments", { headers: authed });
+    const json = (await res.json()) as { instruments: Array<Record<string, unknown>> };
+    expect(json.instruments[0]).toMatchObject({ id: "i1", cert_no: "" });
   });
 
   it("upserts by client id rather than duplicating", async () => {

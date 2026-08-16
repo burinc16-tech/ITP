@@ -12,7 +12,14 @@ const STATUS_LABEL: Record<CalStatus, string> = {
 // Worst standing first, so anything needing attention is at the top of the list.
 const STATUS_ORDER: Record<CalStatus, number> = { expired: 0, due_soon: 1, valid: 2 };
 
-const emptyForm = { serial: "", description: "", certUrl: "", calDate: "", dueDate: "" };
+const emptyForm = {
+  serial: "",
+  description: "",
+  certUrl: "",
+  certNo: "",
+  calDate: "",
+  dueDate: "",
+};
 
 /** `YYYY-MM-DD` → `dd/mm/yyyy` for display (CLAUDE.md); anything else unchanged. */
 function displayDate(value: string): string {
@@ -97,6 +104,7 @@ export function CalibrationRegister(props: {
         serialNo: form.serial.trim(),
         description: form.description.trim(),
         calCertUrl: form.certUrl.trim(),
+        certNo: form.certNo.trim(),
         calDate: form.calDate,
         calDueDate: form.dueDate,
       }),
@@ -112,6 +120,7 @@ export function CalibrationRegister(props: {
       serial: instrument.serial_no,
       description: instrument.description,
       certUrl: instrument.cal_cert_url,
+      certNo: instrument.cert_no ?? "",
       calDate: instrument.cal_date,
       dueDate: instrument.cal_due_date,
     });
@@ -179,6 +188,12 @@ export function CalibrationRegister(props: {
           value={form.certUrl}
           onChange={(e) => setForm({ ...form, certUrl: e.target.value })}
         />
+        <input
+          aria-label="Certificate number"
+          placeholder="Certificate no."
+          value={form.certNo}
+          onChange={(e) => setForm({ ...form, certNo: e.target.value })}
+        />
         <button
           type="button"
           className="save-button"
@@ -238,12 +253,18 @@ export function CalibrationRegister(props: {
                   </span>
                 </td>
                 <td>
+                  {/*
+                    The certificate number is the link text: it identifies the
+                    document an auditor asks for, which a generic "Certificate"
+                    label does not. A row with a number but no file still shows
+                    it — knowing the reference is worth more than the link.
+                  */}
                   {instrument.cal_cert_url ? (
                     <a href={instrument.cal_cert_url} target="_blank" rel="noreferrer">
-                      Certificate
+                      {instrument.cert_no || "Certificate"}
                     </a>
                   ) : (
-                    "—"
+                    instrument.cert_no || "—"
                   )}
                 </td>
                 <td className="cal-actions">

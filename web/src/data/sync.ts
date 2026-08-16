@@ -294,6 +294,7 @@ interface ServerInstrument {
   serial_no?: string;
   description?: string;
   cal_cert_url?: string;
+  cert_no?: string;
   cal_date?: string;
   cal_due_date?: string;
   updated_at?: string;
@@ -306,6 +307,7 @@ function fromServerInstrument(row: ServerInstrument): Instrument {
     serial_no: row.serial_no ?? "",
     description: row.description ?? "",
     cal_cert_url: row.cal_cert_url ?? "",
+    cert_no: row.cert_no ?? "",
     cal_date: row.cal_date ?? "",
     cal_due_date: row.cal_due_date ?? "",
     updated_at: row.updated_at,
@@ -320,6 +322,7 @@ function instrumentBody(instrument: Instrument): Record<string, unknown> {
     serial_no: instrument.serial_no,
     description: instrument.description,
     cal_cert_url: instrument.cal_cert_url,
+    cert_no: instrument.cert_no ?? "",
     cal_date: instrument.cal_date,
     cal_due_date: instrument.cal_due_date,
     updated_at: instrument.updated_at ?? new Date().toISOString(),

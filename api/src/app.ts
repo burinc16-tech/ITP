@@ -286,6 +286,9 @@ export function createApp(deps: AppDeps) {
       serial_no: body.serial_no ?? "",
       description: body.description ?? "",
       cal_cert_url: body.cal_cert_url ?? "",
+      // An older client pushes no `cert_no`; a blank is a valid register row, so
+      // the write is accepted rather than rejected as invalid.
+      cert_no: body.cert_no ?? "",
       cal_date: body.cal_date ?? "",
       cal_due_date: body.cal_due_date ?? "",
       updated_at: body.updated_at,

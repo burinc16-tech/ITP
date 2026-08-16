@@ -15,6 +15,13 @@ export interface Instrument {
   description: string;
   /** Reference to the calibration certificate (URL or document ref); may be blank. */
   cal_cert_url: string;
+  /**
+   * Certificate number as printed by the issuing lab (`BLE2604334-2`,
+   * `PLS-26010053-01`, …) — the handle an auditor quotes when asking for the
+   * original document. Optional so rows written before the register carried it
+   * still load; the register falls back to a generic link label when blank.
+   */
+  cert_no?: string;
   /** Date last calibrated, `YYYY-MM-DD`. */
   cal_date: string;
   /** Date the calibration expires, `YYYY-MM-DD`. */
@@ -39,6 +46,7 @@ export function createInstrument(opts: {
   serialNo: string;
   description?: string;
   calCertUrl?: string;
+  certNo?: string;
   calDate: string;
   calDueDate: string;
   updatedAt?: string;
@@ -49,6 +57,7 @@ export function createInstrument(opts: {
     serial_no: opts.serialNo,
     description: opts.description ?? "",
     cal_cert_url: opts.calCertUrl ?? "",
+    cert_no: opts.certNo ?? "",
     cal_date: opts.calDate,
     cal_due_date: opts.calDueDate,
     updated_at: opts.updatedAt ?? new Date().toISOString(),
