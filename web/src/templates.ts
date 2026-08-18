@@ -35,6 +35,7 @@ import sprinklerPressureTestRaw from "../../spec/templates/sprinkler-pipe-pressu
 import billiTapTestRaw from "../../spec/templates/billi-tap-test.json";
 import meterVerificationRaw from "../../spec/templates/meter-verification-record.json";
 import inspectionRequestRaw from "../../spec/templates/inspection-request-form.json";
+import inspectionSignoffReportRaw from "../../spec/templates/inspection-signoff-report.json";
 
 /**
  * The bundled templates, validated once at load — the single source of truth for
@@ -79,4 +80,5 @@ export const TEMPLATES: Template[] = [
   parseTemplate(billiTapTestRaw),
   parseTemplate(meterVerificationRaw),
   parseTemplate(inspectionRequestRaw),
+  parseTemplate(inspectionSignoffReportRaw),
 ];

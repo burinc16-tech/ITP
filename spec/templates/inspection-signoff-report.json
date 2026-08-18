@@ -1,0 +1,128 @@
+{
+  "code": "ISR",
+  "title": "Inspection & Sign-Off Report",
+  "rev": "A",
+  "discipline": "Multi-discipline",
+  "category": "ITR",
+  "scope": "location",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Inspection_Signoff_Report.html — UNLIKE every other template in this library, this one has NO paper original. It is a self-authored generic inspection report, not a consultant-accepted form, so the repo's usual verification (\"print the source to PDF and the app's output to PDF and compare page by page\", CLAUDE.md) has nothing external to compare against: the source is a scrolling web page with no A4 geometry at all. What is pinned instead is the sheet's CONTENT — its eight sections, their fields and their wording — and the parity test asserts that. Layout is this library's own, not a reproduction. The file arrived blank (no record values to strip).",
+
+  "header": {
+    "title": "Report Information",
+    "fields": [
+      { "id": "report_no",    "label": "Report Number",           "type": "text", "required": true },
+      { "id": "insp_date",    "label": "Inspection Date",         "type": "date", "required": true },
+      { "id": "project_name", "label": "Project / Work Order Name", "type": "text", "source": "project.name" },
+      { "id": "location",     "label": "Location / Site",         "type": "text", "source": "equipment.location" },
+      { "id": "department",   "label": "Department / Unit",       "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "inspector",
+      "no": "2",
+      "title": "Inspector Details",
+      "type": "field_group",
+      "page_break_before": true,
+      "fields": [
+        { "id": "insp_name",    "label": "Inspector Name",        "type": "text" },
+        { "id": "insp_title",   "label": "Title / Role",          "type": "text" },
+        { "id": "insp_id",      "label": "Employee ID / Badge",   "type": "text" },
+        { "id": "insp_company", "label": "Company / Organization", "type": "text" },
+        { "id": "insp_contact", "label": "Contact / Email",       "type": "text" },
+        { "id": "insp_type",    "label": "Inspection Type",       "type": "dropdown",
+          "options": ["Routine", "Pre-commissioning", "Final Acceptance", "Safety", "Quality Assurance", "Audit", "Other"] }
+      ],
+      "_note": "Section 2 of the source, carried whole. The section numbering starts at 2 because the source's section 1 (Report Information) is the record header — the library's standing idiom for a document band directly under the title (`fire-alarm-test.json`, `meter-verification-record.json`).\n\n**One field of section 1 is deliberately NOT carried: `Report Status` (Draft / Under Review / Final / Rejected).** This app already owns record status — `draft → completed → submitted_for_witness → witnessed → accepted / rejected` (SPEC §6) — and prints it in every page footer (§7). A second status the user sets by hand would sit on the same signed page as the app's and disagree with it: someone selects \"Final\" on a record the app still holds at `draft`, and the printed document says both. Same call `staircase-pressurization.json` makes about the source's own Form No. / Rev., for the same reason — \"a second pair of revision numbers on the same page invites the two to disagree\". To restore it anyway, add to the header fields:\n`{ \"id\": \"report_status\", \"label\": \"Report Status\", \"type\": \"dropdown\", \"options\": [\"Draft\", \"Under Review\", \"Final\", \"Rejected\"] }`\n\nInspector Name / Company overlap the Inspector signature slot below, which captures a name, a company and a signed date of its own. Both are kept, because the source keeps both and because they answer different questions: this block is who was assigned, the slot is who actually signed. Title / Role, Employee ID and Contact have no equivalent in a signature slot at all.\n\nInspection Type is a `dropdown` over the source's own seven options, in the source's order."
+    },
+
+    {
+      "id": "scope",
+      "no": "3",
+      "title": "Scope & References",
+      "type": "field_group",
+      "fields": [
+        { "id": "scope",     "label": "Scope of Inspection",                    "type": "textarea" },
+        { "id": "standards", "label": "Standards / Specifications Referenced",  "type": "textarea" }
+      ],
+      "_note": "Section 3, both boxes verbatim. The source's placeholder text (\"e.g. ISO 9001, ASTM A123, Drawing Rev. C…\") is a hint, not template wording, and is not carried — a placeholder that printed would read as content."
+    },
+
+    {
+      "id": "checklist",
+      "no": "4",
+      "title": "Inspection Checklist",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "auto_number": true,
+      "number_label": "#",
+      "min_rows": 3,
+      "columns": [
+        { "id": "item",     "label": "Inspection Item",     "type": "text",         "width": "26%" },
+        { "id": "criteria", "label": "Criteria / Standard",  "type": "text",         "width": "20%" },
+        { "id": "result",   "label": "Result",               "type": "pass_fail_na", "width": "18%", "align": "center" },
+        { "id": "remarks",  "label": "Findings / Remarks",   "type": "textarea",     "width": "36%" }
+      ],
+      "_note": "Section 4. The source's Pass / Fail / N/A radio pills are the `pass_fail_na` field type — the library's existing three-state control, so a Fail is derivable as an outstanding item (SPEC §6) without declaring bespoke `status` states.\n\n**`min_rows` is 3, against the source's `DEFAULT_ROWS = 8`.** The source seeds eight blank rows because a web page can afford them; a printed sheet cannot, and a four-item inspection would print four filled rows and four empty ones. The engineer adds what the inspection needs — the same trim every other converted table in this library makes (`fire-alarm-test.json`, `pa-system-test.json`), and what replaces the source's \"+ Add Item\" button.\n\nWidths are set for a portrait sheet, where the print body is 688px and a table is not shrunk to fit: four columns of ordinary wording is comfortably inside the ~6-column ceiling, and Findings takes the largest share because it carries the longest text. The `#` column is `auto_number`, matching the source's own first column."
+    },
+
+    {
+      "id": "defects",
+      "no": "5",
+      "title": "Defects & Non-Conformances",
+      "type": "field_group",
+      "page_break_before": true,
+      "fields": [
+        { "id": "defects",           "label": "Summary of Defects / Non-Conformances Found", "type": "textarea" },
+        { "id": "corrective_action", "label": "Corrective Action Required",                  "type": "textarea" }
+      ],
+      "_note": "Section 5, both boxes. Free text, as the source has them — this template does not tabulate defects into rows with owners and due dates, because the source does not, and inventing a structure here would be a form the user did not send."
+    },
+
+    {
+      "id": "overall",
+      "no": "6",
+      "title": "Overall Inspection Result",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Result" },
+        "remarks": { "label": "Comments & Recommendations" }
+      },
+      "rows": [
+        { "id": "overall", "type": "status", "description": "Overall Inspection Result", "remarks": "textarea",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" }
+          ] }
+      ],
+      "_note": "Section 6. The source offers PASS / FAIL only here — no N/A, unlike the per-item checklist above — so this is a two-state `status` row rather than another `pass_fail_na`. That asymmetry is the source's and is kept.\n\nThe source's separate \"Overall Comments & Recommendations\" box is this row's `remarks` textarea, so the verdict and the comment on it stay one thing rather than drifting into two blocks that can contradict each other."
+    },
+
+    {
+      "id": "attachments",
+      "no": "7",
+      "title": "Supporting Documents & Attachments",
+      "type": "field_group",
+      "fields": [
+        { "id": "attachments", "label": "List of Attachments (photos, test reports, drawings, etc.)", "type": "textarea" }
+      ],
+      "_note": "Section 7 — a TYPED LIST of what is attached, which is all the source is.\n\nIt is not the app's photo feature and does not replace it: real photos attach to the record and print as A4 photo appendix pages behind it via the print-step \"Include photo attachment pages\" toggle (SPEC §12), which stores them as evidence that syncs and locks with the record. This box is the index a reader sees on the report page; the toggle is where the photos themselves live."
+    },
+
+    {
+      "id": "sign_off",
+      "no": "8",
+      "title": "Sign-Off",
+      "type": "sign_off",
+      "page_break_before": true,
+      "signatures": [
+        { "id": "sig_inspector",  "role": "Inspector",             "required": true,  "stage": "contractor" },
+        { "id": "sig_supervisor", "role": "Supervisor / Reviewer", "required": false, "stage": "witness" },
+        { "id": "sig_client",     "role": "Client / Witness",      "required": false, "stage": "client" }
+      ],
+      "_note": "Section 8's three pads, in the source's order. The source pairs each pad with a printed-name box and a date box; a `signature` slot captures name, company and signed date itself, so those boxes are the slot and are not declared as extra fields.\n\n**Stage mapping — the three pads land on the three gated steps of the workflow (SPEC §6), one each:**\n- Inspector → `contractor`, gating draft → completed. Required: the report is not issued unsigned.\n- Supervisor / Reviewer → `witness`, gating submitted_for_witness → witnessed. A supervisor's review IS the witness step in this app; `check` was the alternative and is rejected here because no workflow rule references that stage, so the signature would print without gating anything.\n- Client / Witness → `client`, gating witnessed → accepted, the final acceptance.\n\nThe third pad's label merges two words this app keeps apart. It is mapped to `client` rather than `witness` because it is the LAST signature on the sheet, and the last signature is the one that should close the record — mapping it to `witness` would leave acceptance ungated by any signature at all.\n\nOnly the Inspector is `required`, following `sanitary-pipe-flood-test.json`: a report may legitimately be issued before the reviewer and the client have got to it. Note that `required` is declarative on a signature — `satisfiedStages` gates on the STAGE regardless of it, so an unsigned optional slot still holds its own transition."
+    }
+  ]
+}
