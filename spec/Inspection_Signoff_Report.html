@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inspection & Sign-Off Report</title>
+  <style>
+    :root {
+      --primary: #1a3557;
+      --accent: #2e6db4;
+      --border: #c0cad6;
+      --bg: #f4f6f9;
+      --white: #ffffff;
+      --text: #1c2b3a;
+      --muted: #6b7e91;
+      --pass: #1a7a45;
+      --fail: #c0392b;
+      --na: #6b7e91;
+      --pass-bg: #eaf7ef;
+      --fail-bg: #fdecea;
+      --na-bg: #f0f2f4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ─── TOOLBAR ─── */
+    #toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    #toolbar h1 { font-size: 15px; font-weight: 600; flex: 1; letter-spacing:.3px; }
+    #save-status { font-size: 11px; color: #a8c4e0; white-space: nowrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border: none; border-radius: 5px;
+      font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .btn-clear { background: #3a5a7a; color: #cde; }
+    .btn-clear:hover { background: #4a6a8a; }
+    .btn-pdf { background: #e05c2a; color: #fff; }
+    .btn-pdf:hover { background: #c04e20; }
+    .btn-save { background: #1f8a4c; color: #fff; }
+    .btn-save:hover { background: #176b3a; }
+
+    /* ─── PAGE ─── */
+    #page {
+      max-width: 900px;
+      margin: 24px auto;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    /* ─── HEADER BANNER ─── */
+    .report-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .report-header .logo-area h2 { font-size: 20px; font-weight: 700; letter-spacing:.4px; }
+    .report-header .logo-area p { font-size: 11px; color: #a8c4e0; margin-top: 2px; }
+    .report-header .report-meta { text-align: right; font-size: 11px; color: #a8c4e0; }
+    .report-header .report-meta strong { display: block; font-size: 13px; color: #fff; }
+
+    /* ─── SECTIONS ─── */
+    .section {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--accent);
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    /* ─── FIELD GRID ─── */
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 20px;
+    }
+    .field-grid.col2 { grid-template-columns: repeat(2, 1fr); }
+    .field-grid.col1 { grid-template-columns: 1fr; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .field-group input,
+    .field-group select,
+    .field-group textarea {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fafbfc;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field-group input:focus,
+    .field-group select:focus,
+    .field-group textarea:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    .field-group textarea { resize: vertical; min-height: 70px; }
+
+    /* ─── INSPECTION TABLE ─── */
+    .insp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .insp-table thead tr { background: var(--primary); color: #fff; }
+    .insp-table thead th {
+      padding: 9px 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .insp-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .insp-table tbody tr:hover { background: #eef3f8; }
+    .insp-table td { padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e4eaf0; }
+    .insp-table td input[type="text"],
+    .insp-table td textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 8px;
+      font-size: 12px;
+      background: #fafbfc;
+    }
+    .insp-table td textarea { resize: vertical; min-height: 34px; }
+    .insp-table td input[type="text"]:focus,
+    .insp-table td textarea:focus {
+      border-color: var(--accent);
+      outline: none;
+      background: #fff;
+    }
+
+    /* ─── RESULT RADIO ─── */
+    .result-group { display: flex; gap: 6px; }
+    .result-group label {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid transparent;
+      transition: all .15s;
+    }
+    .result-group input[type="radio"] { display: none; }
+    .result-group .pass-label { color: var(--pass); border-color: #b2dfc4; background: var(--pass-bg); }
+    .result-group .fail-label { color: var(--fail); border-color: #f5b7b1; background: var(--fail-bg); }
+    .result-group .na-label   { color: var(--na);   border-color: #c8d0d8; background: var(--na-bg);   }
+    .result-group input:checked + .pass-label { background: var(--pass); color: #fff; border-color: var(--pass); }
+    .result-group input:checked + .fail-label { background: var(--fail); color: #fff; border-color: var(--fail); }
+    .result-group input:checked + .na-label   { background: var(--na);   color: #fff; border-color: var(--na);   }
+
+    /* ─── ADD/REMOVE ROW ─── */
+    .tbl-controls { margin-top: 10px; display: flex; gap: 8px; }
+    .btn-add-row {
+      background: var(--accent); color: #fff;
+      padding: 6px 14px; border: none; border-radius: 4px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-add-row:hover { background: #1a5090; }
+    .btn-del-row {
+      background: #e05c2a; color: #fff;
+      padding: 4px 9px; border: none; border-radius: 3px;
+      font-size: 11px; cursor: pointer;
+    }
+    .btn-del-row:hover { background: #c04e20; }
+
+    /* ─── OVERALL RESULT ─── */
+    .overall-result {
+      display: flex; gap: 16px; align-items: center;
+    }
+    .overall-result label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      padding: 10px 22px; border-radius: 6px;
+      border: 2px solid var(--border);
+      transition: all .15s;
+    }
+    .overall-result input[type="radio"] { display: none; }
+    .overall-result .ov-pass { color: var(--pass); }
+    .overall-result .ov-fail { color: var(--fail); }
+    .overall-result input:checked + .ov-pass { background: var(--pass-bg); border-color: var(--pass); }
+    .overall-result input:checked + .ov-fail { background: var(--fail-bg); border-color: var(--fail); }
+
+    /* ─── SIGNATURE PAD ─── */
+    .sig-area { display: flex; gap: 28px; flex-wrap: wrap; }
+    .sig-block { flex: 1; min-width: 240px; }
+    .sig-block label {
+      font-size: 10.5px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      display: block; margin-bottom: 6px;
+    }
+    .sig-canvas-wrap {
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fafbfc;
+      position: relative;
+      overflow: hidden;
+    }
+    .sig-mirror {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 110px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    canvas.sig-canvas {
+      display: block;
+      cursor: crosshair;
+      width: 100%;
+      height: 110px;
+      touch-action: none;
+      position: relative;
+      z-index: 2;
+      background: transparent;
+    }
+    .sig-hint {
+      position: absolute; bottom: 6px; right: 10px;
+      font-size: 10px; color: #b0bec9; pointer-events: none;
+    }
+    .btn-clear-sig {
+      margin-top: 5px;
+      background: none; border: 1px solid var(--border);
+      border-radius: 3px; padding: 3px 10px;
+      font-size: 11px; color: var(--muted); cursor: pointer;
+    }
+    .btn-clear-sig:hover { border-color: var(--accent); color: var(--accent); }
+    .sig-name-date { display: flex; gap: 10px; margin-top: 8px; }
+    .sig-name-date input {
+      flex: 1; border: 1px solid var(--border); border-radius: 4px;
+      padding: 6px 9px; font-size: 12px; background: #fafbfc;
+    }
+    .sig-name-date input:focus { border-color: var(--accent); outline: none; background: #fff; }
+
+    /* ─── PRINT / PDF ─── */
+    @media print {
+      #toolbar, .tbl-controls, .btn-del-row, .btn-clear-sig,
+      .sig-hint, #add-row-btn { display: none !important; }
+      body { background: #fff; }
+      #page { box-shadow: none; border: none; margin: 0; max-width: 100%; }
+      .section { page-break-inside: avoid; }
+      canvas.sig-canvas { cursor: default; }
+      .result-group label { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .overall-result label { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── TOOLBAR ─── -->
+<div id="toolbar">
+  <h1>📋 Inspection &amp; Sign-Off Report</h1>
+  <span id="save-status">Not saved yet</span>
+  <button class="btn btn-clear" onclick="clearForm()">🗑 Clear All</button>
+  <button class="btn btn-save" onclick="saveAsHTML()">💾 Save As (HTML)</button>
+  <button class="btn btn-pdf" onclick="window.print()">🖨 Export to PDF</button>
+</div>
+
+<!-- ─── REPORT PAGE ─── -->
+<div id="page">
+
+  <!-- HEADER BANNER -->
+  <div class="report-header">
+    <div class="logo-area">
+      <h2>INSPECTION &amp; SIGN-OFF REPORT</h2>
+      <p>Complete all sections before sign-off. Saved automatically.</p>
+    </div>
+    <div class="report-meta">
+      <strong id="display-report-no">Report #: —</strong>
+      <span id="display-date">Date: —</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: REPORT INFO -->
+  <div class="section">
+    <div class="section-title">1. Report Information</div>
+    <div class="field-grid">
+      <div class="field-group">
+        <label>Report Number</label>
+        <input type="text" id="report_no" placeholder="e.g. INS-2026-001" />
+      </div>
+      <div class="field-group">
+        <label>Inspection Date</label>
+        <input type="date" id="insp_date" />
+      </div>
+      <div class="field-group">
+        <label>Report Status</label>
+        <select id="report_status">
+          <option value="">— Select —</option>
+          <option>Draft</option>
+          <option>Under Review</option>
+          <option>Final</option>
+          <option>Rejected</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Project / Work Order Name</label>
+        <input type="text" id="project_name" placeholder="Project or work order name" />
+      </div>
+      <div class="field-group">
+        <label>Location / Site</label>
+        <input type="text" id="location" placeholder="Site or facility name" />
+      </div>
+      <div class="field-group">
+        <label>Department / Unit</label>
+        <input type="text" id="department" placeholder="Department or unit" />
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: INSPECTOR INFO -->
+  <div class="section">
+    <div class="section-title">2. Inspector Details</div>
+    <div class="field-grid">
+      <div class="field-group">
+        <label>Inspector Name</label>
+        <input type="text" id="insp_name" placeholder="Full name" />
+      </div>
+      <div class="field-group">
+        <label>Title / Role</label>
+        <input type="text" id="insp_title" placeholder="e.g. Quality Engineer" />
+      </div>
+      <div class="field-group">
+        <label>Employee ID / Badge</label>
+        <input type="text" id="insp_id" placeholder="Employee ID" />
+      </div>
+      <div class="field-group">
+        <label>Company / Organization</label>
+        <input type="text" id="insp_company" placeholder="Company name" />
+      </div>
+      <div class="field-group">
+        <label>Contact / Email</label>
+        <input type="text" id="insp_contact" placeholder="Phone or email" />
+      </div>
+      <div class="field-group">
+        <label>Inspection Type</label>
+        <select id="insp_type">
+          <option value="">— Select —</option>
+          <option>Routine</option>
+          <option>Pre-commissioning</option>
+          <option>Final Acceptance</option>
+          <option>Safety</option>
+          <option>Quality Assurance</option>
+          <option>Audit</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: SCOPE & REFERENCES -->
+  <div class="section">
+    <div class="section-title">3. Scope &amp; References</div>
+    <div class="field-grid col2">
+      <div class="field-group">
+        <label>Scope of Inspection</label>
+        <textarea id="scope" placeholder="Describe what is being inspected..."></textarea>
+      </div>
+      <div class="field-group">
+        <label>Standards / Specifications Referenced</label>
+        <textarea id="standards" placeholder="e.g. ISO 9001, ASTM A123, Drawing Rev. C..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: INSPECTION CHECKLIST -->
+  <div class="section">
+    <div class="section-title">4. Inspection Checklist</div>
+    <table class="insp-table" id="checklist-table">
+      <thead>
+        <tr>
+          <th style="width:40px">#</th>
+          <th style="width:220px">Inspection Item</th>
+          <th style="width:140px">Criteria / Standard</th>
+          <th style="width:130px">Result</th>
+          <th>Findings / Remarks</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="checklist-body">
+        <!-- rows generated by JS -->
+      </tbody>
+    </table>
+    <div class="tbl-controls">
+      <button class="btn-add-row" id="add-row-btn" onclick="addRow()">+ Add Item</button>
+    </div>
+  </div>
+
+  <!-- SECTION 5: DEFECTS & NON-CONFORMANCES -->
+  <div class="section">
+    <div class="section-title">5. Defects &amp; Non-Conformances</div>
+    <div class="field-grid col1">
+      <div class="field-group">
+        <label>Summary of Defects / Non-Conformances Found</label>
+        <textarea id="defects" placeholder="List any defects, non-conformances, or items requiring corrective action..." style="min-height:90px;"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Corrective Action Required</label>
+        <textarea id="corrective_action" placeholder="Describe corrective actions and responsible parties..." style="min-height:70px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: OVERALL RESULT -->
+  <div class="section">
+    <div class="section-title">6. Overall Inspection Result</div>
+    <div class="overall-result" style="margin-bottom:16px;">
+      <input type="radio" name="overall" id="ov_pass" value="PASS" onchange="saveForm()"/>
+      <label for="ov_pass" class="ov-pass">✔ PASS</label>
+      <input type="radio" name="overall" id="ov_fail" value="FAIL" onchange="saveForm()"/>
+      <label for="ov_fail" class="ov-fail">✖ FAIL</label>
+    </div>
+    <div class="field-grid col1">
+      <div class="field-group">
+        <label>Overall Comments &amp; Recommendations</label>
+        <textarea id="overall_comments" placeholder="Summarize the overall inspection findings and any recommendations..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 7: ATTACHMENTS -->
+  <div class="section">
+    <div class="section-title">7. Supporting Documents &amp; Attachments</div>
+    <div class="field-grid col1">
+      <div class="field-group">
+        <label>List of Attachments (photos, test reports, drawings, etc.)</label>
+        <textarea id="attachments" placeholder="e.g.&#10;1. Photo_001.jpg — crack on weld joint&#10;2. Test Report TR-42 — tensile strength results&#10;3. Drawing Rev. D — updated layout"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 8: SIGN-OFF -->
+  <div class="section">
+    <div class="section-title">8. Sign-Off</div>
+    <div class="sig-area">
+
+      <div class="sig-block">
+        <label>Inspector Signature</label>
+        <div class="sig-canvas-wrap">
+          <img class="sig-mirror" id="sig_inspector_mirror" alt="">
+          <canvas class="sig-canvas" id="sig_inspector" width="400" height="110"></canvas>
+          <span class="sig-hint">Sign here</span>
+        </div>
+        <button class="btn-clear-sig" onclick="clearSig('sig_inspector')">Clear</button>
+        <div class="sig-name-date">
+          <input type="text" id="sig_insp_name" placeholder="Printed Name" />
+          <input type="date" id="sig_insp_date" />
+        </div>
+      </div>
+
+      <div class="sig-block">
+        <label>Supervisor / Reviewer Signature</label>
+        <div class="sig-canvas-wrap">
+          <img class="sig-mirror" id="sig_supervisor_mirror" alt="">
+          <canvas class="sig-canvas" id="sig_supervisor" width="400" height="110"></canvas>
+          <span class="sig-hint">Sign here</span>
+        </div>
+        <button class="btn-clear-sig" onclick="clearSig('sig_supervisor')">Clear</button>
+        <div class="sig-name-date">
+          <input type="text" id="sig_sup_name" placeholder="Printed Name" />
+          <input type="date" id="sig_sup_date" />
+        </div>
+      </div>
+
+      <div class="sig-block">
+        <label>Client / Witness Signature</label>
+        <div class="sig-canvas-wrap">
+          <img class="sig-mirror" id="sig_client_mirror" alt="">
+          <canvas class="sig-canvas" id="sig_client" width="400" height="110"></canvas>
+          <span class="sig-hint">Sign here</span>
+        </div>
+        <button class="btn-clear-sig" onclick="clearSig('sig_client')">Clear</button>
+        <div class="sig-name-date">
+          <input type="text" id="sig_client_name" placeholder="Printed Name" />
+          <input type="date" id="sig_client_date" />
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /#page -->
+
+<script id="embedded-data" type="application/json">null</script>
+<script>
+  /* ─────────────────────────────────────────────
+     CHECKLIST ROWS
+  ───────────────────────────────────────────── */
+  const DEFAULT_ROWS = 8;
+  let rowCount = 0;
+
+  function addRow(item='', criteria='', result='', remarks='') {
+    rowCount++;
+    const n = rowCount;
+    const tb = document.getElementById('checklist-body');
+    const tr = document.createElement('tr');
+    tr.dataset.row = n;
+    const checked = (v) => result===v ? 'checked' : '';
+    tr.innerHTML = `
+      <td style="text-align:center;color:var(--muted);font-weight:600">${n}</td>
+      <td><input type="text" class="ci-item" data-row="${n}" value="${escH(item)}" placeholder="Inspection item..." oninput="saveForm()"/></td>
+      <td><input type="text" class="ci-crit" data-row="${n}" value="${escH(criteria)}" placeholder="Standard/criteria..." oninput="saveForm()"/></td>
+      <td>
+        <div class="result-group">
+          <input type="radio" name="res${n}" id="p${n}" value="PASS" ${checked('PASS')} onchange="saveForm()"/>
+          <label for="p${n}" class="pass-label">✔ Pass</label>
+          <input type="radio" name="res${n}" id="f${n}" value="FAIL" ${checked('FAIL')} onchange="saveForm()"/>
+          <label for="f${n}" class="fail-label">✖ Fail</label>
+          <input type="radio" name="res${n}" id="na${n}" value="N/A" ${checked('N/A')} onchange="saveForm()"/>
+          <label for="na${n}" class="na-label">N/A</label>
+        </div>
+      </td>
+      <td><textarea class="ci-rem" data-row="${n}" placeholder="Remarks..." oninput="saveForm()">${escH(remarks)}</textarea></td>
+      <td><button class="btn-del-row" onclick="delRow(this)">✕</button></td>
+    `;
+    tb.appendChild(tr);
+    renumberRows();
+    saveForm();
+  }
+
+  function delRow(btn) {
+    btn.closest('tr').remove();
+    renumberRows();
+    saveForm();
+  }
+
+  function renumberRows() {
+    document.querySelectorAll('#checklist-body tr').forEach((tr, i) => {
+      tr.cells[0].textContent = i + 1;
+    });
+  }
+
+  function escH(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  /* ─────────────────────────────────────────────
+     SIGNATURE PADS
+  ───────────────────────────────────────────── */
+  const sigPads = {};
+
+  function initSigPad(id) {
+    const canvas = document.getElementById(id);
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#1a3557';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    let drawing = false, lx=0, ly=0;
+
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / r.width;
+      const scaleY = canvas.height / r.height;
+      if (e.touches) {
+        return { x: (e.touches[0].clientX - r.left)*scaleX, y: (e.touches[0].clientY - r.top)*scaleY };
+      }
+      return { x: (e.clientX - r.left)*scaleX, y: (e.clientY - r.top)*scaleY };
+    }
+
+    canvas.addEventListener('mousedown', e => { drawing=true; const p=getPos(e); lx=p.x; ly=p.y; ctx.beginPath(); ctx.moveTo(lx,ly); });
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const p=getPos(e);
+      ctx.lineTo(p.x, p.y); ctx.stroke();
+      lx=p.x; ly=p.y;
+    });
+    canvas.addEventListener('mouseup', () => { drawing=false; saveSig(id); });
+    canvas.addEventListener('mouseleave', () => { drawing=false; saveSig(id); });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=getPos(e); lx=p.x; ly=p.y; ctx.beginPath(); ctx.moveTo(lx,ly); });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!drawing) return;
+      const p=getPos(e);
+      ctx.lineTo(p.x,p.y); ctx.stroke();
+      lx=p.x; ly=p.y;
+    });
+    canvas.addEventListener('touchend', () => { drawing=false; saveSig(id); });
+    sigPads[id] = canvas;
+  }
+
+  function clearSig(id) {
+    const c = sigPads[id];
+    c.getContext('2d').clearRect(0,0,c.width,c.height);
+    localStorage.removeItem('sig_'+id);
+    const m = document.getElementById(id+'_mirror');
+    if (m) m.removeAttribute('src');
+  }
+
+  function saveSig(id) {
+    const c = sigPads[id];
+    const data = c.toDataURL();
+    localStorage.setItem('sig_'+id, data);
+    const m = document.getElementById(id+'_mirror');
+    if (m) m.setAttribute('src', data);
+  }
+
+  function loadSig(id) {
+    // Prefer a signature baked into the page (from a Save-As file); fall back to localStorage
+    const m = document.getElementById(id+'_mirror');
+    const baked = m && m.getAttribute('src');
+    const data = baked || localStorage.getItem('sig_'+id);
+    if (!data) return;
+    const c = sigPads[id];
+    const img = new Image();
+    img.onload = () => c.getContext('2d').drawImage(img,0,0);
+    img.src = data;
+    if (m) m.setAttribute('src', data);
+  }
+
+  /* ─────────────────────────────────────────────
+     SAVE / LOAD
+  ───────────────────────────────────────────── */
+  const SIMPLE_FIELDS = [
+    'report_no','insp_date','report_status','project_name','location','department',
+    'insp_name','insp_title','insp_id','insp_company','insp_contact','insp_type',
+    'scope','standards','defects','corrective_action','overall_comments','attachments',
+    'sig_insp_name','sig_insp_date','sig_sup_name','sig_sup_date',
+    'sig_client_name','sig_client_date'
+  ];
+
+  let saveTimer;
+  function saveForm() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(_doSave, 600);
+    updateDisplayMeta();
+  }
+
+  function _doSave() {
+    // simple fields
+    SIMPLE_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) localStorage.setItem(id, el.value);
+    });
+    // overall radio
+    const ov = document.querySelector('input[name="overall"]:checked');
+    localStorage.setItem('overall', ov ? ov.value : '');
+    // checklist rows
+    const rows = [];
+    document.querySelectorAll('#checklist-body tr').forEach(tr => {
+      const rn = tr.dataset.row;
+      const res = document.querySelector(`input[name="res${rn}"]:checked`);
+      rows.push({
+        item: tr.querySelector('.ci-item')?.value || '',
+        criteria: tr.querySelector('.ci-crit')?.value || '',
+        result: res ? res.value : '',
+        remarks: tr.querySelector('.ci-rem')?.value || ''
+      });
+    });
+    localStorage.setItem('checklist_rows', JSON.stringify(rows));
+    // status
+    const now = new Date();
+    const ts = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('save-status').textContent = `Auto-saved at ${ts}`;
+  }
+
+  function getEmbeddedData() {
+    try {
+      const raw = document.getElementById('embedded-data')?.textContent?.trim();
+      if (!raw || raw === 'null') return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+
+  function loadForm() {
+    const embedded = getEmbeddedData();
+
+    SIMPLE_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let v = null;
+      if (embedded && id in embedded.fields) v = embedded.fields[id];
+      else v = localStorage.getItem(id);
+      if (v !== null) el.value = v;
+    });
+    // overall radio
+    const ov = embedded ? embedded.overall : localStorage.getItem('overall');
+    if (ov) {
+      const r = document.getElementById(ov === 'PASS' ? 'ov_pass' : 'ov_fail');
+      if (r) r.checked = true;
+    }
+    // checklist
+    let rows = null;
+    if (embedded) {
+      rows = embedded.rows || [];
+    } else {
+      const rawRows = localStorage.getItem('checklist_rows');
+      if (rawRows) rows = JSON.parse(rawRows);
+    }
+    // A reopened Save-As file already contains static <tr> rows in the HTML;
+    // clear them so we don't end up with duplicates when we repopulate.
+    document.getElementById('checklist-body').innerHTML = '';
+    rowCount = 0;
+    if (rows && rows.length > 0) {
+      rows.forEach(r => addRow(r.item, r.criteria, r.result, r.remarks));
+    } else {
+      for (let i=0; i<DEFAULT_ROWS; i++) addRow();
+    }
+    // sigs: if embedded, put signature data into the mirror imgs first so loadSig picks them up
+    if (embedded && embedded.sigs) {
+      Object.keys(embedded.sigs).forEach(id => {
+        const m = document.getElementById(id+'_mirror');
+        if (m && embedded.sigs[id]) m.setAttribute('src', embedded.sigs[id]);
+      });
+    }
+    ['sig_inspector','sig_supervisor','sig_client'].forEach(loadSig);
+    updateDisplayMeta();
+  }
+
+  function updateDisplayMeta() {
+    const no = document.getElementById('report_no').value;
+    const dt = document.getElementById('insp_date').value;
+    document.getElementById('display-report-no').textContent = 'Report #: ' + (no || '—');
+    document.getElementById('display-date').textContent = 'Date: ' + (dt || '—');
+  }
+
+  function clearForm() {
+    if (!confirm('Clear all form data and signatures? This cannot be undone.')) return;
+    localStorage.clear();
+    document.getElementById('checklist-body').innerHTML = '';
+    rowCount = 0;
+    SIMPLE_FIELDS.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.querySelectorAll('input[name="overall"]').forEach(r => r.checked=false);
+    ['sig_inspector','sig_supervisor','sig_client'].forEach(id => {
+      const c = sigPads[id];
+      if(c) c.getContext('2d').clearRect(0,0,c.width,c.height);
+    });
+    for (let i=0; i<DEFAULT_ROWS; i++) addRow();
+    document.getElementById('save-status').textContent = 'Cleared';
+    updateDisplayMeta();
+  }
+
+  /* ─────────────────────────────────────────────
+     SAVE AS (self-contained HTML download)
+  ───────────────────────────────────────────── */
+  function collectState() {
+    const fields = {};
+    SIMPLE_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      fields[id] = el ? el.value : '';
+    });
+    const ov = document.querySelector('input[name="overall"]:checked');
+    const rows = [];
+    document.querySelectorAll('#checklist-body tr').forEach(tr => {
+      const rn = tr.dataset.row;
+      const res = document.querySelector(`input[name="res${rn}"]:checked`);
+      rows.push({
+        item: tr.querySelector('.ci-item')?.value || '',
+        criteria: tr.querySelector('.ci-crit')?.value || '',
+        result: res ? res.value : '',
+        remarks: tr.querySelector('.ci-rem')?.value || ''
+      });
+    });
+    const sigs = {};
+    ['sig_inspector','sig_supervisor','sig_client'].forEach(id => {
+      const c = sigPads[id];
+      // Prefer localStorage copy (set on draw); fall back to a fresh snapshot
+      let data = localStorage.getItem('sig_'+id);
+      if (!data && c) { try { data = c.toDataURL(); } catch(e){} }
+      if (data) sigs[id] = data;
+    });
+    return { fields, overall: ov ? ov.value : '', rows, sigs };
+  }
+
+  function saveAsHTML() {
+    const state = collectState();
+
+    // 1. Bake simple field values into their HTML attributes
+    SIMPLE_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'textarea') {
+        el.textContent = el.value;
+      } else if (tag === 'select') {
+        Array.from(el.options).forEach(o => {
+          if (o.selected) o.setAttribute('selected',''); else o.removeAttribute('selected');
+        });
+      } else {
+        el.setAttribute('value', el.value);
+      }
+    });
+
+    // 2. Bake the overall PASS/FAIL radio
+    document.querySelectorAll('input[name="overall"]').forEach(r => {
+      if (r.checked) r.setAttribute('checked',''); else r.removeAttribute('checked');
+    });
+
+    // 3. Bake checklist row fields (values, textareas, radios)
+    document.querySelectorAll('#checklist-body tr').forEach(tr => {
+      tr.querySelectorAll('input[type="text"]').forEach(inp => inp.setAttribute('value', inp.value));
+      tr.querySelectorAll('textarea').forEach(t => { t.textContent = t.value; });
+      tr.querySelectorAll('input[type="radio"]').forEach(r => {
+        if (r.checked) r.setAttribute('checked',''); else r.removeAttribute('checked');
+      });
+    });
+
+    // 4. Bake signatures into the mirror images
+    Object.keys(state.sigs).forEach(id => {
+      const m = document.getElementById(id+'_mirror');
+      if (m) m.setAttribute('src', state.sigs[id]);
+    });
+
+    // 5. Embed the structured state so a reopened file restores exactly
+    const holder = document.getElementById('embedded-data');
+    if (holder) holder.textContent = JSON.stringify(state);
+
+    // 6. Serialize + download
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const rep = (state.fields.report_no || '').trim().replace(/[^\w\-]+/g,'_');
+    const dt = (state.fields.insp_date || new Date().toISOString().slice(0,10)).trim().replace(/[^\w\-]+/g,'_');
+    const name = 'Inspection_Report' + (rep ? '_'+rep : '') + (dt ? '_'+dt : '') + '.html';
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+    document.getElementById('save-status').textContent = 'Downloaded ' + name;
+  }
+
+  /* ─────────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    ['sig_inspector','sig_supervisor','sig_client'].forEach(initSigPad);
+    loadForm();
+    // auto-save on any input
+    document.querySelectorAll('input:not([type="radio"]):not([type="file"]), select, textarea')
+      .forEach(el => el.addEventListener('input', saveForm));
+  });
+</script>
+</body>
+</html>
