@@ -226,16 +226,42 @@ describe("Inspection Request Form — prints as one page", () => {
     expect(html).toContain("Scope / Remarks:");
   });
 
-  it("declares exactly one page break, on the first section, and no footer", () => {
+  it("splits into three pages, each sign-off grid with its own content", () => {
     const breaks = template.sections.map(
       (s) => (s as { page_break_before?: boolean }).page_break_before === true,
     );
-    // A break on the opening section is a no-op — it is already page 1 — and is
-    // what stops `paginate` giving every section a sheet of its own. The sheet is
-    // one A4 page and stays one.
-    expect(breaks).toEqual([true, false, false, false, false, false]);
-    // A top-level `footer` would print a second page; both sign-offs are sections.
+    // MEASURED in Chrome against a filled record, not estimated (see the `scope`
+    // note): the body budget is 881px and the whole request is 1425px, so the
+    // paper's single page cannot be one page here. The two sign-off grids cost
+    // 339px each, which is what forces a third sheet.
+    //
+    // page 1 scope + covered records | 2 declaration + contractor | 3 result + inspector
+    expect(breaks).toEqual([true, false, true, false, true, false]);
+
+    const pages = breaks.reduce<number>((n, b, i) => (i === 0 || b ? n + 1 : n), 0);
+    expect(pages).toBe(3);
+
+    // A two-page split (break before `contractor_sign_off` only) was measured at
+    // 892.8px on page 2 against the 881px budget and rejected. Guard the shape
+    // that replaced it: each sign-off opens a page but does not start one.
+    const signOffIds = ["contractor_sign_off", "inspector_sign_off"];
+    for (const id of signOffIds) {
+      const section = template.sections.find((s) => s.id === id)!;
+      expect((section as { page_break_before?: boolean }).page_break_before).toBeUndefined();
+    }
+
+    // A top-level `footer` would print a fourth page; both sign-offs are sections.
     expect(template.footer).toBeUndefined();
+  });
+
+  it("gives the only growing block the roomiest page", () => {
+    // `attached_records` is the one section that grows with the record, and
+    // `paginate` splits on sections — never inside a table — so an overlong table
+    // overflows its sheet rather than continuing onto the next. It therefore
+    // shares page 1 with the header and nothing else heavy.
+    const ids = template.sections.map((s) => s.id);
+    const page1 = ids.slice(0, ids.indexOf("declaration"));
+    expect(page1).toEqual(["scope", "attached_records"]);
   });
 
   it("carries no record data from the reference file", () => {
