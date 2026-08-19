@@ -1,0 +1,422 @@
+{
+  "code": "GSF",
+  "title": "Grease Separator – Functional & Performance Test Form",
+  "rev": "A",
+  "discipline": "Plumbing & Sanitary",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Grease_Separator_Functional_Performance_Test.html — the second half of the same pair as `grease-separator-leak-test.json` (GSL): GSL proves the vessel holds water, this proves it works. Same standalone working form, same brand header, same document block, same three-column certification grid, and its §3 / §6 / §7 checklists are built by the same `checkRows()` helper as GSL's two. It carries twelve numbered sections against GSL's ten — the extra ones are the performance measurement table, the operational and alarm checklists, and effluent sampling. The file arrived blank, so the wording carried here is the master wording. Its toolbar, autosave notice and export/import machinery belong to a file that had to survive on its own and have no counterpart in the app.\n\nWhere the two forms ask the same question they use the SAME field id (`separator_id`, `wet_volume`, `sludge_volume`, `inlet_pipe`, `reference_standard`, …), so a project running both records reads the same way in an export. If one is revised, check the other.",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "form_no",   "label": "Form No.",   "type": "text" },
+      { "id": "revision",  "label": "Revision",   "type": "text" },
+      { "id": "test_date", "label": "Test Date",  "type": "date", "required": true },
+      { "id": "report_no", "label": "Report No.", "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "project_info",
+      "no": "1",
+      "title": "Project Information",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "`page_break_before` on the opening section is the library's grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1.\n\nGSL's ten fields plus the two this form adds — Served Area / Kitchen and No. of Fixtures Served — which are the load the separator is sized for and are asked for here because this is the form that tests whether it copes with it. Ids match GSL's for the ten they share.\n\n`source` without `readonly`: nothing populates `source` today, and a readonly cell with no source prints blank.",
+      "fields": [
+        { "id": "project_name",       "label": "Project Name",         "type": "text", "source": "project.name" },
+        { "id": "project_no",         "label": "Project No.",          "type": "text" },
+        { "id": "site_location",      "label": "Site / Location",      "type": "text", "source": "equipment.location" },
+        { "id": "building_block",     "label": "Building / Block",     "type": "text" },
+        { "id": "client_owner",       "label": "Client / Owner",       "type": "text", "source": "project.client" },
+        { "id": "consultant",         "label": "Consultant",           "type": "text" },
+        { "id": "main_contractor",    "label": "Main Contractor",      "type": "text" },
+        { "id": "testing_contractor", "label": "Testing Contractor",   "type": "text", "default": "Kenyon Pte Ltd" },
+        { "id": "separator_id",       "label": "Separator Tag / ID",   "type": "text", "source": "equipment.tag", "required": true, "bold": true },
+        { "id": "unit_location",      "label": "Location of Unit",     "type": "text" },
+        { "id": "served_area",        "label": "Served Area / Kitchen", "type": "text" },
+        { "id": "fixture_count",      "label": "No. of Fixtures Served", "type": "number" }
+      ]
+    },
+
+    {
+      "id": "equipment_data",
+      "no": "2",
+      "title": "Equipment & Design Data",
+      "type": "field_group",
+      "_note": "The source's §2 grid, its two radio rows, and the two wide reference rows beneath it — one block on the paper, one section here.\n\nThe design figures this form tests against (Rated Flow Rate, Design Retention Time, Grease Storage Capacity) live here rather than in the measurement table, exactly as on the paper: the table's own Design / Specified column is filled per parameter, and these are the nameplate values the whole record is read against.\n\nVent / Air Admittance and Alarm / Sensor Fitted are `dropdown`s carrying the source's radio values verbatim; the schema has no radio type. Alarm / Sensor Fitted is what makes §7 applicable — a unit with no alarm answers that section N/A throughout.\n\nUnits are field properties, never written into the label (CLAUDE.md conventions), matching GSL.",
+      "fields": [
+        { "id": "manufacturer",       "label": "Manufacturer",              "type": "text" },
+        { "id": "model_type",         "label": "Model / Type",              "type": "text" },
+        { "id": "serial_no",          "label": "Serial No.",                "type": "text" },
+        { "id": "year_manufacture",   "label": "Year of Manufacture",       "type": "number" },
+        { "id": "nominal_size",       "label": "Nominal Size (NS)",         "type": "text" },
+        { "id": "rated_flow",         "label": "Rated Flow Rate",           "type": "number", "unit": "l/s" },
+        { "id": "grease_capacity",    "label": "Grease Storage Capacity",   "type": "number", "unit": "l" },
+        { "id": "sludge_volume",      "label": "Sludge Trap Volume",        "type": "number", "unit": "l" },
+        { "id": "wet_volume",         "label": "Total Wet Volume",          "type": "number", "unit": "l" },
+        { "id": "retention_time",     "label": "Design Retention Time",     "type": "number", "unit": "min" },
+        { "id": "inlet_pipe",         "label": "Inlet Pipe Size / Invert",  "type": "text" },
+        { "id": "outlet_pipe",        "label": "Outlet Pipe Size / Invert", "type": "text" },
+        { "id": "vent",               "label": "Vent / Air Admittance",     "type": "dropdown", "options": ["Provided", "Not provided"] },
+        { "id": "alarm_fitted",       "label": "Alarm / Sensor Fitted",     "type": "dropdown", "options": ["Yes", "No"] },
+        { "id": "reference_standard", "label": "Reference Standard / Code", "type": "text" },
+        { "id": "approved_drawing",   "label": "Approved Drawing / Spec Ref.", "type": "text" }
+      ]
+    },
+
+    {
+      "id": "readiness",
+      "no": "3",
+      "title": "Pre-Test Readiness Checks",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Pass / Fail / N/A" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's ten items, verbatim — including the curly apostrophe in item 9. Wording is template data and is not editable per record (Hard Rule #5).\n\nItem 1 is the hinge between the two forms: this test is not valid until GSL has been accepted, and the paper says so in its own words (\"report attached\"). The Attachments block carries the matching Watertightness test report tick.\n\n`pass_fail_na` rather than `status`: the paper's three columns are headed Pass / Fail / N/A, which is exactly this control's default wording, so no `labels` override is needed.\n\nNo `allow_add_rows` on any of this form's three checklists — the source has no add-row control, and an item added per record would be checklist wording no consultant approved. An unforeseen finding goes in §10.",
+      "rows": [
+        { "id": "rd_01", "no": "1", "type": "pass_fail_na", "remarks": true,
+          "description": "Watertightness / leak test completed and accepted (report attached)" },
+        { "id": "rd_02", "no": "2", "type": "pass_fail_na", "remarks": true,
+          "description": "Unit filled with clean water to normal static operating level" },
+        { "id": "rd_03", "no": "3", "type": "pass_fail_na", "remarks": true,
+          "description": "Inlet and outlet connections open; temporary plugs removed" },
+        { "id": "rd_04", "no": "4", "type": "pass_fail_na", "remarks": true,
+          "description": "Upstream fixtures / kitchen equipment available and able to discharge" },
+        { "id": "rd_05", "no": "5", "type": "pass_fail_na", "remarks": true,
+          "description": "Sampling chamber / inspection point downstream accessible" },
+        { "id": "rd_06", "no": "6", "type": "pass_fail_na", "remarks": true,
+          "description": "Vent pipe connected, unobstructed and terminated as per design" },
+        { "id": "rd_07", "no": "7", "type": "pass_fail_na", "remarks": true,
+          "description": "Access covers refitted and sealed for operational conditions" },
+        { "id": "rd_08", "no": "8", "type": "pass_fail_na", "remarks": true,
+          "description": "Electrical supply energised; alarm panel and sensors commissioned" },
+        { "id": "rd_09", "no": "9", "type": "pass_fail_na", "remarks": true,
+          "description": "Manufacturer’s representative present (if required by contract)" },
+        { "id": "rd_10", "no": "10", "type": "pass_fail_na", "remarks": true,
+          "description": "Safe access, lighting and confined-space precautions in place" }
+      ]
+    },
+
+    {
+      "id": "test_conditions",
+      "no": "4",
+      "title": "Test Conditions",
+      "type": "field_group",
+      "_note": "The source records Test Date / Time as one `datetime-local`. The schema has `date` and `time` and no combined type, so it is split — the same split GSL makes for its start and finish, and `condensate-pipe-flood-test.json` before it.\n\nFlow Source and Test Substance Added are `dropdown`s carrying the source's radio values verbatim, including the run-together \"Oil/grease\" the source writes without spaces.",
+      "fields": [
+        { "id": "condition_date", "label": "Test Date",                 "type": "date" },
+        { "id": "condition_time", "label": "Test Time",                 "type": "time" },
+        { "id": "ambient_temp",   "label": "Ambient Temperature",       "type": "number", "unit": "°C" },
+        { "id": "flow_source",    "label": "Flow Source",               "type": "dropdown", "options": ["Kitchen fixtures", "Hose / tanker"] },
+        { "id": "flow_method",    "label": "Flow Measurement Method",   "type": "text" },
+        { "id": "target_flow",    "label": "Target Test Flow",          "type": "number", "unit": "l/s" },
+        { "id": "test_duration",  "label": "Test Duration",             "type": "number", "unit": "min" },
+        { "id": "inlet_temp",     "label": "Water Temperature at Inlet", "type": "number", "unit": "°C" },
+        { "id": "test_substance", "label": "Test Substance Added",      "type": "dropdown", "options": ["None", "Oil/grease", "Dye"] }
+      ]
+    },
+
+    {
+      "id": "measurements",
+      "no": "5",
+      "title": "Performance Measurements",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 12,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The paper's twelve parameters, seeded — they are the master's fixed list and must not be typed per record (Hard Rule #5). `min_rows` is 12 to match, so the list cannot be deleted down; a parameter that does not apply is answered N/A in the result column, which is what the source's own dropdown offers.\n\n**The Unit column is seeded, not declared.** The source prints the unit as fixed text in each row — `<td>${m[1]}</td>`, not an input — and the twelve rows carry six different units. That is a per-row value, so it is a seeded `text` column, NOT a column-level `unit` (which would print one unit in the heading for all twelve).\n\n**Design and Measured stay free text.** The source's cells are plain inputs and the engineer writes \"2.5\", \"≥ 2.0\" or \"N/A\" as the parameter demands; `number` would reject a bound written as a range and force a unit into the heading the master does not have.\n\nNo `calculated` column: the paper asks for the design figure and the measured one side by side and leaves the judgement to the Accept / Reject cell, which is the record the consultant signs.",
+      "columns": [
+        { "id": "parameter", "label": "Parameter",         "type": "text",   "width": "36%" },
+        { "id": "design",    "label": "Design / Specified", "type": "text",   "width": "16%", "align": "center" },
+        { "id": "actual",    "label": "Measured / Actual",  "type": "text",   "width": "16%", "align": "center" },
+        { "id": "unit",      "label": "Unit",              "type": "text",   "width": "10%", "align": "center" },
+        { "id": "result",    "label": "Accept / Reject",   "type": "status", "width": "22%", "align": "center",
+          "states": [
+            { "value": "accept", "label": "Accept", "outcome": "pass" },
+            { "value": "reject", "label": "Reject", "outcome": "fail" },
+            { "value": "na",     "label": "N/A",    "outcome": "na" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "parameter": "Inlet flow rate at rated condition",              "unit": "l/s" },
+        { "parameter": "Peak flow rate achieved",                         "unit": "l/s" },
+        { "parameter": "Static water level at rest",                      "unit": "mm" },
+        { "parameter": "Water level rise at rated flow",                  "unit": "mm" },
+        { "parameter": "Hydraulic retention time",                        "unit": "min" },
+        { "parameter": "Head loss across separator (inlet – outlet)",     "unit": "mm" },
+        { "parameter": "Outlet dip pipe / weir submergence",              "unit": "mm" },
+        { "parameter": "Sludge trap depth / capacity verified",           "unit": "l" },
+        { "parameter": "Grease accumulation chamber depth",               "unit": "mm" },
+        { "parameter": "Effluent temperature at outlet",                  "unit": "°C" },
+        { "parameter": "Draw-off / discharge valve operation time",       "unit": "s" },
+        { "parameter": "Time to return to static level after flow ceases", "unit": "min" }
+      ]
+    },
+
+    {
+      "id": "operational",
+      "no": "6",
+      "title": "Operational Checks Under Flow",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Pass / Fail / N/A" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's eight checks, verbatim — built by the same `checkRows()` helper as §3 and §7, so they stay the same shape here.\n\n**The page breaks here, measured on the live build.** §5 is 580px of the 878px an A4 page gives its body, and this section is 363px: together they came to 943px and printed an eighth sheet while the footer read \"of 7\". Broken here, §5 has a page to itself (298px spare — about nine more parameters) and this section pairs with §7 at 761px. §6 and §7 are fixed-length checklists that cannot grow, so that page needs no headroom.\n\nEvery item is worded so that Pass is the good answer (\"no visible carry-over\", \"No siphonage\"), so the outstanding-items list (SPEC §6) reads correctly with no outcome mapping — unlike §11's sampling question, which needs one.",
+      "rows": [
+        { "id": "op_01", "no": "1", "type": "pass_fail_na", "remarks": true,
+          "description": "Flow enters the separator without surcharging or backing up into fixtures" },
+        { "id": "op_02", "no": "2", "type": "pass_fail_na", "remarks": true,
+          "description": "No turbulence or short-circuiting observed across baffles at rated flow" },
+        { "id": "op_03", "no": "3", "type": "pass_fail_na", "remarks": true,
+          "description": "Floating grease / oil retained — no visible carry-over at outlet" },
+        { "id": "op_04", "no": "4", "type": "pass_fail_na", "remarks": true,
+          "description": "Settled solids retained in sludge trap — no solids carry-over at outlet" },
+        { "id": "op_05", "no": "5", "type": "pass_fail_na", "remarks": true,
+          "description": "Effluent at sampling point visually clear and free of floating grease" },
+        { "id": "op_06", "no": "6", "type": "pass_fail_na", "remarks": true,
+          "description": "No siphonage or loss of water seal during peak discharge" },
+        { "id": "op_07", "no": "7", "type": "pass_fail_na", "remarks": true,
+          "description": "Odour containment satisfactory; covers seal correctly during operation" },
+        { "id": "op_08", "no": "8", "type": "pass_fail_na", "remarks": true,
+          "description": "Drain-down / emptying valve operates freely and seals tight when closed" }
+      ]
+    },
+
+    {
+      "id": "alarm",
+      "no": "7",
+      "title": "Alarm, Control & Ancillary Function Test",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Pass / Fail / N/A" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's nine checks, verbatim. Four of them end \"(if fitted)\" or name a set point, which is why every row carries the paper's Remarks cell: item 2 explicitly asks for the set point to be recorded there.\n\nA separator with no alarm — §2's Alarm / Sensor Fitted answered No — answers this whole section N/A. That is the source's own design and is why the checks are not conditional on anything: the paper prints all nine regardless.",
+      "rows": [
+        { "id": "al_01", "no": "1", "type": "pass_fail_na", "remarks": true,
+          "description": "Level indicator / grease-thickness sensor reads correctly against manual dip" },
+        { "id": "al_02", "no": "2", "type": "pass_fail_na", "remarks": true,
+          "description": "High-level alarm activates at set point (record set point in remarks)" },
+        { "id": "al_03", "no": "3", "type": "pass_fail_na", "remarks": true,
+          "description": "Grease-full / sludge-full alarm activates at set point" },
+        { "id": "al_04", "no": "4", "type": "pass_fail_na", "remarks": true,
+          "description": "Audible and visual annunciation function at local panel" },
+        { "id": "al_05", "no": "5", "type": "pass_fail_na", "remarks": true,
+          "description": "Remote / BMS signal transmitted and received correctly" },
+        { "id": "al_06", "no": "6", "type": "pass_fail_na", "remarks": true,
+          "description": "Alarm mute, reset and fault indication function correctly" },
+        { "id": "al_07", "no": "7", "type": "pass_fail_na", "remarks": true,
+          "description": "Automatic skimming / heating system operates as designed (if fitted)" },
+        { "id": "al_08", "no": "8", "type": "pass_fail_na", "remarks": true,
+          "description": "Pump-out / transfer pump starts and stops at correct levels (if fitted)" },
+        { "id": "al_09", "no": "9", "type": "pass_fail_na", "remarks": true,
+          "description": "Power failure and sensor fault conditions annunciate correctly" }
+      ]
+    },
+
+    {
+      "id": "sampling",
+      "no": "8",
+      "title": "Effluent Sampling (Where Required)",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "The paper's §8 is three blocks in one numbered section — the sample's own details, the results table, and the laboratory reference. A `field_group` cannot hold a table, so it is three sections here; only this one carries the number, and no page break separates them, so the printed sheet reads as one §8.\n\nSample Date / Time is split into a date and a time, as in §4.",
+      "fields": [
+        { "id": "sample_point",     "label": "Sample Point",         "type": "text" },
+        { "id": "sample_date",      "label": "Sample Date",          "type": "date" },
+        { "id": "sample_time",      "label": "Sample Time",          "type": "time" },
+        { "id": "sample_by",        "label": "Sample Taken By",      "type": "text" },
+        { "id": "sample_reference", "label": "Sample Reference No.", "type": "text" }
+      ]
+    },
+
+    {
+      "id": "sample_results",
+      "title": "Effluent Sample Results",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 5,
+      "_note": "The paper's five parameter rows, seeded. **The units stay inside the parameter text here** — \"Oil & Grease / FOG (mg/l)\" — because that is how the source writes them and because a seeded row value is text, not a typed unit; this is the opposite call from §2, where the unit is a property of a declared field. The distinction is that these are row DATA and those are field DEFINITIONS.\n\nThe fifth row is the source's \"Other\", which on the paper carries a free-text box for naming the parameter. Seeded as the literal word \"Other\" for the engineer to type over — a table cell already takes free text, so no extra column is needed for the name.\n\nNo `auto_number`: the source's sample table is the one table on this form without a No. column.\n\nResult and Permitted Limit are free text — a limit is written \"< 100\" or \"6–9\" as often as a figure, and pH has no unit at all.",
+      "columns": [
+        { "id": "parameter", "label": "Parameter",       "type": "text",   "width": "38%" },
+        { "id": "result",    "label": "Result",          "type": "text",   "width": "18%", "align": "center" },
+        { "id": "limit",     "label": "Permitted Limit", "type": "text",   "width": "18%", "align": "center" },
+        { "id": "status",    "label": "Pass / Fail",     "type": "status", "width": "26%", "align": "center",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] }
+      ],
+      "prefilled_rows": [
+        { "parameter": "Oil & Grease / FOG (mg/l)" },
+        { "parameter": "Total Suspended Solids (mg/l)" },
+        { "parameter": "pH" },
+        { "parameter": "Temperature (°C)" },
+        { "parameter": "Other" }
+      ]
+    },
+
+    {
+      "id": "laboratory",
+      "title": "Laboratory",
+      "type": "field_group",
+      "_note": "The two wide rows closing the source's §8. Kept as its own section for the same reason as the results table: a field group cannot follow a table inside one section. The Attachments block carries the matching Laboratory report tick.",
+      "fields": [
+        { "id": "lab_method", "label": "Laboratory / Test Method",     "type": "text" },
+        { "id": "lab_report", "label": "Laboratory Report No. / Date", "type": "text" }
+      ]
+    },
+
+    {
+      "id": "test_equipment",
+      "no": "9",
+      "title": "Test Equipment Used",
+      "type": "dynamic_table",
+      "link_to_instrument_register": true,
+      "font_size": "8pt",
+      "min_rows": 4,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The source's five columns, unchanged — and as on GSL, the paper already carries a Calibration Due date, which is what lets `link_to_instrument_register` mean something: a flow rate measured with an out-of-calibration meter is not evidence (SPEC §5). The flag is declarative today; record↔instrument linking is still to be built (`lib/calibration.ts`).\n\n`min_rows` is 4, the number the paper draws — twice GSL's, because this test needs a flow meter and a thermometer on top of the rule and gauge.\n\nNo instrument is seeded: a serial number printed on a blank form names a unit the engineer may not have used.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument / Equipment", "type": "text", "width": "32%" },
+        { "id": "model",      "label": "Make & Model",           "type": "text", "width": "24%" },
+        { "id": "serial_no",  "label": "Serial No.",             "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "Calibration Due",        "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "observations",
+      "no": "10",
+      "title": "Observations, Defects & Outstanding Works",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 4,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The source's four rows, as a table that grows. The first two columns are `textarea` because the source's are — a defect and its remedy are sentences.\n\n**The page breaks here, measured on the live build.** With the break one section earlier — before §9 — the page carrying §9, §10, §11 and Remarks came to 858px against 878px: it fitted, but a single added instrument or observation row would have pushed it over. Broken here, §9 closes the sampling page at 739px and this section opens a page holding §10, §11 and Remarks at 636px, leaving both about 240px — six or seven added rows either side.\n\nThe heading says Outstanding Works, not just Defects, which is the difference from GSL's §8: a functional test routinely accepts a unit with work still to close out, and §11 offers ACCEPTED WITH CONDITIONS for exactly that. This table is where those conditions are written.",
+      "columns": [
+        { "id": "observation", "label": "Observation / Defect", "type": "textarea", "width": "36%" },
+        { "id": "action",      "label": "Action Required",      "type": "textarea", "width": "36%" },
+        { "id": "owner",       "label": "By Whom / Date",       "type": "text",     "width": "22%" }
+      ]
+    },
+
+    {
+      "id": "result",
+      "no": "11",
+      "title": "Overall Test Result & Acceptance",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Result" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's five section verdicts, its overall result and its retest date, as rows rather than a field group: six of the seven are multi-state controls, which a field group cannot render.\n\nEach verdict `cross_ref`s the section it summarises, so the five are traceable to the checks that produced them.\n\n**The outcome mapping.** The five section verdicts are PASS / FAIL / N/A, which map straight through. The overall result is the paper's own three words: ACCEPTED and ACCEPTED WITH CONDITIONS both map to `pass` — the conditions themselves are carried by §10 and the Remarks box — and REJECTED / RETEST to `fail`. Unlike GSL, no question on this sheet inverts.\n\nRetest required by is a `date` row, meaningful only when the overall result is REJECTED / RETEST.",
+      "rows": [
+        { "id": "result_readiness", "type": "status", "remarks": true,
+          "description": "Pre-test readiness checks",
+          "cross_ref": "readiness",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "result_performance", "type": "status", "remarks": true,
+          "description": "Performance measurements",
+          "cross_ref": "measurements",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "result_operational", "type": "status", "remarks": true,
+          "description": "Operational checks under flow",
+          "cross_ref": "operational",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "result_alarm", "type": "status", "remarks": true,
+          "description": "Alarm, control & ancillary functions",
+          "cross_ref": "alarm",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "result_sampling", "type": "status", "remarks": true,
+          "description": "Effluent sampling (if applicable)",
+          "cross_ref": "sample_results",
+          "states": [
+            { "value": "pass", "label": "Pass", "outcome": "pass" },
+            { "value": "fail", "label": "Fail", "outcome": "fail" },
+            { "value": "na",   "label": "N/A",  "outcome": "na" }
+          ] },
+        { "id": "overall_result", "type": "status", "remarks": true,
+          "description": "OVERALL RESULT",
+          "states": [
+            { "value": "accepted",            "label": "Accepted",                 "outcome": "pass" },
+            { "value": "accepted_conditions", "label": "Accepted with conditions", "outcome": "pass" },
+            { "value": "rejected_retest",     "label": "Rejected / Retest",        "outcome": "fail" }
+          ] },
+        { "id": "retest_date", "type": "date", "remarks": true,
+          "description": "Retest required by (date)" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, not a one-row standard section: a standard section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column and two columns both headed Remarks. The source is a ruled box at the foot of §11; this prints as one field, and shares the page with it as it does on the paper.",
+      "fields": [
+        { "id": "overall_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "attachments",
+      "title": "Attachments",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "The source's five checkboxes — GSL's four plus the Watertightness test report, which is the document §3 item 1 requires. They sit under the signature grid on the paper and are placed BEFORE the sign-off here, because nothing may print below a signature it is not part of.\n\n**The page breaks here, measured on the live build** — the same call as GSL, and for the same reason: the sign-off's heading carries the certification sentence and wraps to several lines at 16pt, so the closing block is far taller than a signature grid alone.",
+      "fields": [
+        { "id": "attachment_watertightness", "label": "Watertightness test report",  "type": "checkbox" },
+        { "id": "attachment_manufacturer",   "label": "Manufacturer’s data sheet",   "type": "checkbox" },
+        { "id": "attachment_calibration",    "label": "Calibration certificates",    "type": "checkbox" },
+        { "id": "attachment_lab",            "label": "Laboratory report",           "type": "checkbox" },
+        { "id": "attachment_photos",         "label": "Photographs",                 "type": "checkbox" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "no": "12",
+      "title": "Certification & Sign-off — We certify that the functional and performance tests recorded above were carried out in the presence of the undersigned and that the results are a true record of the tests performed.",
+      "type": "sign_off",
+      "layout": "two_column",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, and the source closes §12 with the signature grid directly under the certification sentence. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged.\n\nThe certification sentence is carried in the section `title`, the idiom `acmv-pipe-pressure-test.json` uses for its PART 4 declaration and GSL for its §10: the schema has no free-text block, and the sentence is what the signatures attest to. Note the source's wording here is plural — \"tests\" — where GSL's is singular; it is carried as written.\n\n**The paper's Designation row is dropped.** A signature slot captures role, name, company and timestamp (`sign-off.tsx`); there is nowhere to put a designation, and a fourth field invented for one sheet would change every template's sign-off. Same three roles and the same `stage` mapping as GSL, so a project running both records follows one workflow.",
+      "signatures": [
+        { "id": "sig_tested",    "role": "Tested by (Contractor)",       "company_default": "Kenyon Pte Ltd", "required": true,  "stage": "contractor" },
+        { "id": "sig_witnessed", "role": "Witnessed by (Consultant)",    "required": false, "stage": "witness" },
+        { "id": "sig_accepted",  "role": "Accepted by (Client / Owner)", "required": false, "stage": "client" }
+      ]
+    }
+  ],
+
+  "instruments": { "required": true, "min": 1, "source_section": "test_equipment" }
+}
