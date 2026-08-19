@@ -1,0 +1,313 @@
+{
+  "code": "GSL",
+  "title": "Grease Separator – Watertightness / Leak Test Form",
+  "rev": "A",
+  "discipline": "Plumbing & Sanitary",
+  "category": "ITR",
+  "scope": "equipment",
+  "page": { "size": "A4", "orientation": "portrait" },
+  "source": "spec/Grease_Separator_Watertightness_Leak_Test.html — a self-contained working form (its own autosave, export/import and canvas signature pads) rather than a scan of a consultant's sheet, so its ten numbered sections are the layout this template reproduces. Everything it renders comes from one script block: two inspection lists (nine pre-test items, seven leakage checks) hard-coded as prose, five test-record rows, two equipment rows, three observation rows, four result questions and a three-column sign-off. The file arrived blank — no record values to strip, unlike CPF or MVR — so the wording carried here is the master wording. Its toolbar, autosave notice and \"Uncontrolled when printed\" footer are the standalone file's own machinery and have no counterpart in the app, which carries serial number, revision, page x of y and status in its own print footer (SPEC §7).",
+
+  "header": {
+    "title": "Document Details",
+    "fields": [
+      { "id": "form_no",   "label": "Form No.",  "type": "text" },
+      { "id": "revision",  "label": "Revision",  "type": "text" },
+      { "id": "test_date", "label": "Test Date", "type": "date", "required": true },
+      { "id": "report_no", "label": "Report No.", "type": "text" }
+    ]
+  },
+
+  "sections": [
+    {
+      "id": "project_info",
+      "no": "1",
+      "title": "Project Information",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "`page_break_before` on the opening section is the library's grouping idiom: `paginate` gives every section its own page unless at least one declares a break, and a break on the first section is a no-op for layout — it is already page 1. Same as `condensate-pipe-flood-test.json` and `billi-tap-test.json`.\n\nThe source's four-cell document grid (Form No., Revision, Test Date, Report No.) sits above this block on the paper and is carried as the record header; this section is the paper's own numbered §1 and keeps its ten fields in the paper's order.\n\n`source` is declared on Project Name, Site / Location and Separator Tag / ID so they populate from record context if and when that wiring lands, but NOT `readonly` — nothing populates `source` today, and a readonly cell with no source prints blank (the trap `meter-verification-record.json` pins in its parity test).",
+      "fields": [
+        { "id": "project_name",       "label": "Project Name",        "type": "text", "source": "project.name" },
+        { "id": "project_no",         "label": "Project No.",         "type": "text" },
+        { "id": "site_location",      "label": "Site / Location",     "type": "text", "source": "equipment.location" },
+        { "id": "building_block",     "label": "Building / Block",    "type": "text" },
+        { "id": "client_owner",       "label": "Client / Owner",      "type": "text", "source": "project.client" },
+        { "id": "consultant",         "label": "Consultant",          "type": "text" },
+        { "id": "main_contractor",    "label": "Main Contractor",     "type": "text" },
+        { "id": "testing_contractor", "label": "Testing Contractor",  "type": "text", "default": "Kenyon Pte Ltd" },
+        { "id": "separator_id",       "label": "Separator Tag / ID",  "type": "text", "source": "equipment.tag", "required": true, "bold": true },
+        { "id": "unit_location",      "label": "Location of Unit",    "type": "text" }
+      ]
+    },
+
+    {
+      "id": "separator_details",
+      "no": "2",
+      "title": "Separator Details",
+      "type": "field_group",
+      "_note": "The source's §2 grid, plus the two wide rows beneath it (Reference Standard / Code and Approved Drawing / Spec Ref.), which are the same block on the paper and are kept in the same section here.\n\nInstallation Type is a `dropdown` carrying the source's two radio values verbatim; the schema has no radio type and a two-option dropdown is how the library renders a fixed either/or (SPEC §5). Same for Test Medium, Test Method and Groundwater Present in §4.\n\nThe source declares Total Wet Volume, Sludge Trap Volume and Chamber Depth as `number` inputs and writes the unit into the label; here the unit is a field property, never part of the label (CLAUDE.md conventions), so the renderer appends it. No `limit` on any of them: the paper judges nothing about a separator's size, and a bound invented here would fail a record the consultant would accept.",
+      "fields": [
+        { "id": "manufacturer",       "label": "Manufacturer",             "type": "text" },
+        { "id": "model_type",         "label": "Model / Type",             "type": "text" },
+        { "id": "serial_no",          "label": "Serial No.",               "type": "text" },
+        { "id": "nominal_size",       "label": "Nominal Size (NS)",        "type": "text" },
+        { "id": "wet_volume",         "label": "Total Wet Volume",         "type": "number", "unit": "l" },
+        { "id": "sludge_volume",      "label": "Sludge Trap Volume",       "type": "number", "unit": "l" },
+        { "id": "material",           "label": "Material of Construction", "type": "text" },
+        { "id": "lining",             "label": "Internal Coating / Lining", "type": "text" },
+        { "id": "installation_type",  "label": "Installation Type",        "type": "dropdown", "options": ["Above ground", "Below ground"] },
+        { "id": "chamber_depth",      "label": "Chamber Depth",            "type": "number", "unit": "m" },
+        { "id": "inlet_pipe",         "label": "Inlet Pipe Size / Invert",  "type": "text" },
+        { "id": "outlet_pipe",        "label": "Outlet Pipe Size / Invert", "type": "text" },
+        { "id": "reference_standard", "label": "Reference Standard / Code", "type": "text" },
+        { "id": "approved_drawing",   "label": "Approved Drawing / Spec Ref.", "type": "text" }
+      ]
+    },
+
+    {
+      "id": "pre_test",
+      "no": "3",
+      "title": "Pre-Test Inspection",
+      "type": "standard",
+      "page_break_before": true,
+      "columns": {
+        "result":  { "label": "Pass / Fail / N/A" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's nine items, verbatim — including the curly apostrophe in \"manufacturer's\" and the em-dash clause in item 8. Wording is template data and is not editable per record (Hard Rule #5).\n\n`pass_fail_na` rather than `status`: the paper's three columns are headed Pass / Fail / N/A, which is exactly this control's default wording, so no `labels` override is needed. Every item carries the paper's own Remarks cell.\n\nNo `allow_add_rows`: the source has no add-row control on either inspection list — its \"+ Add page\" equivalent does not exist here, and an item added per record would be checklist wording the consultant never approved. An unforeseen finding is recorded in §8 Observations, which is a table that grows.",
+      "rows": [
+        { "id": "pt_01", "no": "1", "type": "pass_fail_na", "remarks": true,
+          "description": "Unit installed in accordance with approved shop drawings and manufacturer’s instructions" },
+        { "id": "pt_02", "no": "2", "type": "pass_fail_na", "remarks": true,
+          "description": "Unit set level and plumb; base / plinth adequately supported and free of settlement" },
+        { "id": "pt_03", "no": "3", "type": "pass_fail_na", "remarks": true,
+          "description": "Model, capacity and serial number match approved submittal / delivery order" },
+        { "id": "pt_04", "no": "4", "type": "pass_fail_na", "remarks": true,
+          "description": "Body, cover and internals free from damage, cracks, distortion or corrosion" },
+        { "id": "pt_05", "no": "5", "type": "pass_fail_na", "remarks": true,
+          "description": "All jointing, gaskets, sealants and welds complete and cured / set" },
+        { "id": "pt_06", "no": "6", "type": "pass_fail_na", "remarks": true,
+          "description": "Internal baffles and separation plates correctly fitted; interior clean and free of debris" },
+        { "id": "pt_07", "no": "7", "type": "pass_fail_na", "remarks": true,
+          "description": "Access covers / manholes fitted and secured; seals in place" },
+        { "id": "pt_08", "no": "8", "type": "pass_fail_na", "remarks": true,
+          "description": "Inlet and outlet temporarily plugged / stopped-off for test; below-ground units — anti-flotation anchorage complete and backfill not yet placed" },
+        { "id": "pt_09", "no": "9", "type": "pass_fail_na", "remarks": true,
+          "description": "Confined-space permit, ventilation and fall protection in place" }
+      ]
+    },
+
+    {
+      "id": "test_conditions",
+      "no": "4",
+      "title": "Test Conditions & Method",
+      "type": "field_group",
+      "_note": "The source records Test Started and Test Completed as one `datetime-local` each. The schema has `date` and `time` and no combined type, so each is split into a dated field and a timed one — the same split `condensate-pipe-flood-test.json` makes for its commencement and end rows, rather than adding a form-specific type for one sheet (Hard Rule #4).\n\nTest Medium keeps the paper's free-text \"Other\" box beside its two choices; it is a separate field here because a dropdown cannot carry a typed value.\n\nPermissible Level Drop is asked for again in the Test Summary block, exactly as the paper asks for it twice (`permissible_drop` here, `permissible_drop_summary` there). The duplication is the source's, kept so the printed sheet matches; the summary cell is the one the acceptance question in §9 is read against.",
+      "fields": [
+        { "id": "test_medium",       "label": "Test Medium",              "type": "dropdown", "options": ["Clean water", "Other"] },
+        { "id": "test_medium_other", "label": "Other Test Medium",        "type": "text" },
+        { "id": "test_method",       "label": "Test Method",              "type": "dropdown", "options": ["Fill to invert", "Head test"] },
+        { "id": "test_head",         "label": "Test Head Above Invert",   "type": "number", "unit": "m" },
+        { "id": "duration_required", "label": "Test Duration Required",   "type": "number", "unit": "hrs" },
+        { "id": "soak_period",       "label": "Soak / Stabilising Period", "type": "number", "unit": "hrs" },
+        { "id": "permissible_drop",  "label": "Permissible Level Drop",   "type": "number", "unit": "mm" },
+        { "id": "ambient_temp",      "label": "Ambient Temperature",      "type": "number", "unit": "°C" },
+        { "id": "water_temp",        "label": "Water Temperature",        "type": "number", "unit": "°C" },
+        { "id": "weather",           "label": "Weather Conditions",       "type": "text" },
+        { "id": "groundwater",       "label": "Groundwater Present",      "type": "dropdown", "options": ["Yes", "No"] },
+        { "id": "test_started_date", "label": "Test Started — Date",      "type": "date" },
+        { "id": "test_started_time", "label": "Test Started — Time",      "type": "time" },
+        { "id": "test_completed_date", "label": "Test Completed — Date",  "type": "date" },
+        { "id": "test_completed_time", "label": "Test Completed — Time",  "type": "time" }
+      ]
+    },
+
+    {
+      "id": "test_record",
+      "no": "5",
+      "title": "Test Record",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "font_size": "8pt",
+      "min_rows": 5,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The source's five fixed reading rows, as a table that grows — a 24-hour test read hourly needs more than five lines, and the standalone file's only answer is \"+ Add page\", which clones the whole form. `min_rows` is 5, the number the paper draws.\n\nThe paper's single \"Date / Time\" column is split into two, for the same reason as §4: there is no combined type.\n\n\"Drop from Start\" stays a typed `number` rather than a `calculated` column. A formula resolves other columns of the SAME row (`lib/formula.ts`), and the start level lives in the Test Summary block, not in the row — so the arithmetic the sheet expects is not expressible here. Nothing is invented to make it look derived.\n\nRows are not seeded: every cell of this table is the engineer's reading, so there is no template wording to carry.",
+      "columns": [
+        { "id": "reading_date", "label": "Date",                "type": "date",   "width": "16%" },
+        { "id": "reading_time", "label": "Time",                "type": "time",   "width": "12%" },
+        { "id": "elapsed",      "label": "Elapsed",             "type": "number", "unit": "hrs", "width": "12%", "align": "right" },
+        { "id": "level",        "label": "Water Level Reading", "type": "number", "unit": "mm",  "width": "16%", "align": "right" },
+        { "id": "drop",         "label": "Drop from Start",     "type": "number", "unit": "mm",  "width": "16%", "align": "right" },
+        { "id": "topup",        "label": "Top-up Volume",       "type": "number", "unit": "l",   "width": "12%", "align": "right" },
+        { "id": "observer",     "label": "Observed by",         "type": "text",   "width": "16%" }
+      ]
+    },
+
+    {
+      "id": "test_summary",
+      "title": "Test Summary",
+      "type": "field_group",
+      "_note": "On the paper this grid sits inside §5, directly under the reading table; a `field_group` cannot nest inside a `dynamic_table`, so it is its own section and carries no `no` — the printed sheet still reads as the tail of §5 because no page break separates them.\n\n`total_water` and `loss_rate` are the source's own summary cells and stay typed. As with \"Drop from Start\", the arithmetic spans rows of the reading table and is not expressible in a per-row formula.",
+      "fields": [
+        { "id": "level_start",              "label": "Level at Start of Test", "type": "number", "unit": "mm" },
+        { "id": "level_end",                "label": "Level at End of Test",   "type": "number", "unit": "mm" },
+        { "id": "total_drop",               "label": "Total Level Drop",       "type": "number", "unit": "mm" },
+        { "id": "permissible_drop_summary", "label": "Permissible Drop",       "type": "number", "unit": "mm" },
+        { "id": "total_water",              "label": "Total Water Added",      "type": "number", "unit": "l" },
+        { "id": "loss_rate",                "label": "Loss Rate",              "type": "number", "unit": "l/h" }
+      ]
+    },
+
+    {
+      "id": "visual_leakage",
+      "no": "6",
+      "title": "Visual Leakage Inspection",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Pass / Fail / N/A" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's seven leakage checks, verbatim, on the same three-column Pass / Fail / N/A control as §3 — the standalone file builds both lists with one function, and they stay the same shape here.\n\nEvery item is worded as an absence of leakage (\"No leakage at …\"), so Pass is the good answer and the outstanding-items list (SPEC §6) reads correctly without any outcome mapping.\n\nNo `photo: true` on these rows, though a leak is the one thing on this form worth photographing. The paper's own evidence route is the Photographs checkbox in §10, and adding a photo cell would print a row the source does not have. Attaching leak photographs to the row rather than the record is a Rev B decision, taken against the paper.",
+      "rows": [
+        { "id": "vl_01", "no": "1", "type": "pass_fail_na", "remarks": true,
+          "description": "No seepage, damp patches or weeping at body walls and base" },
+        { "id": "vl_02", "no": "2", "type": "pass_fail_na", "remarks": true,
+          "description": "No leakage at inlet / outlet pipe connections and puddle flanges" },
+        { "id": "vl_03", "no": "3", "type": "pass_fail_na", "remarks": true,
+          "description": "No leakage at access cover frames, seals and bolted joints" },
+        { "id": "vl_04", "no": "4", "type": "pass_fail_na", "remarks": true,
+          "description": "No leakage at welds, seams or moulding joints" },
+        { "id": "vl_05", "no": "5", "type": "pass_fail_na", "remarks": true,
+          "description": "No leakage at draw-off / emptying valve and any drain point" },
+        { "id": "vl_06", "no": "6", "type": "pass_fail_na", "remarks": true,
+          "description": "No leakage at level sensor, dip tube or instrument penetrations" },
+        { "id": "vl_07", "no": "7", "type": "pass_fail_na", "remarks": true,
+          "description": "Surrounding excavation / plinth dry and free of standing water" }
+      ]
+    },
+
+    {
+      "id": "test_equipment",
+      "no": "7",
+      "title": "Test Equipment Used",
+      "type": "dynamic_table",
+      "page_break_before": true,
+      "link_to_instrument_register": true,
+      "font_size": "8pt",
+      "min_rows": 2,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The source's four columns, unchanged — and unusually for this library the paper already carries a Calibration Due date, so nothing is added to it. That is what lets `link_to_instrument_register` mean something here: a level drop measured with an out-of-calibration rule or gauge is not evidence (SPEC §5). The flag is declarative today; record↔instrument linking is still to be built (`lib/calibration.ts`).\n\nNo instrument is seeded — the source seeds none, and a serial number printed on a blank form names a unit the engineer may not have used.\n\n`min_rows` is 2, the number the paper draws.",
+      "columns": [
+        { "id": "instrument", "label": "Instrument / Equipment", "type": "text", "width": "32%" },
+        { "id": "model",      "label": "Make & Model",           "type": "text", "width": "24%" },
+        { "id": "serial_no",  "label": "Serial No.",             "type": "text", "width": "22%" },
+        { "id": "cal_due",    "label": "Calibration Due",        "type": "date", "width": "22%", "align": "center" }
+      ]
+    },
+
+    {
+      "id": "observations",
+      "no": "8",
+      "title": "Observations, Defects & Remedial Action",
+      "type": "dynamic_table",
+      "font_size": "8pt",
+      "min_rows": 3,
+      "auto_number": true,
+      "number_label": "No.",
+      "_note": "The source's three rows, as a table that grows: a failed leak test finds however many leaks it finds. `min_rows` is 3, the number the paper draws, so a clean test prints the same empty block the paper does.\n\nThe first two columns are `textarea` because the source's are — a leak location and its remedy are sentences, not labels. \"By Whom / Date\" stays one free-text cell rather than a name column and a date column: splitting it would print a heading the paper does not have, and the sheet is routinely filled with a trade and a target week rather than a person and a date.",
+      "columns": [
+        { "id": "observation", "label": "Observation / Leak Location", "type": "textarea", "width": "36%" },
+        { "id": "action",      "label": "Remedial Action Required",    "type": "textarea", "width": "36%" },
+        { "id": "owner",       "label": "By Whom / Date",              "type": "text",     "width": "22%" }
+      ]
+    },
+
+    {
+      "id": "result",
+      "no": "9",
+      "title": "Test Result & Acceptance",
+      "type": "standard",
+      "columns": {
+        "result":  { "label": "Result" },
+        "remarks": { "label": "Remarks" }
+      },
+      "_note": "The source's four result questions and its retest date, as rows rather than a field group: three of the five are multi-state controls, which a field group cannot render (the call `acmv-pipe-pressure-test.json` makes for the same reason).\n\n**The outcome mapping is where this section earns its keep.** \"Visible leakage observed\" is the one question whose good answer is No, so YES maps to `fail` and NO to `pass` — the reverse of the row above it. Read the other way round, a leaking separator would drop off the outstanding-items list (SPEC §6). \"PASS WITH COMMENTS\" and \"PASS WITH CONDITIONS\" are the paper's own wording and both map to `pass`; the comments themselves are what §8 and the Remarks box carry.\n\nThe rows carry a remarks cell each — the renderer always prints one — which is where a conditional pass is qualified.\n\nRetest required by is a `date` row: it is asked for on the paper in the same block, and it is only meaningful when the overall result is FAIL / RETEST.",
+      "rows": [
+        { "id": "pretest_result", "type": "status", "remarks": true,
+          "description": "Pre-test inspection",
+          "cross_ref": "pre_test",
+          "states": [
+            { "value": "pass",           "label": "Pass",               "outcome": "pass" },
+            { "value": "fail",           "label": "Fail",               "outcome": "fail" },
+            { "value": "pass_comments",  "label": "Pass with comments", "outcome": "pass" }
+          ] },
+        { "id": "drop_result", "type": "status", "remarks": true,
+          "description": "Level drop within permissible limit",
+          "cross_ref": "test_summary",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "pass" },
+            { "value": "no",  "label": "No",  "outcome": "fail" }
+          ] },
+        { "id": "visible_leakage", "type": "status", "remarks": true,
+          "description": "Visible leakage observed",
+          "cross_ref": "visual_leakage",
+          "_note": "Yes is the failing answer here, unlike every other question on the sheet.",
+          "states": [
+            { "value": "yes", "label": "Yes", "outcome": "fail" },
+            { "value": "no",  "label": "No",  "outcome": "pass" }
+          ] },
+        { "id": "overall_result", "type": "status", "remarks": true,
+          "description": "OVERALL RESULT",
+          "states": [
+            { "value": "pass",            "label": "Pass",                 "outcome": "pass" },
+            { "value": "pass_conditions", "label": "Pass with conditions", "outcome": "pass" },
+            { "value": "fail_retest",     "label": "Fail / Retest",        "outcome": "fail" }
+          ] },
+        { "id": "retest_date", "type": "date", "remarks": true,
+          "description": "Retest required by (date)" }
+      ]
+    },
+
+    {
+      "id": "remarks",
+      "title": "Remarks",
+      "type": "field_group",
+      "_note": "A `field_group`, not a one-row standard section: a standard section always prints its serial and remarks columns, so a lone textarea row comes out as an empty serial column and two columns both headed Remarks (`meter-verification-record.json`). The source is a ruled box at the foot of §9; this prints as one field, and shares the page with it as it does on the paper.",
+      "fields": [
+        { "id": "overall_remarks", "label": "Remarks", "type": "textarea" }
+      ]
+    },
+
+    {
+      "id": "attachments",
+      "title": "Attachments",
+      "type": "field_group",
+      "page_break_before": true,
+      "_note": "The source's four checkboxes, which sit under the signature grid in its §10. They are a `field_group` of `checkbox` fields and are placed BEFORE the sign-off block rather than after it, because nothing may print below a signature it is not part of — the sign-off is the last thing on the record (Hard Rule #6 in spirit: what a signature covers must be settled above it).\n\n**The page breaks here, measured on the live build.** A blank record with the break one section earlier — before §9 — put Result (257px), Remarks (86px), Attachments (151px) and the sign-off (480px) on one page: 974px against the 878px an A4 page gives its body, which prints a sixth sheet while the footer still reads \"of 5\". Breaking here instead splits that at 643px (page 4: §7, §8, §9 and Remarks) and 631px (page 5: Attachments and the sign-off), and keeps Remarks with the result block it belongs to on the paper.\n\nThe sign-off's own heading is 115px of that, not the usual 31px: the certification sentence is carried as the section title and wraps to three lines at 16pt.",
+      "fields": [
+        { "id": "attachment_manufacturer", "label": "Manufacturer’s data sheet", "type": "checkbox" },
+        { "id": "attachment_drawing",      "label": "Approved shop drawing",     "type": "checkbox" },
+        { "id": "attachment_calibration",  "label": "Calibration certificates",  "type": "checkbox" },
+        { "id": "attachment_photos",       "label": "Photographs",               "type": "checkbox" }
+      ]
+    },
+
+    {
+      "id": "sign_off",
+      "no": "10",
+      "title": "Certification & Sign-off — We certify that the watertightness / leak test recorded above was carried out in the presence of the undersigned and that the results are a true record of the test performed.",
+      "type": "sign_off",
+      "layout": "two_column",
+      "_note": "An in-flow `sign_off` section rather than the top-level `footer`: PrintView always gives the footer a page of its own, and the source closes §10 with the signature grid directly under the certification sentence. Both routes carry the same slots through `collectSignatureSlots`, so the status workflow is unchanged.\n\nThe certification sentence is carried in the section `title`, the idiom `acmv-pipe-pressure-test.json` and its three siblings use for their PART 4 declaration — the schema has no free-text block, and the sentence is what the signatures attest to, so it belongs to this section rather than to a note.\n\n**The paper's Designation row is dropped.** A signature slot captures role, name, company and timestamp (`sign-off.tsx`); there is nowhere to put a designation, and a fourth field invented for one sheet would change every template's sign-off. Tested By defaults to Kenyon Pte Ltd but stays unlocked — a specialist testing contractor signs this line on some jobs, and §1 asks who they are.",
+      "signatures": [
+        { "id": "sig_tested",   "role": "Tested by (Contractor)",        "company_default": "Kenyon Pte Ltd", "required": true,  "stage": "contractor" },
+        { "id": "sig_witnessed", "role": "Witnessed by (Consultant)",    "required": false, "stage": "witness" },
+        { "id": "sig_accepted",  "role": "Accepted by (Client / Owner)", "required": false, "stage": "client" }
+      ]
+    }
+  ],
+
+  "instruments": { "required": true, "min": 1, "source_section": "test_equipment" }
+}
