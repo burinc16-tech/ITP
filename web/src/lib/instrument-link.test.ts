@@ -41,6 +41,32 @@ describe("instrument-link", () => {
     expect(row.cal_due_date).toBe("2027-05-07");
   });
 
+  it("fills every description-column and due-column spelling the templates use", () => {
+    // "instrument" + "cal_due" (the ACMV function-test family, Billi tap, …).
+    const acmv = applyInstrumentToRow(
+      {},
+      [col("instrument"), col("model"), col("serial_no"), col("cal_due", "date")],
+      clampMeter,
+    );
+    expect(acmv).toEqual({ instrument: "Clamp Meter", serial_no: "W8045321", cal_due: "2027-05-07" });
+
+    // "function" + "cal_cert" (power-turn-on, power/lighting circuit, bolt torque).
+    const pto = applyInstrumentToRow(
+      {},
+      [col("function"), col("make_model"), col("serial_no"), col("cal_cert")],
+      clampMeter,
+    );
+    expect(pto).toEqual({ function: "Clamp Meter", serial_no: "W8045321", cal_cert: "BLE2604334-2" });
+
+    // "due_date" + "cal_date" (ductwork air leakage).
+    const dal = applyInstrumentToRow(
+      {},
+      [col("instrument"), col("serial_no"), col("cal_date", "date"), col("due_date", "date")],
+      clampMeter,
+    );
+    expect(dal).toMatchObject({ cal_date: "2026-05-07", due_date: "2027-05-07" });
+  });
+
   it("never writes into a calculated column", () => {
     const columns = [col("cal_cert", "calculated")];
     expect(applyInstrumentToRow({}, columns, clampMeter)).toEqual({});

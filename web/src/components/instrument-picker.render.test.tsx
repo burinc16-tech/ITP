@@ -2,13 +2,15 @@ import { useState, type ReactNode } from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { parseTemplate } from "@schema";
+import { parseTemplate, type Template } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
+import rawPowerTurnOn from "../../../spec/templates/power-turn-on.json";
 import { createInstrument, type Instrument } from "../data/instrument";
 import { emptyValues } from "../lib/values";
 import { TemplateForm } from "./template-form";
 
 const template = parseTemplate(rawTemplate);
+const powerTurnOn = parseTemplate(rawPowerTurnOn);
 
 const clampMeter = createInstrument({
   id: "i1",
@@ -29,11 +31,12 @@ const expiredLogger = createInstrument({
   calDueDate: "2020-01-01",
 });
 
-function Harness(props: { instruments?: Instrument[] }): ReactNode {
-  const [values, setValues] = useState(() => emptyValues(template));
+function Harness(props: { instruments?: Instrument[]; template?: Template }): ReactNode {
+  const t = props.template ?? template;
+  const [values, setValues] = useState(() => emptyValues(t));
   return (
     <TemplateForm
-      template={template}
+      template={t}
       values={values}
       onChange={setValues}
       instruments={props.instruments}
@@ -83,6 +86,22 @@ describe("instrument table register picker", () => {
       screen.getByRole("combobox", { name: /row 3/ }),
     ).toHaveValue("i1");
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("fills the power-turn-on shape too — function / serial / cert columns", async () => {
+    const user = userEvent.setup();
+    render(<Harness template={powerTurnOn} instruments={[clampMeter]} />);
+
+    await user.selectOptions(
+      screen.getAllByRole("combobox", { name: /Pick instrument for row 1 / })[0]!,
+      "i1",
+    );
+
+    expect(screen.getByLabelText("Function row 1")).toHaveValue("Clamp Meter");
+    expect(screen.getByLabelText("Serial No row 1")).toHaveValue("W8045321");
+    expect(screen.getByLabelText("Calibration Cert row 1")).toHaveValue("BLE2604334-2");
+    // Make / Model isn't in the register — left for the engineer.
+    expect(screen.getByLabelText("Make / Model row 1")).toHaveValue("");
   });
 
   it("allows an expired instrument but shows a visible warning", async () => {

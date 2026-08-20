@@ -10,23 +10,25 @@ import type { TableRow } from "./values";
  * The fill is a COPY, never a live link — the signed printout must show what
  * was true on test day even if the register row is later edited or the
  * instrument recalibrated. Values land in whichever of the section's columns
- * exist, matched by the column-id conventions the templates already use:
+ * exist, matched by the column-id conventions the templates already use
+ * (make/model columns stay untouched — the register doesn't hold those):
  *
- *   description            ← instrument description (serial appended when the
- *                            table has no serial column of its own)
- *   serial_no | serial     ← serial number
- *   cal_cert | cert_no     ← certificate number
- *   cal_date               ← date calibrated
- *   cal_due | cal_due_date ← calibration due date
+ *   description | instrument | function ← instrument description (serial
+ *                            appended when the table has no serial column)
+ *   serial_no | serial                  ← serial number
+ *   cal_cert | cert_no                  ← certificate number
+ *   cal_date                            ← date calibrated
+ *   cal_due | cal_due_date | due_date   ← calibration due date
  *
  * An EXPIRED instrument is allowed but warned about (decided with the user
  * 2026-08-20) — paperwork sometimes lags reality on site, and a hard block
  * would push engineers back to typing manually, which defeats the register.
  */
 
+const DESCRIPTION_IDS = new Set(["description", "instrument", "function"]);
 const SERIAL_IDS = new Set(["serial_no", "serial"]);
 const CERT_IDS = new Set(["cal_cert", "cert_no", "cal_cert_no"]);
-const DUE_IDS = new Set(["cal_due", "cal_due_date"]);
+const DUE_IDS = new Set(["cal_due", "cal_due_date", "due_date"]);
 
 /** One dropdown line: description first (what an engineer scans for), then serial. */
 export function instrumentOptionLabel(instrument: Instrument): string {
@@ -48,12 +50,11 @@ export function applyInstrumentToRow(
   const hasSerialColumn = [...SERIAL_IDS].some((id) => ids.has(id));
   const next: TableRow = { ...row };
 
-  if (ids.has("description")) {
-    next.description =
-      instrument.serial_no && !hasSerialColumn
-        ? `${instrument.description} — S/N ${instrument.serial_no}`
-        : instrument.description;
-  }
+  const description =
+    instrument.serial_no && !hasSerialColumn
+      ? `${instrument.description} — S/N ${instrument.serial_no}`
+      : instrument.description;
+  for (const id of DESCRIPTION_IDS) if (ids.has(id)) next[id] = description;
   for (const id of SERIAL_IDS) if (ids.has(id)) next[id] = instrument.serial_no;
   for (const id of CERT_IDS) if (ids.has(id)) next[id] = instrument.cert_no ?? "";
   if (ids.has("cal_date")) next.cal_date = instrument.cal_date;
