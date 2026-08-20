@@ -3,6 +3,7 @@ import type { Signature, Template } from "@schema";
 import { buildVarMap, type VarMap } from "../lib/interpolate";
 import type { RecordValues } from "../lib/values";
 import type { AttachmentView } from "../data/attachment";
+import type { Instrument } from "../data/instrument";
 import type { SignatureView } from "../data/signature";
 import { uuidv7 } from "../data/uuidv7";
 
@@ -29,10 +30,16 @@ interface FormContextValue {
   locked: boolean;
   /** Signature slots are still interactive (record not yet accepted). */
   canSign: boolean;
+  /**
+   * The calibration register, for tables flagged `link_to_instrument_register`
+   * (SPEC §5). Empty when the register is empty or the app didn't supply it.
+   */
+  instruments: Instrument[];
 }
 
 const NO_SIGNATURES: Map<string, SignatureView> = new Map();
 const NO_ATTACHMENTS: Map<string, AttachmentView[]> = new Map();
+const NO_INSTRUMENTS: Instrument[] = [];
 const noSign = (): void => {};
 const noop = (): void => {};
 
@@ -60,6 +67,7 @@ export function FormProvider(props: {
   locked?: boolean;
   canSign?: boolean;
   newId?: () => string;
+  instruments?: Instrument[];
   children: ReactNode;
 }): ReactNode {
   const {
@@ -75,6 +83,7 @@ export function FormProvider(props: {
     locked,
     canSign,
     newId,
+    instruments,
     children,
   } = props;
   const vars = useMemo(
@@ -97,6 +106,7 @@ export function FormProvider(props: {
         locked: locked ?? false,
         canSign: canSign ?? true,
         newId: newId ?? uuidv7,
+        instruments: instruments ?? NO_INSTRUMENTS,
       }}
     >
       {children}

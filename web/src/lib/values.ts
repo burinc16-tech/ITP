@@ -373,6 +373,21 @@ export function setTableCell(
 }
 
 /**
+ * Replace one table row wholesale — used when several cells change in one
+ * action, e.g. filling an instrument row from the calibration register.
+ */
+export function setTableRow(
+  values: RecordValues,
+  sectionId: string,
+  index: number,
+  row: TableRow,
+): RecordValues {
+  const table = values.tables[sectionId] ?? [];
+  const next = table.map((existing, i) => (i === index ? row : existing));
+  return { ...values, tables: { ...values.tables, [sectionId]: next } };
+}
+
+/**
  * The columns a flat table currently shows: the record's own list when the
  * engineer has added or deleted any, the template's otherwise.
  *

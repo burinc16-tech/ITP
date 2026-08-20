@@ -152,6 +152,24 @@ body {
   margin-left: 0.4rem;
 }
 
+/* "From register" instrument picker on flagged tables (SPEC §5). */
+.col-register {
+  min-width: 14rem;
+}
+.col-register select {
+  width: 100%;
+  min-height: var(--touch);
+}
+.cal-link-warning {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--fail-bg);
+}
+.cal-link-warning::before {
+  content: "⚠ ";
+}
+
 /* Inspection Request (RFI) cover page controls (handover task 2). */
 .cover-toggle {
   display: inline-flex;

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Signature, Template } from "@schema";
 import type { AttachmentView } from "../data/attachment";
+import type { Instrument } from "../data/instrument";
 import type { SignatureView } from "../data/signature";
 import type { RecordValues } from "../lib/values";
 import { FormProvider } from "./form-context";
@@ -28,6 +29,8 @@ export function TemplateForm(props: {
   locked?: boolean;
   canSign?: boolean;
   newId?: () => string;
+  /** Calibration register, for tables flagged `link_to_instrument_register`. */
+  instruments?: Instrument[];
 }): ReactNode {
   const {
     template,
@@ -42,6 +45,7 @@ export function TemplateForm(props: {
     locked,
     canSign,
     newId,
+    instruments,
   } = props;
   return (
     <FormProvider
@@ -57,6 +61,7 @@ export function TemplateForm(props: {
       locked={locked}
       canSign={canSign}
       newId={newId}
+      instruments={instruments}
     >
       <form
         className={locked ? "template-form template-form-locked" : "template-form"}

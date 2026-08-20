@@ -349,6 +349,7 @@ export function App(): ReactNode {
             auditRepo={auditRepo}
             registryRepo={registryRepo}
             attachmentsRepo={attachmentsRepo}
+            instrumentsRepo={instrumentsRepo}
             sync={sync}
             role={role}
             signoff={signoff}

@@ -5,6 +5,8 @@ import type { AttachmentsRepo } from "../data/attachments-repo";
 import { createAuditEntry } from "../data/audit";
 import type { AuditRepo } from "../data/audit-repo";
 import { getDeviceId } from "../data/device";
+import type { Instrument } from "../data/instrument";
+import type { InstrumentsRepo } from "../data/instruments-repo";
 import {
   createDraft,
   isoClock,
@@ -80,6 +82,12 @@ export function RecordForm(props: {
   registryRepo: RegistryRepo;
   /** Photo attachment store (§8). Optional so tests can omit it; the app supplies it. */
   attachmentsRepo?: AttachmentsRepo;
+  /**
+   * Calibration register, for instrument tables flagged
+   * `link_to_instrument_register` (SPEC §5). Optional so tests can omit it;
+   * without it those tables simply render with no picker.
+   */
+  instrumentsRepo?: InstrumentsRepo;
   sync: SyncLayer;
   role: Role;
   /** Remote sign-off client (QA/QC issue links). Null when the API isn't configured. */
@@ -103,6 +111,7 @@ export function RecordForm(props: {
     auditRepo,
     registryRepo,
     attachmentsRepo,
+    instrumentsRepo,
     sync,
     role,
     signoff,
@@ -142,6 +151,20 @@ export function RecordForm(props: {
   const [attachments, setAttachments] = useState<Map<string, AttachmentView[]>>(
     () => new Map(),
   );
+  // Calibration register for the instrument-table picker (SPEC §5). Loaded once
+  // on mount; the register changes rarely and a stale list only delays a new
+  // instrument appearing in the dropdown until the form is reopened.
+  const [instruments, setInstruments] = useState<Instrument[]>([]);
+  useEffect(() => {
+    if (!instrumentsRepo) return;
+    let alive = true;
+    void instrumentsRepo.list().then((list) => {
+      if (alive) setInstruments(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [instrumentsRepo]);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // Object URLs backing the on-screen signature images, revoked on refresh/unmount.
   const imageUrls = useRef<string[]>([]);
@@ -826,6 +849,7 @@ export function RecordForm(props: {
           locked={!editable}
           canSign={canSign}
           newId={newId}
+          instruments={instruments}
         />
         {attachmentsRepo && (
           <PhotoAppendixPanel

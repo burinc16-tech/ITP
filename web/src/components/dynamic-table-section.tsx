@@ -1,11 +1,19 @@
 import type { ReactNode } from "react";
-import type { DynamicTableSection as DynamicTableSectionDef } from "@schema";
+import type { ColumnDef, DynamicTableSection as DynamicTableSectionDef } from "@schema";
+import type { Instrument } from "../data/instrument";
+import type { TableRow } from "../lib/values";
 import {
   computeCell,
   computeFlatTotals,
   computeTotals,
   seedColumns,
 } from "../lib/grouped-table";
+import {
+  applyInstrumentToRow,
+  expiredInstrumentWarning,
+  instrumentOptionLabel,
+  matchInstrument,
+} from "../lib/instrument-link";
 import {
   addGroup,
   addGroupRow,
@@ -20,9 +28,13 @@ import {
   setGroupCell,
   setGroupField,
   setTableCell,
+  setTableRow,
 } from "../lib/values";
 import { FieldControl } from "./field-control";
 import { useForm } from "./form-context";
+
+/** Today as a `YYYY-MM-DD` calendar day, for the expired-calibration warning. */
+const todayDate = (): string => new Date().toISOString().slice(0, 10);
 
 /** A section whose body is an add/delete table of typed columns. */
 export function DynamicTableSection(props: {
@@ -39,7 +51,7 @@ function FlatTableSection(props: {
   section: DynamicTableSectionDef;
 }): ReactNode {
   const { section } = props;
-  const { values, onChange } = useForm();
+  const { values, onChange, instruments, locked } = useForm();
   const rows = values.tables[section.id] ?? [];
   const min = section.min_rows ?? 0;
   const atMin = rows.length <= min;
@@ -47,6 +59,13 @@ function FlatTableSection(props: {
   // Columns can be the engineer's, not the template's, when the section allows
   // added columns (SPEC §12) — a duct's traverse decides how many test points.
   const columns = columnsFor(values, section);
+  // Record↔instrument linking (SPEC §5): on sections flagged for it, each row
+  // gets a picker that COPIES a calibration-register instrument into the row's
+  // matching columns (never a live link — the signed print must show what was
+  // true on test day). Only when the register has something to offer.
+  const registerPicker =
+    section.link_to_instrument_register === true && instruments.length > 0;
+  const today = todayDate();
   const addColumns = section.add_columns;
   const atMinColumns = columns.length <= (addColumns?.min_count ?? 1);
   // The totals label spans every column before the first one that carries a
@@ -96,6 +115,7 @@ function FlatTableSection(props: {
                   )}
                 </th>
               ))}
+              {registerPicker && <th className="col-register">From register</th>}
               <th className="col-actions">
                 <span className="visually-hidden">Actions</span>
               </th>
@@ -134,6 +154,26 @@ function FlatTableSection(props: {
                     </td>
                   ),
                 )}
+                {registerPicker && (
+                  <RegisterPickerCell
+                    row={row}
+                    index={index}
+                    onPick={(instrument) =>
+                      onChange(
+                        setTableRow(
+                          values,
+                          section.id,
+                          index,
+                          applyInstrumentToRow(row, columns, instrument),
+                        ),
+                      )
+                    }
+                    columns={columns}
+                    instruments={instruments}
+                    today={today}
+                    locked={locked}
+                  />
+                )}
                 <td className="col-actions">
                   <button
                     type="button"
@@ -163,6 +203,7 @@ function FlatTableSection(props: {
                       {totals[col.id] ?? ""}
                     </td>
                   ))}
+                {registerPicker && <td />}
                 <td className="col-actions" />
               </tr>
             </tfoot>
@@ -189,6 +230,54 @@ function FlatTableSection(props: {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The per-row "From register" cell on an instrument table (SPEC §5): a picker
+ * over the calibration register that fills the row's matching columns, and an
+ * expired-calibration warning. The warning is DERIVED — the row's cert/serial
+ * values are matched back against the register on every render — so it also
+ * fires for manually typed instruments, and persists across reloads without
+ * storing anything on the record. An expired instrument is allowed, not
+ * blocked (decided with the user 2026-08-20): the warning is the guard.
+ */
+function RegisterPickerCell(props: {
+  row: TableRow;
+  index: number;
+  columns: readonly ColumnDef[];
+  instruments: Instrument[];
+  today: string;
+  locked: boolean;
+  onPick: (instrument: Instrument) => void;
+}): ReactNode {
+  const { row, index, columns, instruments, today, locked, onPick } = props;
+  const matched = matchInstrument(row, columns, instruments);
+  const warning = matched ? expiredInstrumentWarning(matched, today) : null;
+  return (
+    <td className="col-register">
+      <select
+        aria-label={`Pick instrument for row ${index + 1} from the calibration register`}
+        value={matched?.id ?? ""}
+        disabled={locked}
+        onChange={(e) => {
+          const instrument = instruments.find((i) => i.id === e.target.value);
+          if (instrument) onPick(instrument);
+        }}
+      >
+        <option value="">Pick from register…</option>
+        {instruments.map((i) => (
+          <option key={i.id} value={i.id}>
+            {instrumentOptionLabel(i)}
+          </option>
+        ))}
+      </select>
+      {warning && (
+        <p className="cal-link-warning" role="alert">
+          {warning}
+        </p>
+      )}
+    </td>
   );
 }
 
