@@ -9,6 +9,10 @@ import {
 import type { RecordsRepo } from "../data/records-repo";
 import type { Equipment, Project, SystemNode } from "../data/registry";
 import type { RegistryRepo } from "../data/registry-repo";
+import { deleteRecord } from "../data/save";
+import type { SignaturesRepo } from "../data/signatures-repo";
+import type { SyncLayer } from "../data/sync";
+import { isDeletableStatus } from "../data/workflow";
 import { STATUS_LABELS } from "./status-bar";
 
 const STATUSES: RecordStatus[] = [
@@ -36,16 +40,21 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
 export function Register(props: {
   repo: RecordsRepo;
   registryRepo: RegistryRepo;
+  signaturesRepo: SignaturesRepo;
+  sync: SyncLayer;
   templates: Template[];
   onOpen: (record: ChecklistRecord) => void;
   onNewRecord: () => void;
   onExport: (ids: string[]) => void;
 }): ReactNode {
-  const { repo, registryRepo, templates, onOpen, onNewRecord, onExport } = props;
+  const { repo, registryRepo, signaturesRepo, sync, templates, onOpen, onNewRecord, onExport } =
+    props;
   const [records, setRecords] = useState<ChecklistRecord[] | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [systems, setSystems] = useState<SystemNode[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  // Records carrying signatures — never offered a Delete action (Hard Rule #6).
+  const [signedIds, setSignedIds] = useState<Set<string>>(() => new Set());
   const [statusFilter, setStatusFilter] = useState<RecordStatus | "all">("all");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
@@ -54,11 +63,12 @@ export function Register(props: {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [all, ps, ss, es] = await Promise.all([
+      const [all, ps, ss, es, signed] = await Promise.all([
         repo.list(),
         registryRepo.listProjects(),
         registryRepo.listAllSystems(),
         registryRepo.listAllEquipment(),
+        signaturesRepo.signedRecordIds(),
       ]);
       if (!alive) return;
       all.sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
@@ -66,11 +76,32 @@ export function Register(props: {
       setProjects(ps);
       setSystems(ss);
       setEquipment(es);
+      setSignedIds(signed);
     })();
     return () => {
       alive = false;
     };
-  }, [repo, registryRepo]);
+  }, [repo, registryRepo, signaturesRepo]);
+
+  // Soft-delete: the record becomes a synced tombstone (see data/save.ts), so it
+  // disappears from the register on every device — not just this one.
+  const removeRecord = async (record: ChecklistRecord) => {
+    const template = templateFor(record, templates);
+    const ok = window.confirm(
+      `Delete this ${STATUS_LABELS[record.status].toLowerCase()} ${
+        template?.title ?? "record"
+      }? It will be removed from the register on every device. This cannot be undone.`,
+    );
+    if (!ok) return;
+    await deleteRecord({ repo, sync, signatures: signaturesRepo }, record.id);
+    setRecords((prev) => (prev ? prev.filter((r) => r.id !== record.id) : prev));
+    setSelected((prev) => {
+      if (!prev.has(record.id)) return prev;
+      const next = new Set(prev);
+      next.delete(record.id);
+      return next;
+    });
+  };
 
   const projectById = useMemo(
     () => new Map(projects.map((p) => [p.id, p])),
@@ -261,7 +292,7 @@ export function Register(props: {
                   <td>{r.serial_no ?? "—"}</td>
                   <td>{DATE_FORMAT.format(new Date(r.updated_at))}</td>
                   <td>{r.created_by ?? "—"}</td>
-                  <td>
+                  <td className="register-row-actions">
                     <button
                       type="button"
                       className="ghost-button"
@@ -269,6 +300,15 @@ export function Register(props: {
                     >
                       Open
                     </button>
+                    {isDeletableStatus(r.status) && !signedIds.has(r.id) && (
+                      <button
+                        type="button"
+                        className="ghost-button is-danger"
+                        onClick={() => void removeRecord(r)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               );

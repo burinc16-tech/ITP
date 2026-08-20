@@ -135,6 +135,18 @@ body {
   font-weight: 700;
   cursor: pointer;
 }
+/* Destructive variant — the register's Delete action. */
+.ghost-button.is-danger {
+  border-color: var(--fail-bg);
+  color: var(--fail-bg);
+}
+/* Open + Delete side by side without wrapping the row taller than one button. */
+.register-row-actions {
+  white-space: nowrap;
+}
+.register-row-actions .ghost-button + .ghost-button {
+  margin-left: 0.4rem;
+}
 
 /* Inspection Request (RFI) cover page controls (handover task 2). */
 .cover-toggle {

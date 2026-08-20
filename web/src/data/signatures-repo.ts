@@ -61,4 +61,14 @@ export class SignaturesRepo {
   async listByRecord(recordId: string): Promise<CapturedSignature[]> {
     return this.db.signatures.where("record_id").equals(recordId).toArray();
   }
+
+  /**
+   * Every record id that has at least one signature — the register uses this to
+   * withhold the Delete action from signed records (Hard Rule #6). Reads the
+   * `record_id` index only, so the PNG blobs are never loaded.
+   */
+  async signedRecordIds(): Promise<Set<string>> {
+    const keys = await this.db.signatures.orderBy("record_id").uniqueKeys();
+    return new Set(keys as string[]);
+  }
 }

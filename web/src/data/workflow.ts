@@ -74,6 +74,16 @@ export function fieldsEditable(status: RecordStatus): boolean {
   return status === "draft";
 }
 
+/**
+ * Statuses a record may be deleted from — draft and completed only, and even
+ * then only when it carries no signatures (checked where deletion happens).
+ * Everything later is evidence: submitted/witnessed records were signed to get
+ * there, and accepted/rejected are locked server-side (Hard Rule #6, §8).
+ */
+export function isDeletableStatus(status: RecordStatus): boolean {
+  return status === "draft" || status === "completed";
+}
+
 export interface WorkflowContext {
   role: Role;
   satisfiedStages: ReadonlySet<SignatureStage>;

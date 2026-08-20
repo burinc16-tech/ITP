@@ -9,10 +9,14 @@ import { createDraft, type ChecklistRecord } from "../data/record";
 import { RecordsRepo } from "../data/records-repo";
 import { RegistryRepo } from "../data/registry-repo";
 import { createEquipment, createProject, createSystem } from "../data/registry";
+import { SignaturesRepo } from "../data/signatures-repo";
+import { PassthroughSync } from "../data/sync";
 import { uuidv7 } from "../data/uuidv7";
 import { Register } from "./register";
 
 const emptyRegistry = new RegistryRepo(new ChecklistDb(`reg-${uuidv7()}`));
+const emptySignatures = new SignaturesRepo(new ChecklistDb(`sig-${uuidv7()}`));
+const passSync = new PassthroughSync();
 
 const heatLoad = parseTemplate(heatLoadRaw);
 const powerTurnOn = parseTemplate(powerTurnOnRaw);
@@ -41,7 +45,7 @@ describe("Register", () => {
       draft(heatLoad, { updated_at: "2026-08-02T03:00:00.000Z" }),
       draft(powerTurnOn, { status: "completed", updated_at: "2026-08-02T04:00:00.000Z" }),
     ]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
 
     const table = await screen.findByRole("table");
     expect(within(table).getByText(heatLoad.title)).toBeInTheDocument();
@@ -56,7 +60,7 @@ describe("Register", () => {
       draft(heatLoad),
       draft(powerTurnOn, { status: "completed" }),
     ]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
     await screen.findByRole("table");
 
     await user.selectOptions(screen.getByLabelText("Status"), "completed");
@@ -68,7 +72,7 @@ describe("Register", () => {
   it("filters by template", async () => {
     const user = userEvent.setup();
     const repo = await seed([draft(heatLoad), draft(powerTurnOn)]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
     await screen.findByRole("table");
 
     await user.selectOptions(screen.getByLabelText("Template"), heatLoad.title);
@@ -87,7 +91,7 @@ describe("Register", () => {
       <Register
         repo={repo}
         registryRepo={emptyRegistry}
-        templates={templates}
+        signaturesRepo={emptySignatures} sync={passSync} templates={templates}
         onOpen={onOpen}
         onNewRecord={onNewRecord}
         onExport={vi.fn()}
@@ -110,7 +114,7 @@ describe("Register", () => {
       updated_at: "2026-08-02T05:00:00.000Z",
     });
     const repo = await seed([rev1, rev2]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
 
     await screen.findByRole("table");
     expect(screen.getByText("superseded")).toBeInTheDocument();
@@ -118,7 +122,7 @@ describe("Register", () => {
 
   it("shows an empty state when there are no records", async () => {
     const repo = await seed([]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
     expect(await screen.findByText(/No records yet/)).toBeInTheDocument();
   });
 
@@ -128,7 +132,7 @@ describe("Register", () => {
     const a = draft(heatLoad);
     const b = draft(heatLoad);
     const repo = await seed([a, b]);
-    render(<Register repo={repo} registryRepo={emptyRegistry} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={onExport} />);
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={onExport} />);
     await screen.findByRole("table");
 
     // Nothing selected → export disabled.
@@ -159,7 +163,7 @@ describe("Register", () => {
       <Register
         repo={recordsRepo}
         registryRepo={registry}
-        templates={templates}
+        signaturesRepo={emptySignatures} sync={passSync} templates={templates}
         onOpen={vi.fn()}
         onNewRecord={vi.fn()}
         onExport={vi.fn()}
@@ -170,5 +174,120 @@ describe("Register", () => {
     expect(within(table).getByText("AMK3")).toBeInTheDocument();
     expect(within(table).getByText("Electrical")).toBeInTheDocument();
     expect(within(table).getByText("DB-1")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Deleting from the register (soft-delete tombstone). Offered only on records
+ * that are not evidence: draft/completed status AND no captured signatures
+ * (Hard Rule #6). Accepted/rejected and anything signed shows no Delete at all.
+ */
+describe("Register delete", () => {
+  function harness() {
+    const db = new ChecklistDb(`test-${uuidv7()}`);
+    return {
+      repo: new RecordsRepo(db),
+      signatures: new SignaturesRepo(db),
+      registry: new RegistryRepo(db),
+    };
+  }
+
+  it("offers Delete only on unsigned draft/completed records", async () => {
+    const { repo, signatures, registry } = harness();
+    const deletable = draft(heatLoad);
+    const accepted = draft(heatLoad, { status: "accepted" });
+    const signedDraft = draft(heatLoad);
+    for (const r of [deletable, accepted, signedDraft]) await repo.upsert(r);
+    await signatures.add({
+      id: uuidv7(),
+      record_id: signedDraft.id,
+      slot_id: "sig_contractor",
+      role: "contractor",
+      name: "Eng",
+      company: "Kenyon",
+      image: new Blob(["png"], { type: "image/png" }),
+      method: "on_device",
+      signed_by_user: "eng",
+      device_id: "dev-1",
+      signed_at: "2026-08-02T01:00:00.000Z",
+    });
+
+    render(
+      <Register
+        repo={repo}
+        registryRepo={registry}
+        signaturesRepo={signatures}
+        sync={passSync}
+        templates={templates}
+        onOpen={vi.fn()}
+        onNewRecord={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+    await screen.findByRole("table");
+
+    // Three rows, exactly one Delete: the unsigned draft.
+    expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
+  });
+
+  it("deletes after confirmation: row gone, tombstone stored and hidden", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const { repo, signatures, registry } = harness();
+      const rec = draft(heatLoad);
+      await repo.upsert(rec);
+
+      render(
+        <Register
+          repo={repo}
+          registryRepo={registry}
+          signaturesRepo={signatures}
+          sync={passSync}
+          templates={templates}
+          onOpen={vi.fn()}
+          onNewRecord={vi.fn()}
+          onExport={vi.fn()}
+        />,
+      );
+      await screen.findByRole("table");
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+
+      expect(await screen.findByText(/No records yet/)).toBeInTheDocument();
+      expect(await repo.list()).toHaveLength(0);
+      expect((await repo.get(rec.id))?.deleted).toBe(true); // tombstone, not erased
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("keeps the record when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      const { repo, signatures, registry } = harness();
+      await repo.upsert(draft(heatLoad));
+
+      render(
+        <Register
+          repo={repo}
+          registryRepo={registry}
+          signaturesRepo={signatures}
+          sync={passSync}
+          templates={templates}
+          onOpen={vi.fn()}
+          onNewRecord={vi.fn()}
+          onExport={vi.fn()}
+        />,
+      );
+      await screen.findByRole("table");
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(await repo.list()).toHaveLength(1);
+    } finally {
+      confirm.mockRestore();
+    }
   });
 });

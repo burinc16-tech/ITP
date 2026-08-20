@@ -13,12 +13,14 @@ export class RecordsRepo {
     await this.db.records.put(record);
   }
 
+  /** One record by id, tombstones included — the sync queue must load those to push them. */
   async get(id: string): Promise<ChecklistRecord | undefined> {
     return this.db.records.get(id);
   }
 
+  /** Every live record. Tombstones are rows, not registry entries — hidden here. */
   async list(): Promise<ChecklistRecord[]> {
-    return this.db.records.toArray();
+    return (await this.db.records.toArray()).filter((r) => !r.deleted);
   }
 
   /**
@@ -46,7 +48,7 @@ export class RecordsRepo {
     const drafts = await this.db.records
       .where("template_version_id")
       .equals(templateVersionId)
-      .and((r) => r.status === "draft")
+      .and((r) => r.status === "draft" && !r.deleted)
       .toArray();
     drafts.sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
     return drafts[0];
@@ -54,7 +56,13 @@ export class RecordsRepo {
 
   /** The record that superseded `recordId` (its next revision), if any (§6). */
   async bySupersedes(recordId: string): Promise<ChecklistRecord | undefined> {
-    return this.db.records.where("supersedes").equals(recordId).first();
+    // A deleted successor no longer supersedes anything — the rejected record it
+    // was correcting becomes open for a fresh revision again.
+    return this.db.records
+      .where("supersedes")
+      .equals(recordId)
+      .and((r) => !r.deleted)
+      .first();
   }
 
   /**

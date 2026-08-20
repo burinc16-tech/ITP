@@ -107,4 +107,52 @@ describe("RecordsRepo", () => {
     ]);
     expect((await repo.get(record.id))!.status).toBe("accepted");
   });
+
+  /**
+   * Soft-deleted records are rows, not registry entries: `list` and the resume
+   * helpers hide them, `get` still returns them (the sync queue must load a
+   * tombstone to push it), and mergeRemote carries a delete made on another
+   * device into this one.
+   */
+  it("hides tombstones from list and resume, but not from get", async () => {
+    const repo = freshRepo();
+    const live = draft("2026-08-01T00:00:00.000Z");
+    const gone = {
+      ...draft("2026-08-02T00:00:00.000Z"),
+      deleted: true,
+      updated_at: "2026-08-02T01:00:00.000Z",
+    };
+    await repo.upsert(live);
+    await repo.upsert(gone);
+
+    expect((await repo.list()).map((r) => r.id)).toEqual([live.id]);
+    expect((await repo.latestDraft(templateVersionId(template)))?.id).toBe(live.id);
+    expect((await repo.get(gone.id))?.deleted).toBe(true);
+  });
+
+  it("a deleted successor reopens the rejected record it superseded", async () => {
+    const repo = freshRepo();
+    const rejected = { ...draft("2026-08-01T00:00:00.000Z"), status: "rejected" as const };
+    const successor = {
+      ...draft("2026-08-02T00:00:00.000Z"),
+      rev: 2,
+      supersedes: rejected.id,
+    };
+    await repo.upsert(rejected);
+    await repo.upsert(successor);
+    expect(await repo.latestOpenRejected(templateVersionId(template))).toBeUndefined();
+
+    await repo.upsert({ ...successor, deleted: true, updated_at: "2026-08-03T00:00:00.000Z" });
+    expect((await repo.latestOpenRejected(templateVersionId(template)))?.id).toBe(rejected.id);
+  });
+
+  it("mergeRemote applies a tombstone made on another device", async () => {
+    const repo = freshRepo();
+    const record = draft("2026-08-01T00:00:00.000Z");
+    await repo.upsert(record);
+    await repo.mergeRemote([
+      { ...record, deleted: true, updated_at: "2026-08-02T00:00:00.000Z" },
+    ]);
+    expect(await repo.list()).toHaveLength(0);
+  });
 });

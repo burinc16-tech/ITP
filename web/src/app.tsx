@@ -293,6 +293,8 @@ export function App(): ReactNode {
           <Register
             repo={repo}
             registryRepo={registryRepo}
+            signaturesRepo={signaturesRepo}
+            sync={sync}
             templates={TEMPLATES}
             onOpen={openRecord}
             onNewRecord={() => setNewDialog({})}

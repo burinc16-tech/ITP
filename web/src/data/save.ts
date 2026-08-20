@@ -1,7 +1,8 @@
 import { isoClock, type ChecklistRecord, type Clock } from "./record";
 import type { RecordsRepo } from "./records-repo";
+import type { SignaturesRepo } from "./signatures-repo";
 import type { SyncLayer } from "./sync";
-import { isLocked } from "./workflow";
+import { isDeletableStatus, isLocked } from "./workflow";
 
 export interface SaveDeps {
   repo: RecordsRepo;
@@ -46,4 +47,33 @@ export async function saveRecord(
   await deps.repo.upsert(next);
   const { conflict } = await deps.sync.push(next);
   return { record: next, conflict };
+}
+
+export interface DeleteDeps extends SaveDeps {
+  signatures: SignaturesRepo;
+}
+
+/**
+ * The single delete path. Deletion is a soft-delete tombstone written through
+ * the normal save/sync machinery — the row stays, flagged `deleted`, with a
+ * fresh `updated_at`, so the deletion reaches the server and every other device
+ * by last-write-wins instead of being resurrected by a stale push.
+ *
+ * Guarded twice against Hard Rule #6 (nothing signed is ever deleted): only a
+ * draft/completed record with NO captured signatures may be tombstoned. The
+ * server enforces the same rule, so a stale client cannot delete around it.
+ */
+export async function deleteRecord(deps: DeleteDeps, id: string): Promise<void> {
+  const record = await deps.repo.get(id);
+  if (!record || record.deleted) return; // already gone — idempotent (Hard Rule #3)
+  if (!isDeletableStatus(record.status)) {
+    throw new Error("Only a draft or completed record can be deleted; this one is evidence.");
+  }
+  if ((await deps.signatures.listByRecord(id)).length > 0) {
+    throw new Error("This record is signed; signed evidence is never deleted.");
+  }
+  const clock = deps.clock ?? isoClock;
+  const tombstone: ChecklistRecord = { ...record, deleted: true, updated_at: clock() };
+  await deps.repo.upsert(tombstone);
+  await deps.sync.push(tombstone);
 }

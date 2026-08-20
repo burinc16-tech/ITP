@@ -47,6 +47,14 @@ export interface ChecklistRecord {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  /**
+   * Soft-delete tombstone. A deleted record is hidden from every view but kept
+   * as a row (like calibration-register deletes) so the deletion syncs to the
+   * server and the other devices instead of being resurrected by a stale push.
+   * Only unsigned draft/completed records can ever carry this (Hard Rule #6);
+   * optional because every record written before deletes existed lacks it.
+   */
+  deleted?: boolean;
 }
 
 /** Returns a monotonic UTC ISO timestamp string. */

@@ -257,6 +257,19 @@ export function createApp(deps: AppDeps) {
     if (!record?.id || !record?.updated_at || !record?.template_version_id) {
       return c.json({ error: "invalid record" }, 400);
     }
+    // A soft-delete tombstone (Hard Rule #6 guard, mirroring the client): only a
+    // draft/completed record with no signatures may be deleted. 409 is terminal
+    // for the sync queue — replaying the same refused delete never succeeds.
+    // Locked statuses (accepted/rejected) are already refused by store.upsert.
+    if (record.deleted === true) {
+      const existing = await store.get(record.id);
+      if (existing && existing.status !== "draft" && existing.status !== "completed") {
+        return c.json({ error: "only a draft or completed record can be deleted" }, 409);
+      }
+      if ((await signatures.listByRecord(record.id)).length > 0) {
+        return c.json({ error: "record has signatures; signed evidence is never deleted" }, 409);
+      }
+    }
     const result = await store.upsert(record);
     return c.json(result);
   });
