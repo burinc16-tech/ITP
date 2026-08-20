@@ -147,6 +147,10 @@ body {
 .register-row-actions .ghost-button + .ghost-button {
   margin-left: 0.4rem;
 }
+/* Delete actions in the equipment tree sit after the row's other controls. */
+.tree-delete {
+  margin-left: 0.4rem;
+}
 
 /* Inspection Request (RFI) cover page controls (handover task 2). */
 .cover-toggle {

@@ -18,6 +18,12 @@ export interface Project {
   closed_at: string | null;
   /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
   updated_at?: string;
+  /**
+   * Soft-delete tombstone: kept as a row so the removal syncs to the server and
+   * other devices instead of being re-created by a stale push. Optional: rows
+   * written before deletes existed lack it.
+   */
+  deleted?: boolean;
 }
 
 export interface SystemNode {
@@ -29,6 +35,12 @@ export interface SystemNode {
   parent_system_id: string | null;
   /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
   updated_at?: string;
+  /**
+   * Soft-delete tombstone: kept as a row so the removal syncs to the server and
+   * other devices instead of being re-created by a stale push. Optional: rows
+   * written before deletes existed lack it.
+   */
+  deleted?: boolean;
 }
 
 export interface Equipment {
@@ -41,6 +53,12 @@ export interface Equipment {
   drawing_ref: string;
   /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
   updated_at?: string;
+  /**
+   * Soft-delete tombstone: kept as a row so the removal syncs to the server and
+   * other devices instead of being re-created by a stale push. Optional: rows
+   * written before deletes existed lack it.
+   */
+  deleted?: boolean;
 }
 
 export function createProject(opts: {

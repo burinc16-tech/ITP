@@ -315,6 +315,7 @@ export function createApp(deps: AppDeps) {
       created_at: body.created_at ?? "",
       closed_at: body.closed_at ?? null,
       updated_at: body.updated_at,
+      deleted: body.deleted ? 1 : 0,
     });
     return c.json({ applied: true });
   });
@@ -336,6 +337,7 @@ export function createApp(deps: AppDeps) {
       code: body.code ?? "",
       parent_system_id: body.parent_system_id ?? null,
       updated_at: body.updated_at,
+      deleted: body.deleted ? 1 : 0,
     });
     return c.json({ applied: true });
   });
@@ -359,6 +361,7 @@ export function createApp(deps: AppDeps) {
       location: body.location ?? "",
       drawing_ref: body.drawing_ref ?? "",
       updated_at: body.updated_at,
+      deleted: body.deleted ? 1 : 0,
     });
     return c.json({ applied: true });
   });

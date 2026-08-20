@@ -35,11 +35,12 @@ export class RegistryRepo {
   }
 
   async listProjects(): Promise<Project[]> {
-    return this.db.projects.toArray();
+    return (await this.db.projects.toArray()).filter((p) => !p.deleted);
   }
 
   async getProject(id: string): Promise<Project | undefined> {
-    return this.db.projects.get(id);
+    const row = await this.db.projects.get(id);
+    return row?.deleted ? undefined : row;
   }
 
   async addSystem(system: SystemNode): Promise<void> {
@@ -49,16 +50,22 @@ export class RegistryRepo {
   }
 
   async getSystem(id: string): Promise<SystemNode | undefined> {
-    return this.db.systems.get(id);
+    const row = await this.db.systems.get(id);
+    return row?.deleted ? undefined : row;
   }
 
   async getEquipment(id: string): Promise<Equipment | undefined> {
-    return this.db.equipment.get(id);
+    const row = await this.db.equipment.get(id);
+    return row?.deleted ? undefined : row;
   }
 
   /** All systems for a project, including subsystems (nesting via parent id). */
   async listSystems(projectId: string): Promise<SystemNode[]> {
-    return this.db.systems.where("project_id").equals(projectId).toArray();
+    return this.db.systems
+      .where("project_id")
+      .equals(projectId)
+      .and((s) => !s.deleted)
+      .toArray();
   }
 
   async addEquipment(equipment: Equipment): Promise<void> {
@@ -68,17 +75,52 @@ export class RegistryRepo {
   }
 
   async listEquipment(projectId: string): Promise<Equipment[]> {
-    return this.db.equipment.where("project_id").equals(projectId).toArray();
+    return this.db.equipment
+      .where("project_id")
+      .equals(projectId)
+      .and((e) => !e.deleted)
+      .toArray();
   }
 
   /** Every system across all projects, for resolving ids in cross-project views. */
   async listAllSystems(): Promise<SystemNode[]> {
-    return this.db.systems.toArray();
+    return (await this.db.systems.toArray()).filter((s) => !s.deleted);
   }
 
   /** Every equipment tag across all projects, for cross-project views. */
   async listAllEquipment(): Promise<Equipment[]> {
-    return this.db.equipment.toArray();
+    return (await this.db.equipment.toArray()).filter((e) => !e.deleted);
+  }
+
+  /**
+   * Remove a registry entry. Kept as a tombstone rather than deleted outright
+   * (like calibration-register removals): the removal has to reach the server
+   * and the other devices, and a row erased locally has nothing left to push.
+   * These are dumb setters — the "nothing still references it" guards live in
+   * `registry-delete.ts`, the single delete path the UI calls.
+   */
+  async removeProject(id: string): Promise<void> {
+    const existing = await this.db.projects.get(id);
+    if (!existing || existing.deleted) return;
+    const tombstone = { ...existing, deleted: true, updated_at: new Date().toISOString() };
+    await this.db.projects.put(tombstone);
+    await this.sync?.pushProject(tombstone);
+  }
+
+  async removeSystem(id: string): Promise<void> {
+    const existing = await this.db.systems.get(id);
+    if (!existing || existing.deleted) return;
+    const tombstone = { ...existing, deleted: true, updated_at: new Date().toISOString() };
+    await this.db.systems.put(tombstone);
+    await this.sync?.pushSystem(tombstone);
+  }
+
+  async removeEquipment(id: string): Promise<void> {
+    const existing = await this.db.equipment.get(id);
+    if (!existing || existing.deleted) return;
+    const tombstone = { ...existing, deleted: true, updated_at: new Date().toISOString() };
+    await this.db.equipment.put(tombstone);
+    await this.sync?.pushEquipment(tombstone);
   }
 
   /** The whole registry as a backup file's contents (SPEC §4). */

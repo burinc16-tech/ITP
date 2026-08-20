@@ -153,6 +153,25 @@ describe("api /api/registry", () => {
     expect(json.projects[0]!.name).toBe("current");
   });
 
+  it("stores a tombstone and lists it back so other devices can apply the delete", async () => {
+    const { app, authed } = await make();
+    await app.request("/api/registry/projects", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(project()),
+    });
+    await app.request("/api/registry/projects", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(project({ deleted: 1, updated_at: "2026-09-01T00:00:00.000Z" })),
+    });
+
+    const res = await app.request("/api/registry", { headers: authed });
+    const json = (await res.json()) as { projects: Array<Record<string, unknown>> };
+    expect(json.projects).toHaveLength(1);
+    expect(json.projects[0]!.deleted).toBe(1);
+  });
+
   it("rejects a body missing its id, timestamp, or parent references", async () => {
     const { app, authed } = await make();
     const bads: Array<[string, Record<string, unknown>]> = [

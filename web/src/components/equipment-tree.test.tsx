@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { parseTemplate } from "@schema";
 import heatLoadRaw from "../../../spec/templates/heat-load-test.json";
@@ -157,5 +157,78 @@ describe("EquipmentTree", () => {
 
     await user.click(screen.getByRole("button", { name: "New ITR" }));
     expect(onNewITR).toHaveBeenCalledWith(expect.objectContaining({ id: eid }));
+  });
+
+  /**
+   * Registry deletes are bottom-up: a tag with live records, or a system/project
+   * with anything still under it, is refused with a message saying what to
+   * remove first. A confirmed delete tombstones the entry (it syncs).
+   */
+  it("refuses to delete a tag with records, then deletes bottom-up to the project", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const db = new ChecklistDb(`test-${uuidv7()}`);
+      const registryRepo = new RegistryRepo(db);
+      const recordsRepo = new RecordsRepo(db);
+
+      const pid = uuidv7();
+      const sid = uuidv7();
+      const eid = uuidv7();
+      await registryRepo.addProject(
+        createProject({ id: pid, now: "t", code: "AMK3", name: "AMK", client: "C" }),
+      );
+      await registryRepo.addSystem(
+        createSystem({ id: sid, projectId: pid, name: "Electrical", code: "E" }),
+      );
+      await registryRepo.addEquipment(
+        createEquipment({ id: eid, projectId: pid, systemId: sid, tag: "DB-1" }),
+      );
+      const record = createDraft(heatLoad, {
+        id: uuidv7(),
+        now: "t",
+        createdBy: "u",
+        projectId: pid,
+        systemId: sid,
+        equipmentId: eid,
+      });
+      await recordsRepo.upsert(record);
+
+      render(
+        <EquipmentTree registryRepo={registryRepo} recordsRepo={recordsRepo} onNewITR={vi.fn()} />,
+      );
+      await user.selectOptions(await screen.findByLabelText("Project"), pid);
+      await screen.findByText("DB-1");
+
+      // The tag still has a record — refused, with what to do about it.
+      const deletes = () => screen.getAllByRole("button", { name: "Delete" });
+      await user.click(deletes()[1]!); // [0] is the system row, [1] the tag
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "This tag is on 1 record in the register. Delete those records first.",
+      );
+      expect(screen.getByText("DB-1")).toBeInTheDocument();
+
+      // Remove the record (tombstone), then the whole chain deletes bottom-up.
+      await recordsRepo.upsert({ ...record, deleted: true });
+      await user.click(deletes()[1]!);
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent('Deleted tag "DB-1".'),
+      );
+      // The note lands before the tree reload finishes — wait for the row to go.
+      await waitFor(() => expect(screen.queryByText("DB-1")).toBeNull());
+
+      await user.click(screen.getByRole("button", { name: "Delete" })); // the system
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent('Deleted system "Electrical".'),
+      );
+
+      await user.click(screen.getByRole("button", { name: "Delete project" }));
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent('Deleted project "AMK3 — AMK".'),
+      );
+      expect(await registryRepo.listProjects()).toHaveLength(0);
+    } finally {
+      confirm.mockRestore();
+    }
   });
 });

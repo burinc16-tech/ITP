@@ -208,6 +208,40 @@ describe("RegistryRepo sync", () => {
     expect(sync.pushedProjects.map((p) => p.id).sort()).toEqual([shared, localOnly].sort());
   });
 
+  it("hides tombstones from lists and gets, and applies a server-made delete", async () => {
+    const sync = new FakeRegistrySync();
+    const repo = freshRepo(sync);
+    const id = uuidv7();
+    await repo.addProject(createProject({ id, now: "t", code: "A", name: "A", client: "C" }));
+
+    await repo.removeProject(id);
+    expect(await repo.listProjects()).toHaveLength(0);
+    expect(await repo.getProject(id)).toBeUndefined();
+    // The tombstone was pushed so the delete reaches the other devices.
+    expect(sync.pushedProjects.at(-1)).toMatchObject({ id, deleted: true });
+
+    // A delete made on ANOTHER device arrives as a newer tombstone via syncDown.
+    const other = freshRepo(sync);
+    const theirs = uuidv7();
+    await other.addProject({
+      ...createProject({ id: theirs, now: "t", code: "B", name: "B", client: "C" }),
+      updated_at: "2026-08-01T00:00:00.000Z",
+    });
+    sync.remote = {
+      projects: [
+        {
+          ...createProject({ id: theirs, now: "t", code: "B", name: "B", client: "C" }),
+          deleted: true,
+          updated_at: "2026-08-02T00:00:00.000Z",
+        },
+      ],
+      systems: [],
+      equipment: [],
+    };
+    await other.syncDown();
+    expect(await other.listProjects()).toHaveLength(0);
+  });
+
   it("syncDown is a no-op offline or in local-only mode", async () => {
     const offline = new FakeRegistrySync(); // remote stays null
     const repo = freshRepo(offline);

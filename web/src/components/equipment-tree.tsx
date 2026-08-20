@@ -21,6 +21,7 @@ import {
   type Project,
   type SystemNode,
 } from "../data/registry";
+import { deleteEquipment, deleteProject, deleteSystem } from "../data/registry-delete";
 import type { RegistryRepo } from "../data/registry-repo";
 import { uuidv7 } from "../data/uuidv7";
 
@@ -50,6 +51,9 @@ export function EquipmentTree(props: {
   const [sys, setSys] = useState({ code: "", name: "", parent: "" });
   const [equip, setEquip] = useState({ tag: "", description: "", system: "" });
   const [backupNote, setBackupNote] = useState<string | null>(null);
+  // Outcome of the last delete attempt — "Deleted …" or why it was refused
+  // (e.g. the tag still has records). Cleared implicitly by the next attempt.
+  const [deleteNote, setDeleteNote] = useState<string | null>(null);
   const backupInput = useRef<HTMLInputElement>(null);
 
   const loadProjects = useCallback(async () => {
@@ -158,6 +162,48 @@ export function EquipmentTree(props: {
     }
   };
 
+  // Deletes go through registry-delete.ts, which refuses anything still in use
+  // (records on the tag/system/project, children under the system/project) with
+  // a message that says what to remove first. Deletion is bottom-up by design.
+  const removeEquipmentTag = async (e: Equipment) => {
+    if (!window.confirm(`Delete tag "${e.tag}"? It will be removed on every device.`)) return;
+    try {
+      await deleteEquipment({ registry: repo, records: recordsRepo }, e.id);
+      setDeleteNote(`Deleted tag "${e.tag}".`);
+      if (selectedId) await loadTree(selectedId);
+    } catch (err) {
+      setDeleteNote(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const removeSystemNode = async (s: SystemNode) => {
+    if (!window.confirm(`Delete system "${s.name}"? It will be removed on every device.`)) return;
+    try {
+      await deleteSystem({ registry: repo, records: recordsRepo }, s.id);
+      setDeleteNote(`Deleted system "${s.name}".`);
+      if (selectedId) await loadTree(selectedId);
+    } catch (err) {
+      setDeleteNote(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const removeSelectedProject = async () => {
+    const project = (projects ?? []).find((p) => p.id === selectedId);
+    if (!project) return;
+    const ok = window.confirm(
+      `Delete project "${project.code} — ${project.name}"? It will be removed on every device.`,
+    );
+    if (!ok) return;
+    try {
+      await deleteProject({ registry: repo, records: recordsRepo }, project.id);
+      setDeleteNote(`Deleted project "${project.code} — ${project.name}".`);
+      setSelectedId(null);
+      await loadProjects();
+    } catch (err) {
+      setDeleteNote(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const childrenOf = (id: string | null) =>
     systems.filter((s) => s.parent_system_id === id);
   const equipmentOf = (systemId: string) =>
@@ -175,6 +221,13 @@ export function EquipmentTree(props: {
       <div className="tree-system">
         {system.code && <span className="tree-code">{system.code}</span>}
         <span>{system.name}</span>
+        <button
+          type="button"
+          className="ghost-button is-danger tree-delete"
+          onClick={() => void removeSystemNode(system)}
+        >
+          Delete
+        </button>
       </div>
       <ul className="tree-children">
         {equipmentOf(system.id).map((e) => {
@@ -194,6 +247,13 @@ export function EquipmentTree(props: {
                 onClick={() => onNewITR(e)}
               >
                 New ITR
+              </button>
+              <button
+                type="button"
+                className="ghost-button is-danger tree-delete"
+                onClick={() => void removeEquipmentTag(e)}
+              >
+                Delete
               </button>
             </li>
           );
@@ -220,6 +280,20 @@ export function EquipmentTree(props: {
             ))}
           </select>
         </label>
+        {selectedId && (
+          <button
+            type="button"
+            className="ghost-button is-danger"
+            onClick={() => void removeSelectedProject()}
+          >
+            Delete project
+          </button>
+        )}
+        {deleteNote && (
+          <p className="registry-backup-note" role="status">
+            {deleteNote}
+          </p>
+        )}
 
         <div className="registry-form">
           <input

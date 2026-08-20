@@ -416,28 +416,37 @@ function instrumentBody(instrument: Instrument): Record<string, unknown> {
   };
 }
 
-/** The project registry as the API returns it (SPEC §4, §10 screen 8). */
+/**
+ * The project registry as the API returns it (SPEC §4, §10 screen 8) — SQLite
+ * has no boolean, so tombstones cross the wire as `deleted: 0/1`.
+ */
 interface ServerRegistry {
-  projects?: Array<Project & { status?: string }>;
-  systems?: SystemNode[];
-  equipment?: Equipment[];
+  projects?: Array<Omit<Project, "status" | "deleted"> & { status?: string; deleted?: number }>;
+  systems?: Array<Omit<SystemNode, "deleted"> & { deleted?: number }>;
+  equipment?: Array<Omit<Equipment, "deleted"> & { deleted?: number }>;
 }
 
 function fromServerRegistry(body: ServerRegistry): RegistrySnapshot {
   return {
     projects: (body.projects ?? []).map((p) => ({
       ...p,
-      status: p.status === "closed" ? "closed" : "open",
+      status: p.status === "closed" ? ("closed" as const) : ("open" as const),
       closed_at: p.closed_at ?? null,
+      deleted: p.deleted === 1,
     })),
-    systems: (body.systems ?? []).map((s) => ({ ...s, parent_system_id: s.parent_system_id ?? null })),
-    equipment: body.equipment ?? [],
+    systems: (body.systems ?? []).map((s) => ({
+      ...s,
+      parent_system_id: s.parent_system_id ?? null,
+      deleted: s.deleted === 1,
+    })),
+    equipment: (body.equipment ?? []).map((e) => ({ ...e, deleted: e.deleted === 1 })),
   };
 }
 
 /**
  * JSON bodies for registry pushes. `updated_at` is stamped here for rows written
- * before the registry synced at all, so an old row is still a valid push.
+ * before the registry synced at all, so an old row is still a valid push; a
+ * tombstone rides as `deleted: 1`, like instruments.
  */
 function projectBody(p: Project): Record<string, unknown> {
   return {
@@ -449,6 +458,7 @@ function projectBody(p: Project): Record<string, unknown> {
     created_at: p.created_at,
     closed_at: p.closed_at,
     updated_at: p.updated_at ?? new Date().toISOString(),
+    deleted: p.deleted ? 1 : 0,
   };
 }
 
@@ -460,6 +470,7 @@ function systemBody(s: SystemNode): Record<string, unknown> {
     code: s.code,
     parent_system_id: s.parent_system_id,
     updated_at: s.updated_at ?? new Date().toISOString(),
+    deleted: s.deleted ? 1 : 0,
   };
 }
 
@@ -473,6 +484,7 @@ function equipmentBody(e: Equipment): Record<string, unknown> {
     location: e.location,
     drawing_ref: e.drawing_ref,
     updated_at: e.updated_at ?? new Date().toISOString(),
+    deleted: e.deleted ? 1 : 0,
   };
 }
 

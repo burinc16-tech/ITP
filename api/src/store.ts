@@ -332,6 +332,8 @@ export interface ProjectRow {
   created_at: string;
   closed_at: string | null;
   updated_at: string;
+  /** Tombstone (0/1) — a delete travels between devices like instrument deletes. */
+  deleted: number;
 }
 
 export interface SystemRow {
@@ -341,6 +343,7 @@ export interface SystemRow {
   code: string;
   parent_system_id: string | null;
   updated_at: string;
+  deleted: number;
 }
 
 export interface EquipmentRow {
@@ -352,6 +355,7 @@ export interface EquipmentRow {
   location: string;
   drawing_ref: string;
   updated_at: string;
+  deleted: number;
 }
 
 export interface RegistrySnapshotRows {
@@ -570,10 +574,11 @@ export class D1InstrumentStore implements InstrumentStore {
   }
 }
 
-const PROJECT_COLUMNS = "id, code, name, client, status, created_at, closed_at, updated_at";
-const SYSTEM_COLUMNS = "id, project_id, name, code, parent_system_id, updated_at";
+const PROJECT_COLUMNS =
+  "id, code, name, client, status, created_at, closed_at, updated_at, deleted";
+const SYSTEM_COLUMNS = "id, project_id, name, code, parent_system_id, updated_at, deleted";
 const EQUIPMENT_COLUMNS =
-  "id, project_id, system_id, tag, description, location, drawing_ref, updated_at";
+  "id, project_id, system_id, tag, description, location, drawing_ref, updated_at, deleted";
 
 export class D1RegistryStore implements RegistryStore {
   constructor(private readonly db: D1Database) {}
@@ -585,7 +590,7 @@ export class D1RegistryStore implements RegistryStore {
     await this.db
       .prepare(
         `INSERT INTO projects (${PROJECT_COLUMNS})
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            code       = excluded.code,
            name       = excluded.name,
@@ -593,10 +598,21 @@ export class D1RegistryStore implements RegistryStore {
            status     = excluded.status,
            created_at = excluded.created_at,
            closed_at  = excluded.closed_at,
-           updated_at = excluded.updated_at
+           updated_at = excluded.updated_at,
+           deleted    = excluded.deleted
          WHERE excluded.updated_at >= projects.updated_at`,
       )
-      .bind(p.id, p.code, p.name, p.client, p.status, p.created_at, p.closed_at, p.updated_at)
+      .bind(
+        p.id,
+        p.code,
+        p.name,
+        p.client,
+        p.status,
+        p.created_at,
+        p.closed_at,
+        p.updated_at,
+        p.deleted,
+      )
       .run();
   }
 
@@ -604,16 +620,17 @@ export class D1RegistryStore implements RegistryStore {
     await this.db
       .prepare(
         `INSERT INTO systems (${SYSTEM_COLUMNS})
-         VALUES (?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            project_id       = excluded.project_id,
            name             = excluded.name,
            code             = excluded.code,
            parent_system_id = excluded.parent_system_id,
-           updated_at       = excluded.updated_at
+           updated_at       = excluded.updated_at,
+           deleted          = excluded.deleted
          WHERE excluded.updated_at >= systems.updated_at`,
       )
-      .bind(s.id, s.project_id, s.name, s.code, s.parent_system_id, s.updated_at)
+      .bind(s.id, s.project_id, s.name, s.code, s.parent_system_id, s.updated_at, s.deleted)
       .run();
   }
 
@@ -621,7 +638,7 @@ export class D1RegistryStore implements RegistryStore {
     await this.db
       .prepare(
         `INSERT INTO equipment (${EQUIPMENT_COLUMNS})
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            project_id  = excluded.project_id,
            system_id   = excluded.system_id,
@@ -629,7 +646,8 @@ export class D1RegistryStore implements RegistryStore {
            description = excluded.description,
            location    = excluded.location,
            drawing_ref = excluded.drawing_ref,
-           updated_at  = excluded.updated_at
+           updated_at  = excluded.updated_at,
+           deleted     = excluded.deleted
          WHERE excluded.updated_at >= equipment.updated_at`,
       )
       .bind(
@@ -641,6 +659,7 @@ export class D1RegistryStore implements RegistryStore {
         e.location,
         e.drawing_ref,
         e.updated_at,
+        e.deleted,
       )
       .run();
   }
