@@ -23,6 +23,8 @@ const projectSchema = z
     status: z.enum(["open", "closed"]),
     created_at: z.string(),
     closed_at: z.string().nullable(),
+    // Optional: backups from before the registry synced carry no timestamp.
+    updated_at: z.string().optional(),
   })
   .strict();
 
@@ -33,6 +35,7 @@ const systemSchema = z
     name: z.string(),
     code: z.string(),
     parent_system_id: z.string().nullable(),
+    updated_at: z.string().optional(),
   })
   .strict();
 
@@ -45,6 +48,7 @@ const equipmentSchema = z
     description: z.string(),
     location: z.string(),
     drawing_ref: z.string(),
+    updated_at: z.string().optional(),
   })
   .strict();
 

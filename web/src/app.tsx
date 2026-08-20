@@ -49,7 +49,6 @@ const db = new ChecklistDb();
 const repo = new RecordsRepo(db);
 const signaturesRepo = new SignaturesRepo(db);
 const auditRepo = new AuditRepo(db);
-const registryRepo = new RegistryRepo(db);
 const attachmentsRepo = new AttachmentsRepo(db);
 const outboxRepo = new OutboxRepo(db);
 // Push to the Worker API when configured (VITE_API_URL), else stay local-only.
@@ -81,6 +80,11 @@ const sync: SyncLayer = queuedSync ?? new PassthroughSync();
 // server's copy back in (SPEC §10 screen 9). With no API configured this falls
 // back to the pass-through and the register stays local, as before.
 const instrumentsRepo = new InstrumentsRepo(db, sync);
+// The project registry syncs the same way (SPEC §12 puts it in the local-first,
+// queue-synced class): each add is pushed, and syncDown on login merges the
+// server's copy back — so a cleared browser or a second device gets the
+// projects, systems and equipment tags back instead of an empty registry.
+const registryRepo = new RegistryRepo(db, sync);
 // How often the app re-drains the outbox to retry entries whose backoff has
 // elapsed (SPEC §8). Matched to the backoff floor, not the 5-min cap, so early
 // retries stay responsive; each tick only sends what is actually due.
@@ -120,6 +124,9 @@ export function App(): ReactNode {
   // New-record dialog: null closed; an object (possibly empty) opens it, with an
   // optional prefilled scope (e.g. from an equipment tag in the tree).
   const [newDialog, setNewDialog] = useState<NewRecordPrefill | null>(null);
+  // Bumped when a login backfill lands (records pull + registry syncDown), so
+  // the visible view re-reads the local store it rendered from before the merge.
+  const [dataEpoch, setDataEpoch] = useState(0);
 
   const applySession = (next: Session | null) => {
     sessionToken = next?.token ?? null;
@@ -166,6 +173,26 @@ export function App(): ReactNode {
       window.clearInterval(heartbeat);
     };
   }, []);
+
+  // Durable pull on login (SPEC §8): merge the server's records and registry
+  // into the local store. This is what brings everything back after a browser
+  // wipe (site-data clearing, a new device) — records that synced up are on the
+  // server; without this pull the register would look empty even though nothing
+  // was lost. Merges are last-write-wins per row, so local unsynced edits (which
+  // carry newer timestamps) are never clobbered.
+  useEffect(() => {
+    if (!queuedSync || !session) return;
+    let alive = true;
+    void (async () => {
+      const remote = await queuedSync.pullRecords();
+      if (remote && alive) await repo.mergeRemote(remote);
+      await registryRepo.syncDown();
+      if (alive) setDataEpoch((e) => e + 1);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [session]);
 
   const handleLogout = async () => {
     const token = session?.token;
@@ -261,7 +288,7 @@ export function App(): ReactNode {
           )}
         </div>
       </header>
-      <main className="app-main">
+      <main className="app-main" key={dataEpoch}>
         {view.kind === "register" ? (
           <Register
             repo={repo}

@@ -16,6 +16,8 @@ export interface Project {
   status: ProjectStatus;
   created_at: string;
   closed_at: string | null;
+  /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
+  updated_at?: string;
 }
 
 export interface SystemNode {
@@ -25,6 +27,8 @@ export interface SystemNode {
   code: string;
   /** Parent system for a subsystem, or null for a top-level system. */
   parent_system_id: string | null;
+  /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
+  updated_at?: string;
 }
 
 export interface Equipment {
@@ -35,6 +39,8 @@ export interface Equipment {
   description: string;
   location: string;
   drawing_ref: string;
+  /** Last edit, for last-write-wins sync. Optional: rows predate the sync. */
+  updated_at?: string;
 }
 
 export function createProject(opts: {

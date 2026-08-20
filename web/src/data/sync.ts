@@ -2,6 +2,7 @@ import type { Attachment } from "./attachment";
 import type { AuditEntry } from "./audit";
 import type { Instrument } from "./instrument";
 import type { ChecklistRecord } from "./record";
+import type { Equipment, Project, SystemNode } from "./registry";
 import type { CapturedSignature } from "./signature";
 import type { Transport } from "./sync-queue";
 
@@ -35,9 +36,22 @@ export interface AttachmentMeta {
   created_at: string;
 }
 
+/** The server's copy of the project registry (SPEC §4, §10 screen 8). */
+export interface RegistrySnapshot {
+  projects: Project[];
+  systems: SystemNode[];
+  equipment: Equipment[];
+}
+
 export interface SyncLayer {
   /** Push a record. Resolves with whether the server reported a lock conflict (§8). */
   push(record: ChecklistRecord): Promise<PushResult>;
+  /**
+   * Read every record the server holds, or null when unavailable/offline/
+   * local-only. The register's durable pull (§8): merged into the local store on
+   * login so a cleared browser gets its synced records back. Best-effort.
+   */
+  pullRecords(): Promise<ChecklistRecord[] | null>;
   /**
    * Read the server's copy of a record, or null when unavailable/offline/local-only.
    * Used to reflect a remote change (e.g. a rejection made via a sign-off link)
@@ -68,6 +82,18 @@ export interface SyncLayer {
    * unavailable/offline/local-only. Best-effort.
    */
   pullInstruments(): Promise<Instrument[] | null>;
+  /**
+   * Push one project-registry entry (SPEC §4, §10 screen 8). Upsert,
+   * last-write-wins on `updated_at`, like instruments. Best-effort.
+   */
+  pushProject(project: Project): Promise<void>;
+  pushSystem(system: SystemNode): Promise<void>;
+  pushEquipment(equipment: Equipment): Promise<void>;
+  /**
+   * Read the server's whole project registry, or null when unavailable/offline/
+   * local-only. Best-effort.
+   */
+  pullRegistry(): Promise<RegistrySnapshot | null>;
 }
 
 /**
@@ -113,6 +139,28 @@ export class PassthroughSync implements SyncLayer {
   }
 
   async pullInstruments(): Promise<Instrument[] | null> {
+    // Local-only mode: there is no server to read from.
+    return null;
+  }
+
+  async pushProject(_project: Project): Promise<void> {
+    // No queue, no network — the entry is durable in Dexie.
+  }
+
+  async pushSystem(_system: SystemNode): Promise<void> {
+    // No queue, no network — the entry is durable in Dexie.
+  }
+
+  async pushEquipment(_equipment: Equipment): Promise<void> {
+    // No queue, no network — the entry is durable in Dexie.
+  }
+
+  async pullRegistry(): Promise<RegistrySnapshot | null> {
+    // Local-only mode: there is no server to read from.
+    return null;
+  }
+
+  async pullRecords(): Promise<ChecklistRecord[] | null> {
     // Local-only mode: there is no server to read from.
     return null;
   }
@@ -286,6 +334,44 @@ export class ApiSync implements SyncLayer {
     );
     return body?.instruments ? body.instruments.map(fromServerInstrument) : null;
   }
+
+  async pushProject(project: Project): Promise<void> {
+    await this.pushRegistryEntry("projects", projectBody(project));
+  }
+
+  async pushSystem(system: SystemNode): Promise<void> {
+    await this.pushRegistryEntry("systems", systemBody(system));
+  }
+
+  async pushEquipment(equipment: Equipment): Promise<void> {
+    await this.pushRegistryEntry("equipment", equipmentBody(equipment));
+  }
+
+  private async pushRegistryEntry(kind: string, body: Record<string, unknown>): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/registry/${kind}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...this.authHeader() },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      // Local save already succeeded; the next syncDown re-pushes it.
+      console.warn("registry push failed (kept locally)", err);
+    }
+  }
+
+  async pullRegistry(): Promise<RegistrySnapshot | null> {
+    const body = await getJson<ServerRegistry>(`${this.baseUrl}/api/registry`, this.authHeader());
+    return body ? fromServerRegistry(body) : null;
+  }
+
+  async pullRecords(): Promise<ChecklistRecord[] | null> {
+    const body = await getJson<{ records: ChecklistRecord[] }>(
+      `${this.baseUrl}/api/records`,
+      this.authHeader(),
+    );
+    return body?.records ?? null;
+  }
 }
 
 /** An instrument row as the API returns it — SQLite has no boolean, so 0/1. */
@@ -327,6 +413,66 @@ function instrumentBody(instrument: Instrument): Record<string, unknown> {
     cal_due_date: instrument.cal_due_date,
     updated_at: instrument.updated_at ?? new Date().toISOString(),
     deleted: instrument.deleted ? 1 : 0,
+  };
+}
+
+/** The project registry as the API returns it (SPEC §4, §10 screen 8). */
+interface ServerRegistry {
+  projects?: Array<Project & { status?: string }>;
+  systems?: SystemNode[];
+  equipment?: Equipment[];
+}
+
+function fromServerRegistry(body: ServerRegistry): RegistrySnapshot {
+  return {
+    projects: (body.projects ?? []).map((p) => ({
+      ...p,
+      status: p.status === "closed" ? "closed" : "open",
+      closed_at: p.closed_at ?? null,
+    })),
+    systems: (body.systems ?? []).map((s) => ({ ...s, parent_system_id: s.parent_system_id ?? null })),
+    equipment: body.equipment ?? [],
+  };
+}
+
+/**
+ * JSON bodies for registry pushes. `updated_at` is stamped here for rows written
+ * before the registry synced at all, so an old row is still a valid push.
+ */
+function projectBody(p: Project): Record<string, unknown> {
+  return {
+    id: p.id,
+    code: p.code,
+    name: p.name,
+    client: p.client,
+    status: p.status,
+    created_at: p.created_at,
+    closed_at: p.closed_at,
+    updated_at: p.updated_at ?? new Date().toISOString(),
+  };
+}
+
+function systemBody(s: SystemNode): Record<string, unknown> {
+  return {
+    id: s.id,
+    project_id: s.project_id,
+    name: s.name,
+    code: s.code,
+    parent_system_id: s.parent_system_id,
+    updated_at: s.updated_at ?? new Date().toISOString(),
+  };
+}
+
+function equipmentBody(e: Equipment): Record<string, unknown> {
+  return {
+    id: e.id,
+    project_id: e.project_id,
+    system_id: e.system_id,
+    tag: e.tag,
+    description: e.description,
+    location: e.location,
+    drawing_ref: e.drawing_ref,
+    updated_at: e.updated_at ?? new Date().toISOString(),
   };
 }
 
@@ -535,5 +681,44 @@ export class ApiTransport implements Transport {
       this.authHeader(),
     );
     return body?.instruments ? body.instruments.map(fromServerInstrument) : null;
+  }
+
+  /** Throws on a retryable failure, per this class's contract. */
+  async pushProject(project: Project): Promise<void> {
+    await this.pushRegistryEntry("projects", projectBody(project), "project push");
+  }
+
+  async pushSystem(system: SystemNode): Promise<void> {
+    await this.pushRegistryEntry("systems", systemBody(system), "system push");
+  }
+
+  async pushEquipment(equipment: Equipment): Promise<void> {
+    await this.pushRegistryEntry("equipment", equipmentBody(equipment), "equipment push");
+  }
+
+  private async pushRegistryEntry(
+    kind: string,
+    body: Record<string, unknown>,
+    what: string,
+  ): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/registry/${kind}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...this.authHeader() },
+      body: JSON.stringify(body),
+    });
+    classifyResponse(res, what);
+  }
+
+  async pullRegistry(): Promise<RegistrySnapshot | null> {
+    const body = await getJson<ServerRegistry>(`${this.baseUrl}/api/registry`, this.authHeader());
+    return body ? fromServerRegistry(body) : null;
+  }
+
+  async pullRecords(): Promise<ChecklistRecord[] | null> {
+    const body = await getJson<{ records: ChecklistRecord[] }>(
+      `${this.baseUrl}/api/records`,
+      this.authHeader(),
+    );
+    return body?.records ?? null;
   }
 }

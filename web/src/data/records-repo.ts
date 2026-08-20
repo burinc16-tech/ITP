@@ -21,6 +21,24 @@ export class RecordsRepo {
     return this.db.records.toArray();
   }
 
+  /**
+   * Merge the server's records into the local store, newest copy winning per id
+   * (the §8 durable pull). A local record with unsynced edits carries a newer
+   * `updated_at` than the server's copy, so it is never clobbered — the outbox
+   * pushes it up instead. Returns how many local rows were written.
+   */
+  async mergeRemote(remote: ChecklistRecord[]): Promise<number> {
+    let written = 0;
+    for (const record of remote) {
+      const mine = await this.db.records.get(record.id);
+      if (!mine || mine.updated_at < record.updated_at) {
+        await this.db.records.put(record);
+        written += 1;
+      }
+    }
+    return written;
+  }
+
   /** The most recently updated draft for a template version, for resume. */
   async latestDraft(
     templateVersionId: string,

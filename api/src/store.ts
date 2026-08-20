@@ -40,6 +40,12 @@ export interface RecordStore {
   upsert(record: IncomingRecord): Promise<UpsertResult>;
   get(id: string): Promise<IncomingRecord | null>;
   /**
+   * Every record body. The register's durable pull/merge (SPEC §8): a browser
+   * whose IndexedDB was cleared re-reads the whole set on login, so records that
+   * synced up are never "gone" just because the local copy was.
+   */
+  list(): Promise<IncomingRecord[]>;
+  /**
    * Force a status change (used when a remote reject flips the record to
    * "rejected", §6). Bumps `updated_at` — which, by design, voids any other
    * outstanding sign request on the record via the version check. No-op if the
@@ -98,6 +104,11 @@ export class D1RecordStore implements RecordStore {
     return row ? (JSON.parse(row.body) as IncomingRecord) : null;
   }
 
+  async list(): Promise<IncomingRecord[]> {
+    const res = await this.db.prepare("SELECT body FROM records").all<{ body: string }>();
+    return (res.results ?? []).map((r) => JSON.parse(r.body) as IncomingRecord);
+  }
+
   async setStatus(id: string, status: string, updatedAt: string): Promise<void> {
     const current = await this.get(id);
     if (!current) return;
@@ -128,6 +139,10 @@ export class MemoryRecordStore implements RecordStore {
 
   async get(id: string): Promise<IncomingRecord | null> {
     return this.map.get(id) ?? null;
+  }
+
+  async list(): Promise<IncomingRecord[]> {
+    return [...this.map.values()].map((r) => ({ ...r }));
   }
 
   async setStatus(id: string, status: string, updatedAt: string): Promise<void> {
@@ -299,6 +314,59 @@ export interface AttachmentStore {
   upsert(row: AttachmentRow): Promise<void>;
   getById(id: string): Promise<AttachmentRow | null>;
   listByRecord(recordId: string): Promise<AttachmentRow[]>;
+}
+
+/**
+ * The project registry's server side (SPEC §4, §10 screen 8). Reference data in
+ * the client-owned, local-first class (§12) — like `instruments`, not evidence:
+ * upsert by client UUIDv7 id, last-write-wins on `updated_at`. Before this the
+ * registry lived only in the browser that typed it, so a cleared browser lost
+ * every project, system, and equipment tag.
+ */
+export interface ProjectRow {
+  id: string;
+  code: string;
+  name: string;
+  client: string;
+  status: string;
+  created_at: string;
+  closed_at: string | null;
+  updated_at: string;
+}
+
+export interface SystemRow {
+  id: string;
+  project_id: string;
+  name: string;
+  code: string;
+  parent_system_id: string | null;
+  updated_at: string;
+}
+
+export interface EquipmentRow {
+  id: string;
+  project_id: string;
+  system_id: string;
+  tag: string;
+  description: string;
+  location: string;
+  drawing_ref: string;
+  updated_at: string;
+}
+
+export interface RegistrySnapshotRows {
+  projects: ProjectRow[];
+  systems: SystemRow[];
+  equipment: EquipmentRow[];
+}
+
+export interface RegistryStore {
+  /** Upsert by client id; a stale push (older `updated_at`) is dropped. */
+  upsertProject(row: ProjectRow): Promise<void>;
+  upsertSystem(row: SystemRow): Promise<void>;
+  upsertEquipment(row: EquipmentRow): Promise<void>;
+  /** The whole registry — small reference data, read in one call. */
+  list(): Promise<RegistrySnapshotRows>;
 }
 
 // --- D1 / R2 implementations ----------------------------------------------
@@ -502,6 +570,95 @@ export class D1InstrumentStore implements InstrumentStore {
   }
 }
 
+const PROJECT_COLUMNS = "id, code, name, client, status, created_at, closed_at, updated_at";
+const SYSTEM_COLUMNS = "id, project_id, name, code, parent_system_id, updated_at";
+const EQUIPMENT_COLUMNS =
+  "id, project_id, system_id, tag, description, location, drawing_ref, updated_at";
+
+export class D1RegistryStore implements RegistryStore {
+  constructor(private readonly db: D1Database) {}
+
+  // As with instruments, the WHERE on each DO UPDATE is the last-write-wins
+  // guard: a device offline since before an edit cannot resurrect old values.
+
+  async upsertProject(p: ProjectRow): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT INTO projects (${PROJECT_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           code       = excluded.code,
+           name       = excluded.name,
+           client     = excluded.client,
+           status     = excluded.status,
+           created_at = excluded.created_at,
+           closed_at  = excluded.closed_at,
+           updated_at = excluded.updated_at
+         WHERE excluded.updated_at >= projects.updated_at`,
+      )
+      .bind(p.id, p.code, p.name, p.client, p.status, p.created_at, p.closed_at, p.updated_at)
+      .run();
+  }
+
+  async upsertSystem(s: SystemRow): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT INTO systems (${SYSTEM_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           project_id       = excluded.project_id,
+           name             = excluded.name,
+           code             = excluded.code,
+           parent_system_id = excluded.parent_system_id,
+           updated_at       = excluded.updated_at
+         WHERE excluded.updated_at >= systems.updated_at`,
+      )
+      .bind(s.id, s.project_id, s.name, s.code, s.parent_system_id, s.updated_at)
+      .run();
+  }
+
+  async upsertEquipment(e: EquipmentRow): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT INTO equipment (${EQUIPMENT_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           project_id  = excluded.project_id,
+           system_id   = excluded.system_id,
+           tag         = excluded.tag,
+           description = excluded.description,
+           location    = excluded.location,
+           drawing_ref = excluded.drawing_ref,
+           updated_at  = excluded.updated_at
+         WHERE excluded.updated_at >= equipment.updated_at`,
+      )
+      .bind(
+        e.id,
+        e.project_id,
+        e.system_id,
+        e.tag,
+        e.description,
+        e.location,
+        e.drawing_ref,
+        e.updated_at,
+      )
+      .run();
+  }
+
+  async list(): Promise<RegistrySnapshotRows> {
+    const [projects, systems, equipment] = await Promise.all([
+      this.db.prepare(`SELECT ${PROJECT_COLUMNS} FROM projects`).all<ProjectRow>(),
+      this.db.prepare(`SELECT ${SYSTEM_COLUMNS} FROM systems`).all<SystemRow>(),
+      this.db.prepare(`SELECT ${EQUIPMENT_COLUMNS} FROM equipment`).all<EquipmentRow>(),
+    ]);
+    return {
+      projects: projects.results ?? [],
+      systems: systems.results ?? [],
+      equipment: equipment.results ?? [],
+    };
+  }
+}
+
 export class D1AttachmentStore implements AttachmentStore {
   constructor(private readonly db: D1Database) {}
 
@@ -613,6 +770,39 @@ export class MemoryInstrumentStore implements InstrumentStore {
   }
   async list(): Promise<InstrumentRow[]> {
     return [...this.rows.values()].map((r) => ({ ...r }));
+  }
+}
+
+export class MemoryRegistryStore implements RegistryStore {
+  readonly projects = new Map<string, ProjectRow>();
+  readonly systems = new Map<string, SystemRow>();
+  readonly equipment = new Map<string, EquipmentRow>();
+
+  private static put<T extends { id: string; updated_at: string }>(
+    map: Map<string, T>,
+    row: T,
+  ): void {
+    const existing = map.get(row.id);
+    // Last-write-wins, but a stale push never clobbers a newer row.
+    if (existing && existing.updated_at > row.updated_at) return;
+    map.set(row.id, { ...row });
+  }
+
+  async upsertProject(row: ProjectRow): Promise<void> {
+    MemoryRegistryStore.put(this.projects, row);
+  }
+  async upsertSystem(row: SystemRow): Promise<void> {
+    MemoryRegistryStore.put(this.systems, row);
+  }
+  async upsertEquipment(row: EquipmentRow): Promise<void> {
+    MemoryRegistryStore.put(this.equipment, row);
+  }
+  async list(): Promise<RegistrySnapshotRows> {
+    return {
+      projects: [...this.projects.values()].map((r) => ({ ...r })),
+      systems: [...this.systems.values()].map((r) => ({ ...r })),
+      equipment: [...this.equipment.values()].map((r) => ({ ...r })),
+    };
   }
 }
 

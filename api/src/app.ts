@@ -6,16 +6,20 @@ import type {
   AttachmentStore,
   AuditRow,
   AuditStore,
+  EquipmentRow,
   IncomingRecord,
   InstrumentRow,
   InstrumentStore,
+  ProjectRow,
   RecordStore,
+  RegistryStore,
   SessionStore,
   SignatureImageStore,
   SignatureRequest,
   SignatureRequestStore,
   SignatureRow,
   SignatureStore,
+  SystemRow,
   UserRole,
   UserStore,
 } from "./store";
@@ -24,6 +28,7 @@ import {
   MemoryAttachmentStore,
   MemoryAuditStore,
   MemoryInstrumentStore,
+  MemoryRegistryStore,
   MemorySessionStore,
   MemorySignatureImageStore,
   MemorySignatureRequestStore,
@@ -100,6 +105,8 @@ export interface AppDeps {
   attachments?: AttachmentStore;
   /** Calibration register (§10 screen 9) — shared reference data, not per-record. */
   instruments?: InstrumentStore;
+  /** Project registry (§4, §10 screen 8) — shared reference data, like instruments. */
+  registry?: RegistryStore;
   /** Auth stores (task 4). Default to in-memory fakes; seed a user to log in. */
   users?: UserStore;
   sessions?: SessionStore;
@@ -124,6 +131,7 @@ export function createApp(deps: AppDeps) {
   const images = deps.images ?? new MemorySignatureImageStore();
   const attachments = deps.attachments ?? new MemoryAttachmentStore();
   const instruments = deps.instruments ?? new MemoryInstrumentStore();
+  const registry = deps.registry ?? new MemoryRegistryStore();
   const users = deps.users ?? new MemoryUserStore();
   const sessions = deps.sessions ?? new MemorySessionStore();
   const email = deps.email ?? new MemoryEmailSender();
@@ -253,10 +261,93 @@ export function createApp(deps: AppDeps) {
     return c.json(result);
   });
 
+  // The register's durable pull (SPEC §8): every record body, so a browser whose
+  // IndexedDB was cleared can rebuild its local store on login instead of showing
+  // an empty register for records that synced up long ago. Registered before the
+  // :id route so "records" is never captured as an id.
+  app.get("/api/records", requireUser, async (c) => {
+    return c.json({ records: await store.list() });
+  });
+
   app.get("/api/records/:id", requireUser, async (c) => {
     const record = await store.get(c.req.param("id"));
     if (!record) return c.json({ error: "not found" }, 404);
     return c.json(record);
+  });
+
+  // --- Project registry (SPEC §4, §10 screen 8) -----------------------------
+  // Shared reference data like the calibration register: upsert by client id,
+  // last-write-wins on `updated_at`. Before these routes existed the registry
+  // had no server copy at all — a cleared browser lost every project, system,
+  // and equipment tag, and nothing could restore them.
+
+  app.get("/api/registry", requireUser, async (c) => {
+    return c.json(await registry.list());
+  });
+
+  app.post("/api/registry/projects", requireUser, async (c) => {
+    let body: Partial<ProjectRow>;
+    try {
+      body = await c.req.json<Partial<ProjectRow>>();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body?.id || !body?.updated_at) return c.json({ error: "invalid project" }, 400);
+    await registry.upsertProject({
+      id: body.id,
+      code: body.code ?? "",
+      name: body.name ?? "",
+      client: body.client ?? "",
+      status: body.status ?? "open",
+      created_at: body.created_at ?? "",
+      closed_at: body.closed_at ?? null,
+      updated_at: body.updated_at,
+    });
+    return c.json({ applied: true });
+  });
+
+  app.post("/api/registry/systems", requireUser, async (c) => {
+    let body: Partial<SystemRow>;
+    try {
+      body = await c.req.json<Partial<SystemRow>>();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body?.id || !body?.updated_at || !body?.project_id) {
+      return c.json({ error: "invalid system" }, 400);
+    }
+    await registry.upsertSystem({
+      id: body.id,
+      project_id: body.project_id,
+      name: body.name ?? "",
+      code: body.code ?? "",
+      parent_system_id: body.parent_system_id ?? null,
+      updated_at: body.updated_at,
+    });
+    return c.json({ applied: true });
+  });
+
+  app.post("/api/registry/equipment", requireUser, async (c) => {
+    let body: Partial<EquipmentRow>;
+    try {
+      body = await c.req.json<Partial<EquipmentRow>>();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    if (!body?.id || !body?.updated_at || !body?.project_id || !body?.system_id) {
+      return c.json({ error: "invalid equipment" }, 400);
+    }
+    await registry.upsertEquipment({
+      id: body.id,
+      project_id: body.project_id,
+      system_id: body.system_id,
+      tag: body.tag ?? "",
+      description: body.description ?? "",
+      location: body.location ?? "",
+      drawing_ref: body.drawing_ref ?? "",
+      updated_at: body.updated_at,
+    });
+    return c.json({ applied: true });
   });
 
   // --- Calibration register (SPEC §4, §10 screen 9) ------------------------

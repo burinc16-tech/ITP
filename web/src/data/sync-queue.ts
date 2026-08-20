@@ -7,9 +7,10 @@ import type { ChecklistRecord } from "./record";
 import type { AuditRepo } from "./audit-repo";
 import type { OutboxRepo, OutboxEntry } from "./outbox";
 import type { RecordsRepo } from "./records-repo";
+import type { Equipment, Project, SystemNode } from "./registry";
 import type { CapturedSignature } from "./signature";
 import type { SignaturesRepo } from "./signatures-repo";
-import type { AttachmentMeta, PushResult, SyncLayer } from "./sync";
+import type { AttachmentMeta, PushResult, RegistrySnapshot, SyncLayer } from "./sync";
 
 /**
  * The raw network transport the queue drains against. Unlike the eager `ApiSync`
@@ -37,6 +38,14 @@ export interface Transport {
   pushInstrument(instrument: Instrument): Promise<void>;
   /** Best-effort read of the server's register (tombstones included), or null. */
   pullInstruments(): Promise<Instrument[] | null>;
+  /** Push one project-registry entry. Throws on a retryable failure. */
+  pushProject(project: Project): Promise<void>;
+  pushSystem(system: SystemNode): Promise<void>;
+  pushEquipment(equipment: Equipment): Promise<void>;
+  /** Best-effort read of the server's whole project registry, or null. */
+  pullRegistry(): Promise<RegistrySnapshot | null>;
+  /** Best-effort read of every server record (§8 durable pull), or null. */
+  pullRecords(): Promise<ChecklistRecord[] | null>;
 }
 
 export interface QueuedSyncDeps {
@@ -146,6 +155,43 @@ export class QueuedSync implements SyncLayer {
 
   pullInstruments(): Promise<Instrument[] | null> {
     return this.deps.transport.pullInstruments();
+  }
+
+  /**
+   * The project registry rides the same path as instruments: reference data,
+   * not evidence — `RegistryRepo.syncDown` re-pushes anything the server is
+   * missing, so a failed push self-heals on the next visit.
+   */
+  async pushProject(project: Project): Promise<void> {
+    try {
+      await this.deps.transport.pushProject(project);
+    } catch (err) {
+      console.warn("project push failed (kept locally, retried on next sync)", err);
+    }
+  }
+
+  async pushSystem(system: SystemNode): Promise<void> {
+    try {
+      await this.deps.transport.pushSystem(system);
+    } catch (err) {
+      console.warn("system push failed (kept locally, retried on next sync)", err);
+    }
+  }
+
+  async pushEquipment(equipment: Equipment): Promise<void> {
+    try {
+      await this.deps.transport.pushEquipment(equipment);
+    } catch (err) {
+      console.warn("equipment push failed (kept locally, retried on next sync)", err);
+    }
+  }
+
+  pullRegistry(): Promise<RegistrySnapshot | null> {
+    return this.deps.transport.pullRegistry();
+  }
+
+  pullRecords(): Promise<ChecklistRecord[] | null> {
+    return this.deps.transport.pullRecords();
   }
 
   /** Pending pushes not yet delivered — the §8 on-screen count. */

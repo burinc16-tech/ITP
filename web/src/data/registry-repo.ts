@@ -6,17 +6,32 @@ import {
 } from "../lib/registry-backup";
 import type { ChecklistDb } from "./db";
 import type { Equipment, Project, SystemNode } from "./registry";
+import type { SyncLayer } from "./sync";
+
+/** Epoch stand-in for rows written before the registry carried `updated_at`. */
+const NEVER = "";
 
 /**
  * Local persistence for the project registry (SPEC §4, §10 screen 8). Reference
  * data managed by a Project Admin (§9), so writes are upserts keyed by client id
  * — editable, unlike the append-only signature and audit stores.
+ *
+ * Like the calibration register, writes go to Dexie first and are pushed
+ * afterwards (Hard Rule #1) — the push is best-effort, so the registry keeps
+ * working with no network and the row is durable either way. `syncDown` merges
+ * the server's copy in, which is what makes a registry built on one device
+ * visible on the next, and restores it after a cleared browser.
  */
 export class RegistryRepo {
-  constructor(private readonly db: ChecklistDb) {}
+  constructor(
+    private readonly db: ChecklistDb,
+    private readonly sync?: SyncLayer,
+  ) {}
 
   async addProject(project: Project): Promise<void> {
-    await this.db.projects.put(project);
+    const row = { ...project, updated_at: project.updated_at ?? new Date().toISOString() };
+    await this.db.projects.put(row);
+    await this.sync?.pushProject(row);
   }
 
   async listProjects(): Promise<Project[]> {
@@ -28,7 +43,9 @@ export class RegistryRepo {
   }
 
   async addSystem(system: SystemNode): Promise<void> {
-    await this.db.systems.put(system);
+    const row = { ...system, updated_at: system.updated_at ?? new Date().toISOString() };
+    await this.db.systems.put(row);
+    await this.sync?.pushSystem(row);
   }
 
   async getSystem(id: string): Promise<SystemNode | undefined> {
@@ -45,7 +62,9 @@ export class RegistryRepo {
   }
 
   async addEquipment(equipment: Equipment): Promise<void> {
-    await this.db.equipment.put(equipment);
+    const row = { ...equipment, updated_at: equipment.updated_at ?? new Date().toISOString() };
+    await this.db.equipment.put(row);
+    await this.sync?.pushEquipment(row);
   }
 
   async listEquipment(projectId: string): Promise<Equipment[]> {
@@ -84,6 +103,55 @@ export class RegistryRepo {
     await this.db.projects.bulkPut(backup.projects);
     await this.db.systems.bulkPut(backup.systems);
     await this.db.equipment.bulkPut(backup.equipment);
+    // A restored backup should reach the other devices too — push it up
+    // best-effort; syncDown re-pushes anything that doesn't land now.
+    for (const p of backup.projects) await this.sync?.pushProject(p);
+    for (const s of backup.systems) await this.sync?.pushSystem(s);
+    for (const e of backup.equipment) await this.sync?.pushEquipment(e);
     return countsOf(backup);
+  }
+
+  /**
+   * Merge the server's registry into the local one, newest edit winning per row,
+   * then push back anything the server has not seen — same self-heal as the
+   * calibration register. Best-effort: with no sync layer or no network it is a
+   * no-op and the local registry is unchanged.
+   */
+  async syncDown(): Promise<void> {
+    if (!this.sync) return;
+    const remote = await this.sync.pullRegistry();
+    if (!remote) return;
+
+    await this.mergeTable(this.db.projects, remote.projects, (row) => this.sync!.pushProject(row));
+    await this.mergeTable(this.db.systems, remote.systems, (row) => this.sync!.pushSystem(row));
+    await this.mergeTable(this.db.equipment, remote.equipment, (row) =>
+      this.sync!.pushEquipment(row),
+    );
+  }
+
+  private async mergeTable<T extends { id: string; updated_at?: string }>(
+    table: { toArray(): Promise<T[]>; put(row: T): Promise<unknown> },
+    remote: T[],
+    push: (row: T) => Promise<void>,
+  ): Promise<void> {
+    const local = new Map((await table.toArray()).map((r) => [r.id, r]));
+
+    for (const row of remote) {
+      const mine = local.get(row.id);
+      if (!mine || (mine.updated_at ?? NEVER) < (row.updated_at ?? NEVER)) {
+        await table.put(row);
+        local.set(row.id, row);
+      }
+    }
+
+    // Anything local the server does not have, or has an older copy of, was
+    // written offline (or before the registry synced at all) — push it up.
+    const remoteById = new Map(remote.map((r) => [r.id, r]));
+    for (const mine of local.values()) {
+      const theirs = remoteById.get(mine.id);
+      if (!theirs || (theirs.updated_at ?? NEVER) < (mine.updated_at ?? NEVER)) {
+        await push(mine);
+      }
+    }
   }
 }

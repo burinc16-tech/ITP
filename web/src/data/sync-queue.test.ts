@@ -66,6 +66,21 @@ class FakeTransport implements Transport {
   async pullInstruments(): Promise<Instrument[] | null> {
     return null;
   }
+  async pushProject(): Promise<void> {
+    this.maybeFail();
+  }
+  async pushSystem(): Promise<void> {
+    this.maybeFail();
+  }
+  async pushEquipment(): Promise<void> {
+    this.maybeFail();
+  }
+  async pullRegistry(): Promise<null> {
+    return null;
+  }
+  async pullRecords(): Promise<ChecklistRecord[] | null> {
+    return null;
+  }
 }
 
 function harness() {

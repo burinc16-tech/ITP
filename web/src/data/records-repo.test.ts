@@ -76,4 +76,35 @@ describe("RecordsRepo", () => {
     await repo.upsert(next);
     expect(await repo.latestOpenRejected(versionId)).toBeUndefined();
   });
+
+  /**
+   * The §8 durable pull: on login the server's record set is merged in, so a
+   * cleared browser (or a second device) gets every synced record back instead
+   * of an empty register.
+   */
+  it("mergeRemote restores server records into an empty store", async () => {
+    const repo = freshRepo();
+    const remote = [draft("2026-08-01T00:00:00.000Z"), draft("2026-08-02T00:00:00.000Z")];
+    const written = await repo.mergeRemote(remote);
+    expect(written).toBe(2);
+    expect(await repo.list()).toHaveLength(2);
+  });
+
+  it("mergeRemote never clobbers a newer local copy, but applies a newer remote one", async () => {
+    const repo = freshRepo();
+    const record = draft("2026-08-01T00:00:00.000Z");
+    const localEdit = { ...record, serial_no: "LOCAL", updated_at: "2026-08-03T00:00:00.000Z" };
+    await repo.upsert(localEdit);
+
+    // The server holds an older copy — a pull must not undo the local edit.
+    const written = await repo.mergeRemote([{ ...record, serial_no: "STALE" }]);
+    expect(written).toBe(0);
+    expect((await repo.get(record.id))!.serial_no).toBe("LOCAL");
+
+    // A newer server copy (e.g. accepted on another device) wins.
+    await repo.mergeRemote([
+      { ...record, status: "accepted", updated_at: "2026-08-04T00:00:00.000Z" },
+    ]);
+    expect((await repo.get(record.id))!.status).toBe("accepted");
+  });
 });
