@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Template } from "@schema";
-import { RFI_COVER_LOGO_LEFT, RFI_COVER_LOGO_RIGHT } from "../assets/rfi-cover-logos";
+import { RFI_COVER_LOGO_RIGHT } from "../assets/rfi-cover-logos";
 import type { ChecklistRecord, RecordStatus } from "../data/record";
 import type { SignatureView } from "../data/signature";
 import {
@@ -43,9 +43,8 @@ export function PrintRfiCover(props: {
       )}
 
       <div className="print-page-body rfi-cover">
-        {/* Header: two logos flanking the form title. */}
+        {/* Header: form title with the contractor logo on the right. */}
         <div className="rfi-header">
-          <img className="rfi-logo-left" src={RFI_COVER_LOGO_LEFT} alt="Contractor" />
           <h1 className="rfi-title">Inspection Request Form (M&amp;E)</h1>
           <img className="rfi-logo-right" src={RFI_COVER_LOGO_RIGHT} alt="Project" />
         </div>
