@@ -5,7 +5,7 @@
   "discipline": "ACMV",
   "category": "ITR",
   "scope": "location",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/Sensor_Calibration_Record_Test_Sheet.html — a one-page sheet: client band, \"Type of Sensor\" bar, one add/delete-row data table, two free-text boxes, and a three-row sign-off. The supplied file was saved with a completed record in it (AMK3 Level 6 Network RM, room temperature / humidity / TA smart valve); those are record values, not template values, and are not carried here.",
 
   "header": {

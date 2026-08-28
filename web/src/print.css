@@ -100,6 +100,9 @@
 .print-section-title {
   font-size: 16pt;
   margin: 0 0 4mm;
+  /* A heading is never the last thing on a sheet — it travels with its body. */
+  break-after: avoid;
+  page-break-after: avoid;
 }
 .print-section-title span {
   display: inline-block;
@@ -152,6 +155,12 @@
   border: 1px solid #333;
   padding: 2mm 2.5mm;
   vertical-align: middle;
+}
+/* If a long table does have to run over, it breaks between rows, never through
+   one — half a checklist line on each sheet is not a readable record. */
+.print-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 .print-table th {
   background: #efefef;
@@ -279,6 +288,10 @@
   display: flex;
   gap: 16mm;
   margin-top: 8mm;
+  /* Never let a signature grid split across sheets — a half-printed signature
+     block is not a valid record. */
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 .print-sign-col {
   flex: 1;
@@ -322,7 +335,10 @@
   border-radius: 2px;
   height: 28mm;
 }
-/* A captured signature (SPEC §7): the ink over a solid border, no dashed box. */
+/* A captured signature (SPEC §7): the ink over a solid border, no dashed box.
+   The ink fills the box — a signature reproduced small is hard to compare
+   against a wet-ink original, so it is scaled up to the pad, keeping its aspect
+   ratio and a hairline of clearance from the border. */
 .print-sign-pad-filled {
   border: 1px solid #1a1a1a;
   border-radius: 0;
@@ -330,11 +346,93 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  padding: 0.8mm;
 }
 .print-sign-img {
-  max-width: 100%;
-  max-height: 26mm;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+
+/*
+ * Compact density (`page.density: "compact"`, SPEC §7). A form that declares its
+ * own page breaks and carries a signature grid on every page — the Power Turn-on
+ * form — does not fit the normal spacing: the sign-off overflows onto a fourth
+ * sheet. Compact tightens type, cell padding and the sign-off block so each
+ * declared page prints on exactly one A4 sheet, signatures included. Everything
+ * below is scoped to the attribute, so normal-density forms are untouched.
+ */
+.print-page[data-density="compact"] {
+  padding: 8mm 12mm 6mm;
+}
+.print-page[data-density="compact"] .print-head {
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+.print-page[data-density="compact"] .print-logo {
+  height: 13mm;
+}
+.print-page[data-density="compact"] .print-section-title {
+  font-size: 12pt;
+  margin: 0 0 2mm;
+}
+.print-page[data-density="compact"] .print-note {
+  margin-bottom: 2mm;
+  font-size: 8pt;
+}
+.print-page[data-density="compact"] .print-info-block {
+  margin-bottom: 3mm;
+}
+.print-page[data-density="compact"] .print-block-title {
+  font-size: 10.5pt;
+  padding: 1mm 2mm;
+}
+.print-page[data-density="compact"] .print-info-grid {
+  gap: 0.6mm 2mm;
+  padding: 1.5mm;
+  font-size: 9pt;
+}
+.print-page[data-density="compact"] .print-val {
+  min-height: 4mm;
+}
+.print-page[data-density="compact"] .print-table {
+  font-size: 8.5pt;
+}
+.print-page[data-density="compact"] .print-table th,
+.print-page[data-density="compact"] .print-table td {
+  padding: 0.9mm 1.5mm;
+}
+.print-page[data-density="compact"] .print-signoff-grid {
+  gap: 10mm;
+  margin-top: 3mm;
+}
+.print-page[data-density="compact"] .print-sign-col {
+  padding-top: 2mm;
+}
+.print-page[data-density="compact"] .print-sign-col h3 {
+  font-size: 10pt;
+  margin-bottom: 2.5mm;
+}
+.print-page[data-density="compact"] .print-sign-row {
+  font-size: 9.5pt;
+  margin-bottom: 2.5mm;
+}
+.print-page[data-density="compact"] .print-sign-lbl {
+  width: 22mm;
+}
+.print-page[data-density="compact"] .print-sign-fld {
+  min-height: 4mm;
+}
+.print-page[data-density="compact"] .print-sign-sigrow .print-sign-lbl,
+.print-page[data-density="compact"] .print-sign-sigrow .print-colon {
+  padding-top: 6mm;
+}
+.print-page[data-density="compact"] .print-sign-pad {
+  height: 18mm;
+}
+.print-page[data-density="compact"] .print-foot {
+  margin-top: 3mm;
+  padding-top: 1.5mm;
 }
 
 /* Footer */
@@ -385,11 +483,6 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 3mm;
-}
-.rfi-logo-left {
-  height: 16mm;
-  width: auto;
-  object-fit: contain;
 }
 .rfi-logo-right {
   height: 13mm;
@@ -599,6 +692,15 @@
     box-shadow: none !important;
     page-break-after: always;
     break-after: page;
+  }
+  /* A page box exactly as tall as the sheet can round up past it and emit a
+     blank sheet in between; a hair under prints identically without one. The
+     footer is flex-pushed to the bottom, so the millimetre is invisible. */
+  .print-page[data-orientation="portrait"] {
+    min-height: 296mm;
+  }
+  .print-page[data-orientation="landscape"] {
+    min-height: 209mm;
   }
   .print-page:last-child {
     page-break-after: auto;

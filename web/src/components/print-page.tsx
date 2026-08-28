@@ -7,7 +7,8 @@ import type { RecordStatus } from "../data/record";
  * One printed A4 page: repeated Kenyon header, the page body, a DRAFT watermark
  * on anything not yet `accepted`, and a footer carrying serial no, template code
  * + rev, page X of Y, and status (CLAUDE.md print rules). Page dimensions come
- * from the template's orientation — never hardcoded.
+ * from the template's orientation — never hardcoded, and so does the print
+ * density (`page.density`), which tightens a dense form onto one sheet.
  */
 export function PrintPage(props: {
   template: Template;
@@ -19,7 +20,11 @@ export function PrintPage(props: {
 }): ReactNode {
   const { template, index, total, serialNo, status, children } = props;
   return (
-    <section className="print-page" data-orientation={template.page.orientation}>
+    <section
+      className="print-page"
+      data-orientation={template.page.orientation}
+      data-density={template.page.density ?? "normal"}
+    >
       {status !== "accepted" && (
         <div className="print-watermark" aria-hidden="true">
           DRAFT

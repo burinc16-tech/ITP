@@ -5,7 +5,7 @@
   "discipline": "Electrical",
   "category": "ITR",
   "scope": "location",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/UFO_Battery_Test.html — a one-page sheet: a client/location band, a drawing-number line, one fitting-by-fitting table of start time, finish time and result, a combined remarks-and-instruments box and a three-row sign-off. The file is named for the UFO fitting it was last used on, but its printed title is the general one and that is what is carried here. It was saved with a record in it (Apple South Asia Pte Ltd; AMK3, L-1 (FCC Room); drawing KEN-24-0065-P2-EL-201_2; row 1 tested 11:30–13:30 Pass, \"Please refer to attached mark up drawing\"); all of that is record data — the client and room change with every sheet — so none of it is seeded. The source's own \"Rev : / Date\" footer is not reproduced as a field: the printed footer already carries the template code and revision (SPEC §7), and a second revision on the same page invites the two to disagree.",
 
   "header": {

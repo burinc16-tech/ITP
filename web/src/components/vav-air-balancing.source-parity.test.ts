@@ -112,7 +112,11 @@ describe("VAV template — schema validation", () => {
     expect(template.rev).toBe("A");
     expect(template.category).toBe("ITR");
     expect(template.scope).toBe("equipment");
-    expect(template.page).toEqual({ size: "A4", orientation: "landscape" });
+    expect(template.page).toEqual({
+      size: "A4",
+      orientation: "landscape",
+      density: "compact",
+    });
     expect(template.source).toBe("spec/VAV_Air_Balancing_Form.html");
   });
 });

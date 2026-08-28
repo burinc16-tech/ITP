@@ -5,7 +5,7 @@
   "discipline": "ACMV",
   "category": "ITR",
   "scope": "location",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/Condensate_Pipe_Flood_Test.html (9 July 2012, Rev 1) — the sanitary flood-test sheet retitled for ACMV condensate drain runs: same rows, same sign-off block, same footer revision. Filed under ACMV because condensate pipework is tested by that trade, and kept as its own template rather than a variant of SPF so the printed title matches the paper form the consultant accepts. The supplied file was saved with a completed record in it (client, From/To, dates); those are record values, not template values, and are not carried here.",
 
   "header": {

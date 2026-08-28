@@ -4,7 +4,7 @@
   "rev": "A",
   "discipline": "Mechanical",
   "category": "ITR",
-  "page": { "size": "A4", "orientation": "landscape" },
+  "page": { "size": "A4", "orientation": "landscape", "density": "compact" },
   "source": "Converted from Heat_Load_Test_Report.html (L-4, APPLE @ AMK-3)",
 
   "variables": [

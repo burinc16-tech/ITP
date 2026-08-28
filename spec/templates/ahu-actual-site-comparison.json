@@ -5,7 +5,7 @@
   "discipline": "ACMV",
   "category": "ITR",
   "scope": "equipment",
-  "page": { "size": "A4", "orientation": "landscape" },
+  "page": { "size": "A4", "orientation": "landscape", "density": "compact" },
   "source": "spec/AHU_Actual_and_Site_Comparison.html",
 
   "header": {

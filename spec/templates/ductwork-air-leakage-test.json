@@ -5,7 +5,7 @@
   "discipline": "ACMV",
   "category": "ITR",
   "scope": "equipment",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/Ductwork_Air_Leakage_Test.html (Rev 0)",
 
   "header": {

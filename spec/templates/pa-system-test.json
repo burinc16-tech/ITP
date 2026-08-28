@@ -5,7 +5,7 @@
   "discipline": "Electrical",
   "category": "ITR",
   "scope": "location",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/Public_Address_System_Test_Sheet.html — a one-page sheet: a banner carrying Client and Location, a title block with the drawing number and the instruction \"To check ALL PA Announcement are audible\", one location-by-location audibility table, a combined remarks/instruments box and a three-row sign-off. The supplied file was saved with a completed record in it (Apple South Asia Pte Ltd; AMK 2&3 (Infra Project); drawings KEN-24-0065-P2-EL-602_1 & KEN-24-0065-P2-EL-601; row 1 reading \"Pls refer to attached Drawing\"); those are record values, not template values, and are not carried here.",
 
   "header": {

@@ -76,4 +76,19 @@ describe("PrintView — Power Turn-on multi-page pagination", () => {
     ).toHaveLength(3);
     expect(container.querySelectorAll(".print-watermark")).toHaveLength(3);
   });
+
+  // Each declared page carries its own signature grid; at normal spacing the
+  // grid overflows onto an extra sheet, so the template asks for compact
+  // density and every page must carry it through to the print CSS.
+  it("prints every page at the template's compact density", () => {
+    const { container } = render(
+      <PrintView template={template} values={filled()} status="draft" serialNo={null} />,
+    );
+    expect(container.querySelectorAll('[data-density="compact"]')).toHaveLength(3);
+    // The sign-off stays on the page it belongs to — no separate signature page.
+    const pages = container.querySelectorAll(".print-page");
+    for (const page of pages) {
+      expect(page.querySelector(".print-signoff-grid")).not.toBeNull();
+    }
+  });
 });

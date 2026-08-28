@@ -33,7 +33,11 @@ describe("AHU Actual and Site Comparison — parity with the source sheet", () =
     expect(template.discipline).toBe("ACMV");
     expect(template.category).toBe("ITR");
     expect(template.scope).toBe("equipment");
-    expect(template.page).toEqual({ size: "A4", orientation: "landscape" });
+    expect(template.page).toEqual({
+      size: "A4",
+      orientation: "landscape",
+      density: "compact",
+    });
   });
 
   it("asks every heading of the sheet's two tables", () => {

@@ -124,6 +124,13 @@ export const pageSchema = z
   .object({
     size: z.enum(["A4", "A3", "Letter"]),
     orientation: z.enum(["portrait", "landscape"]),
+    /**
+     * Print scale. `compact` tightens type, padding and the sign-off block so a
+     * dense page (e.g. a checklist plus its own signature grid) still lands on
+     * one sheet instead of spilling its sign-off onto an extra page. Absent
+     * means `normal` — the spacing that matches the source paper forms.
+     */
+    density: z.enum(["normal", "compact"]).optional(),
   })
   .strict();
 

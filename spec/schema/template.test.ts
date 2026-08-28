@@ -56,7 +56,12 @@ describe("heat-load-test.json — the authoritative Phase 1 template", () => {
   it("carries the header, variables, instruments and footer through", () => {
     const t = parseTemplate(realTemplate);
     expect(t.category).toBe("ITR");
-    expect(t.page).toEqual({ size: "A4", orientation: "landscape" });
+    // Compact density: at normal spacing page 3 overflows its sheet (SPEC §7).
+    expect(t.page).toEqual({
+      size: "A4",
+      orientation: "landscape",
+      density: "compact",
+    });
     expect(t.variables?.map((v) => v.id)).toContain("load_kw");
     expect(t.instruments?.required).toBe(true);
     expect(t.footer?.signatures).toHaveLength(2);

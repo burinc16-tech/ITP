@@ -5,7 +5,7 @@
   "discipline": "Electrical",
   "category": "ITR",
   "scope": "equipment",
-  "page": { "size": "A4", "orientation": "portrait" },
+  "page": { "size": "A4", "orientation": "portrait", "density": "compact" },
   "source": "spec/Power_Turn_On_Form.html",
 
   "header": {

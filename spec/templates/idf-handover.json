@@ -6,7 +6,8 @@
   "category": "ITR",
   "page": {
     "size": "A4",
-    "orientation": "portrait"
+    "orientation": "portrait",
+    "density": "compact"
   },
   "source": "spec/IDF_Handover_Checklist.html (Rev 10, 12 January 2019)",
   "header": {

@@ -5,7 +5,7 @@
   "discipline": "ACMV",
   "category": "ITR",
   "scope": "equipment",
-  "page": { "size": "A4", "orientation": "landscape" },
+  "page": { "size": "A4", "orientation": "landscape", "density": "compact" },
   "source": "spec/DX_FCU_Function_Test.html (Rev 0)",
 
   "header": {
