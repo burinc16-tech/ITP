@@ -3,6 +3,7 @@ import { createInstrument, type Instrument } from "../data/instrument";
 import type { InstrumentsRepo } from "../data/instruments-repo";
 import { uuidv7 } from "../data/uuidv7";
 import { calibrationStanding, type CalStatus } from "../lib/calibration";
+import { makeModel } from "../lib/instrument-link";
 
 const STATUS_LABEL: Record<CalStatus, string> = {
   valid: "Valid",
@@ -15,6 +16,8 @@ const STATUS_ORDER: Record<CalStatus, number> = { expired: 0, due_soon: 1, valid
 const emptyForm = {
   serial: "",
   description: "",
+  make: "",
+  model: "",
   certUrl: "",
   certNo: "",
   calDate: "",
@@ -103,6 +106,8 @@ export function CalibrationRegister(props: {
         id: editingId ?? newId(),
         serialNo: form.serial.trim(),
         description: form.description.trim(),
+        make: form.make.trim(),
+        model: form.model.trim(),
         calCertUrl: form.certUrl.trim(),
         certNo: form.certNo.trim(),
         calDate: form.calDate,
@@ -119,6 +124,8 @@ export function CalibrationRegister(props: {
     setForm({
       serial: instrument.serial_no,
       description: instrument.description,
+      make: instrument.make ?? "",
+      model: instrument.model ?? "",
       certUrl: instrument.cal_cert_url,
       certNo: instrument.cert_no ?? "",
       calDate: instrument.cal_date,
@@ -163,6 +170,23 @@ export function CalibrationRegister(props: {
           placeholder="Description"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+        {/*
+          Make and model are what the forms' "Make / Model" column asks for.
+          Kept in two fields because the ductwork leakage form asks for them
+          separately; the record picker joins them where a form has one column.
+        */}
+        <input
+          aria-label="Instrument make"
+          placeholder="Make"
+          value={form.make}
+          onChange={(e) => setForm({ ...form, make: e.target.value })}
+        />
+        <input
+          aria-label="Instrument model"
+          placeholder="Model"
+          value={form.model}
+          onChange={(e) => setForm({ ...form, model: e.target.value })}
         />
         <label className="cal-date-field">
           <span>Calibrated</span>
@@ -228,6 +252,7 @@ export function CalibrationRegister(props: {
             <tr>
               <th scope="col">Serial no.</th>
               <th scope="col">Description</th>
+              <th scope="col">Make / model</th>
               <th scope="col">Calibrated</th>
               <th scope="col">Due</th>
               <th scope="col">Standing</th>
@@ -242,6 +267,7 @@ export function CalibrationRegister(props: {
               <tr key={instrument.id} className={`cal-row is-${standing.status}`}>
                 <td>{instrument.serial_no}</td>
                 <td>{instrument.description}</td>
+                <td>{makeModel(instrument) || "—"}</td>
                 <td>{instrument.cal_date ? displayDate(instrument.cal_date) : "—"}</td>
                 <td>{instrument.cal_due_date ? displayDate(instrument.cal_due_date) : "—"}</td>
                 <td>

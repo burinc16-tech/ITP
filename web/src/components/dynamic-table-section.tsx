@@ -11,7 +11,7 @@ import {
 import {
   applyInstrumentToRow,
   expiredInstrumentWarning,
-  instrumentOptionLabel,
+  instrumentPickerColumn,
   matchInstrument,
 } from "../lib/instrument-link";
 import {
@@ -31,6 +31,7 @@ import {
   setTableRow,
 } from "../lib/values";
 import { FieldControl } from "./field-control";
+import { InstrumentCell } from "./instrument-cell";
 import { useForm } from "./form-context";
 
 /** Today as a `YYYY-MM-DD` calendar day, for the expired-calibration warning. */
@@ -59,12 +60,15 @@ function FlatTableSection(props: {
   // Columns can be the engineer's, not the template's, when the section allows
   // added columns (SPEC §12) — a duct's traverse decides how many test points.
   const columns = columnsFor(values, section);
-  // Record↔instrument linking (SPEC §5): on sections flagged for it, each row
-  // gets a picker that COPIES a calibration-register instrument into the row's
-  // matching columns (never a live link — the signed print must show what was
-  // true on test day). Only when the register has something to offer.
-  const registerPicker =
-    section.link_to_instrument_register === true && instruments.length > 0;
+  // Record↔instrument linking (SPEC §5): on sections flagged for it, the
+  // instrument column doubles as a picker that COPIES a calibration-register
+  // instrument into the row's matching columns (never a live link — the signed
+  // print must show what was true on test day). Typing is never taken away.
+  // Only when the register has something to offer.
+  const pickerColumn =
+    section.link_to_instrument_register === true && instruments.length > 0
+      ? instrumentPickerColumn(columns)
+      : undefined;
   const today = todayDate();
   const addColumns = section.add_columns;
   const atMinColumns = columns.length <= (addColumns?.min_count ?? 1);
@@ -115,7 +119,6 @@ function FlatTableSection(props: {
                   )}
                 </th>
               ))}
-              {registerPicker && <th className="col-register">From register</th>}
               <th className="col-actions">
                 <span className="visually-hidden">Actions</span>
               </th>
@@ -128,7 +131,31 @@ function FlatTableSection(props: {
                   <td className="col-num">{index + 1}</td>
                 )}
                 {columns.map((col) =>
-                  col.type === "calculated" ? (
+                  col.id === pickerColumn ? (
+                    <td key={col.id}>
+                      <InstrumentCell
+                        id={`${section.id}-${index}-${col.id}`}
+                        ariaLabel={`${col.label} row ${index + 1}`}
+                        value={row[col.id] ?? ""}
+                        instruments={instruments}
+                        disabled={locked}
+                        onChange={(v) =>
+                          onChange(setTableCell(values, section.id, index, col.id, v))
+                        }
+                        onPick={(instrument) =>
+                          onChange(
+                            setTableRow(
+                              values,
+                              section.id,
+                              index,
+                              applyInstrumentToRow(row, columns, instrument),
+                            ),
+                          )
+                        }
+                        warning={expiredRowWarning(row, columns, instruments, today)}
+                      />
+                    </td>
+                  ) : col.type === "calculated" ? (
                     <td key={col.id} className="col-computed">
                       <output
                         className="field-calculated"
@@ -153,26 +180,6 @@ function FlatTableSection(props: {
                       />
                     </td>
                   ),
-                )}
-                {registerPicker && (
-                  <RegisterPickerCell
-                    row={row}
-                    index={index}
-                    onPick={(instrument) =>
-                      onChange(
-                        setTableRow(
-                          values,
-                          section.id,
-                          index,
-                          applyInstrumentToRow(row, columns, instrument),
-                        ),
-                      )
-                    }
-                    columns={columns}
-                    instruments={instruments}
-                    today={today}
-                    locked={locked}
-                  />
                 )}
                 <td className="col-actions">
                   <button
@@ -203,7 +210,6 @@ function FlatTableSection(props: {
                       {totals[col.id] ?? ""}
                     </td>
                   ))}
-                {registerPicker && <td />}
                 <td className="col-actions" />
               </tr>
             </tfoot>
@@ -234,51 +240,21 @@ function FlatTableSection(props: {
 }
 
 /**
- * The per-row "From register" cell on an instrument table (SPEC §5): a picker
- * over the calibration register that fills the row's matching columns, and an
- * expired-calibration warning. The warning is DERIVED — the row's cert/serial
- * values are matched back against the register on every render — so it also
- * fires for manually typed instruments, and persists across reloads without
- * storing anything on the record. An expired instrument is allowed, not
- * blocked (decided with the user 2026-08-20): the warning is the guard.
+ * The expired-calibration warning for a row of an instrument table (SPEC §5).
+ * DERIVED — the row's cert/serial values are matched back against the register
+ * on every render — so it also fires for a manually typed instrument, and
+ * persists across reloads without storing anything on the record. An expired
+ * instrument is allowed, not blocked (decided with the user 2026-08-20): the
+ * warning is the guard.
  */
-function RegisterPickerCell(props: {
-  row: TableRow;
-  index: number;
-  columns: readonly ColumnDef[];
-  instruments: Instrument[];
-  today: string;
-  locked: boolean;
-  onPick: (instrument: Instrument) => void;
-}): ReactNode {
-  const { row, index, columns, instruments, today, locked, onPick } = props;
+function expiredRowWarning(
+  row: TableRow,
+  columns: readonly ColumnDef[],
+  instruments: readonly Instrument[],
+  today: string,
+): string | null {
   const matched = matchInstrument(row, columns, instruments);
-  const warning = matched ? expiredInstrumentWarning(matched, today) : null;
-  return (
-    <td className="col-register">
-      <select
-        aria-label={`Pick instrument for row ${index + 1} from the calibration register`}
-        value={matched?.id ?? ""}
-        disabled={locked}
-        onChange={(e) => {
-          const instrument = instruments.find((i) => i.id === e.target.value);
-          if (instrument) onPick(instrument);
-        }}
-      >
-        <option value="">Pick from register…</option>
-        {instruments.map((i) => (
-          <option key={i.id} value={i.id}>
-            {instrumentOptionLabel(i)}
-          </option>
-        ))}
-      </select>
-      {warning && (
-        <p className="cal-link-warning" role="alert">
-          {warning}
-        </p>
-      )}
-    </td>
-  );
+  return matched ? expiredInstrumentWarning(matched, today) : null;
 }
 
 /**

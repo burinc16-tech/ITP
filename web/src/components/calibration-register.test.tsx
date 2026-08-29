@@ -48,6 +48,8 @@ describe("CalibrationRegister", () => {
 
     await user.type(screen.getByLabelText("Instrument serial number"), "FLK-77");
     await user.type(screen.getByLabelText("Instrument description"), "Clamp meter");
+    await user.type(screen.getByLabelText("Instrument make"), "MEGGER");
+    await user.type(screen.getByLabelText("Instrument model"), "MIT310");
     // Date inputs take a value directly rather than typed keystrokes.
     fireEvent.change(screen.getByLabelText("Calibration due date"), {
       target: { value: "2027-06-30" },
@@ -55,6 +57,8 @@ describe("CalibrationRegister", () => {
     await user.click(screen.getByRole("button", { name: "Add instrument" }));
 
     expect(await screen.findByText("FLK-77")).toBeInTheDocument();
+    // Make and model are held apart and shown joined, the way the forms want them.
+    expect(screen.getByText("MEGGER/MIT310")).toBeInTheDocument();
     expect(screen.getByText("30/06/2027")).toBeInTheDocument(); // dd/mm/yyyy display
     expect(screen.getByText("1 valid")).toBeInTheDocument();
   });

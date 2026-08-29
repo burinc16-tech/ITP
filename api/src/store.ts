@@ -289,6 +289,10 @@ export interface InstrumentRow {
   id: string;
   serial_no: string;
   description: string;
+  /** Manufacturer, e.g. `MEGGER`; may be blank. */
+  make: string;
+  /** Model designation, e.g. `MIT310`; may be blank. */
+  model: string;
   cal_cert_url: string;
   /** Certificate number as printed by the lab, e.g. `BLE2604334-2`; may be blank. */
   cert_no: string;
@@ -528,7 +532,7 @@ const ATTACHMENT_COLUMNS =
   "id, record_id, field_id, kind, image_key, caption, device_id, created_at";
 
 const INSTRUMENT_COLUMNS =
-  "id, serial_no, description, cal_cert_url, cert_no, cal_date, cal_due_date, updated_at, deleted";
+  "id, serial_no, description, make, model, cal_cert_url, cert_no, cal_date, cal_due_date, updated_at, deleted";
 
 export class D1InstrumentStore implements InstrumentStore {
   constructor(private readonly db: D1Database) {}
@@ -540,10 +544,12 @@ export class D1InstrumentStore implements InstrumentStore {
     await this.db
       .prepare(
         `INSERT INTO instruments (${INSTRUMENT_COLUMNS})
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            serial_no    = excluded.serial_no,
            description  = excluded.description,
+           make         = excluded.make,
+           model        = excluded.model,
            cal_cert_url = excluded.cal_cert_url,
            cert_no      = excluded.cert_no,
            cal_date     = excluded.cal_date,
@@ -556,6 +562,8 @@ export class D1InstrumentStore implements InstrumentStore {
         i.id,
         i.serial_no,
         i.description,
+        i.make,
+        i.model,
         i.cal_cert_url,
         i.cert_no,
         i.cal_date,

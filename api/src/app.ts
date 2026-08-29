@@ -392,6 +392,9 @@ export function createApp(deps: AppDeps) {
       id: body.id,
       serial_no: body.serial_no ?? "",
       description: body.description ?? "",
+      // Older clients push neither make nor model; blanks are a valid row.
+      make: body.make ?? "",
+      model: body.model ?? "",
       cal_cert_url: body.cal_cert_url ?? "",
       // An older client pushes no `cert_no`; a blank is a valid register row, so
       // the write is accepted rather than rejected as invalid.
