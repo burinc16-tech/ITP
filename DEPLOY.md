@@ -1,15 +1,41 @@
 # Deploying the ITP/ITR app to Cloudflare
 
-This deploys two things:
+Live at **https://itp.full-defects.com**. Two separate Workers:
 
-- the **Worker API** (`/api`) → Cloudflare Workers, backed by **D1** (SQLite) and **R2** (signature/photo images);
-- the **React frontend** (`/web`) → Cloudflare **Pages**.
+| | Worker | Config | What it is |
+|---|---|---|---|
+| API | `itp-itr-api` | `api/wrangler.toml` | Hono API on **D1** (SQLite) + **R2** (signature/photo images) |
+| Frontend | `itp-itr-web` | `wrangler.web.toml` | assets-only Worker publishing the built `dist/` |
 
-It is a **two-pass** deploy: the Worker and Pages each need the other's URL, so the order is
-Worker → Pages → reconfigure and redeploy the Worker.
+They are deliberately **separate**: merging them would mean every frontend
+deploy also ships API code. The frontend calls the API cross-origin at its
+`workers.dev` URL, baked in at build time as `VITE_API_URL`.
 
 > **Deploy is an account-owner task.** These commands act on a real Cloudflare account and cost/store real
 > data. Run them yourself; `wrangler login` and `wrangler secret put` are interactive.
+
+---
+
+## Routine: shipping a frontend change
+
+This is the common case — everything below it is first-time setup.
+
+```bash
+node ./node_modules/vite/bin/vite.js build
+node ./node_modules/wrangler/bin/wrangler.js deploy --config wrangler.web.toml
+```
+
+⚠️ **Both steps, every time.** Until 4 Sep 2026 the site was served by
+`vite preview` reading `dist/` straight off disk, so a build alone was enough.
+It is not any more: the Worker holds its own copy of the files. Build without
+deploying and the live site simply keeps serving the previous version, with no
+error to tell you.
+
+Shipping an API change is the same idea with the other config:
+
+```bash
+node ./node_modules/wrangler/bin/wrangler.js deploy --config api/wrangler.toml
+```
 
 ## Prerequisites
 
@@ -57,47 +83,58 @@ node ./node_modules/wrangler/bin/wrangler.js d1 migrations apply itp-itr --remot
 This applies `db/migrations/0001`–`0004` (records, sign-off, auth, **attachments**). Don't skip — 0004 is
 easy to forget.
 
-## 3. Deploy the Worker (first pass)
+## 3. Deploy the API Worker
 
 ```bash
 node ./node_modules/wrangler/bin/wrangler.js deploy --config api/wrangler.toml
 ```
 
-Note the printed URL, e.g. `https://itp-itr-api.<your-subdomain>.workers.dev`.
+Note the printed URL, e.g. `https://itp-itr-api.<your-subdomain>.workers.dev` — the frontend build bakes this
+in as `VITE_API_URL`, so the API has to exist before step 4.
 
-## 4. Build + deploy the frontend to Pages, pointed at the Worker
+The frontend Worker needs no provisioning of its own: it has no bindings, only static assets.
 
-`VITE_API_URL` is **baked in at build time** — any later change to the Worker URL means rebuild + redeploy
-Pages.
+## 4. Build + deploy the frontend, pointed at the Worker
 
-PowerShell:
-
-```bash
-$env:VITE_API_URL = "https://itp-itr-api.<your-subdomain>.workers.dev"; node ./node_modules/vite/bin/vite.js build
-```
-
-(bash equivalent: `VITE_API_URL="https://…workers.dev" node ./node_modules/vite/bin/vite.js build`)
+`vite.config.ts` already defaults `VITE_API_URL` to the deployed Worker, so a plain build is normally right.
+Override it only when pointing at a different API:
 
 ```bash
-node ./node_modules/wrangler/bin/wrangler.js pages deploy dist --project-name itp-itr
+node ./node_modules/vite/bin/vite.js build
 ```
 
-First run creates the Pages project. Note the Pages URL, e.g. `https://itp-itr.pages.dev`.
+(to override — PowerShell: `$env:VITE_API_URL = "https://…workers.dev"; node ./node_modules/vite/bin/vite.js build`)
 
-## 5. Reconfigure the Worker for the web app, then redeploy (second pass)
+`VITE_API_URL` is **baked in at build time**, so any later change to the Worker URL means rebuild + redeploy.
 
-The public `/sign/<token>` page is served by **Pages**, so remote sign-off links must point there — not at the
-Worker. Without `SIGN_BASE_URL`, links fall back to the Worker origin (wrong host).
+Then publish `dist/` as the `itp-itr-web` Worker:
 
-In `api/wrangler.toml`, under `[vars]`, add the Pages URL and your From address:
+```bash
+node ./node_modules/wrangler/bin/wrangler.js deploy --config wrangler.web.toml
+```
+
+`wrangler.web.toml` attaches it to `itp.full-defects.com/*` as a **route**, not a custom domain. That matters:
+the DNS record for that hostname still points at the old cloudflared tunnel, and the route intercepts at the
+edge before the origin is reached. Nothing about DNS changes, so there is no outage window when deploying —
+and the tunnel entry remains as a rollback. To fall back to the tunnel, delete the route line and redeploy.
+
+The Worker also sets `not_found_handling = "single-page-application"`, without which `/sign/<token>` deep
+links would 404.
+
+## 5. Check `SIGN_BASE_URL` (usually nothing to do)
+
+The public `/sign/<token>` page is served by the frontend, so remote sign-off links must point there — not at
+the API Worker. Without `SIGN_BASE_URL`, links fall back to the Worker origin (wrong host).
+
+`api/wrangler.toml` already has the right value, and it does not change between deploys:
 
 ```toml
 [vars]
-SIGN_BASE_URL = "https://itp-itr.pages.dev"
+SIGN_BASE_URL = "https://itp.full-defects.com"
 EMAIL_FROM = "Kenyon T&C <no-reply@your-verified-domain>"
 ```
 
-Then redeploy the Worker:
+Only redeploy the API Worker if you actually change one of these:
 
 ```bash
 node ./node_modules/wrangler/bin/wrangler.js deploy --config api/wrangler.toml
@@ -129,8 +166,17 @@ $sql = node api/scripts/create-user.mjs you@site.co "Your Name" qa_qc "strong-pa
 node ./node_modules/wrangler/bin/wrangler.js tail --config api/wrangler.toml
 ```
 
-Open the Pages URL, log in, complete a record (a serial number gets assigned server-side at
+Open **https://itp.full-defects.com**, log in, complete a record (a serial number gets assigned server-side at
 `draft → completed`), issue a sign-off link, and open it.
+
+To confirm a frontend deploy actually landed — the site looks identical either way, so check the served
+bundle name against the local build:
+
+```bash
+curl -s https://itp.full-defects.com/ | grep assets/index-
+```
+
+It should match the `<script src>` in `dist/index.html`. If it does not, the build was not deployed.
 
 ---
 
@@ -140,10 +186,15 @@ Open the Pages URL, log in, complete a record (a serial number gets assigned ser
   bulk of stored volume and the easiest evidence to lose to a default expiry policy. Retention is long by design.
 - Secrets (`RESEND_API_KEY`) go through `wrangler secret`, never into `wrangler.toml`. The D1 `database_id` is
   not secret and can be committed.
-- CORS is open (Hono `cors()`), so the cross-origin Pages → Worker calls work. If you later restrict it, allow
-  the Pages origin.
-- Custom domains: you can attach one to both Pages and the Worker. If you do, set `VITE_API_URL` (build) and
-  `SIGN_BASE_URL` (Worker var) to the custom domains and redeploy both.
+- CORS is open (Hono `cors()`), so the cross-origin frontend → API calls work. If you later restrict it,
+  allow `https://itp.full-defects.com`.
+- The frontend is on a custom hostname; the API is still on `workers.dev`. If you ever put the API on a
+  custom domain too, set `VITE_API_URL` (build) to it and rebuild + redeploy the frontend.
+- **Backups:** `C:\CloudflareBackup\RUN-BACKUP.cmd` exports D1 *and* pulls the R2 objects into OneDrive.
+  `wrangler d1 export` alone is only half a backup — R2 has no versioning, so a deleted signature or photo
+  is gone, and a database-only restore would leave records pointing at images that no longer exist.
+- **Time Travel** gives D1 point-in-time recovery for roughly the last 30 days, automatically. It does not
+  cover R2.
 
 ## Local development
 

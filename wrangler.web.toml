@@ -1,0 +1,39 @@
+# Frontend deploy — serves the built SPA in ./dist from Cloudflare's edge.
+#
+# Before this existed, itp.full-defects.com was served by `vite preview` on
+# :4173 on the office PC, reached through the cloudflared tunnel. That meant the
+# site was only up while that machine was on and logged in. This config puts the
+# same files on Cloudflare so the site no longer depends on any local machine.
+#
+# Deploy the frontend:   npm run build && npx wrangler deploy --config wrangler.web.toml
+# Deploy the API:        see api/wrangler.toml (a separate Worker, unchanged)
+#
+# Deliberately a SEPARATE Worker from itp-itr-api rather than adding assets to
+# it: the API Worker has uncommitted changes in the working tree, and folding
+# the two together would mean every frontend deploy also redeploys API code.
+# The frontend still calls the API cross-origin at its workers.dev URL exactly
+# as before (VITE_API_URL in vite.config.ts), so nothing about the API changes.
+
+name = "itp-itr-web"
+compatibility_date = "2026-08-01"
+
+# No second public entrance. The site is reached only at itp.full-defects.com.
+workers_dev = false
+preview_urls = false
+
+# A route pattern, NOT a custom domain. The DNS record for itp.full-defects.com
+# still points at the cloudflared tunnel; this route intercepts at the edge
+# before the origin is reached, so the tunnel is never consulted. Nothing about
+# DNS changes, so there is no outage window — and the tunnel's route to
+# localhost:4173 stays in place as a hot standby. Rollback is to delete this
+# line and redeploy.
+routes = [
+  { pattern = "itp.full-defects.com/*", zone_name = "full-defects.com" },
+]
+
+[assets]
+directory = "./dist"
+# The app routes client-side — /sign/:token in particular is a real URL that
+# external signers open from an emailed link. Without the SPA fallback those
+# links would 404, which is exactly how `vite preview` behaves today.
+not_found_handling = "single-page-application"
