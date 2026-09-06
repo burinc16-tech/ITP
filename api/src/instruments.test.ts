@@ -37,6 +37,8 @@ const body = (over: Record<string, unknown> = {}) => ({
   id: "i1",
   serial_no: "W8045321",
   description: "Clamp Meter",
+  make: "Kyoritsu",
+  model: "KS 2027",
   cal_cert_url: "certs/clamp.pdf",
   cert_no: "BLE2604334-2",
   cal_date: "2026-05-07",
@@ -74,9 +76,31 @@ describe("api /api/instruments", () => {
     expect(json.instruments[0]).toMatchObject({
       id: "i1",
       serial_no: "W8045321",
+      make: "Kyoritsu",
+      model: "KS 2027",
       cert_no: "BLE2604334-2",
       deleted: 0,
     });
+  });
+
+  /**
+   * Same reasoning as the certificate number below: a device on a build from
+   * before make/model existed pushes neither, and a blank pair is a valid row.
+   */
+  it("accepts a push from a client that sends no make or model", async () => {
+    const { app, authed } = await make();
+    const { make: _m, model: _mo, ...withoutMakeModel } = body();
+
+    const post = await app.request("/api/instruments", {
+      method: "POST",
+      headers: authed,
+      body: JSON.stringify(withoutMakeModel),
+    });
+    expect(post.status).toBe(200);
+
+    const res = await app.request("/api/instruments", { headers: authed });
+    const json = (await res.json()) as { instruments: Array<Record<string, unknown>> };
+    expect(json.instruments[0]).toMatchObject({ id: "i1", make: "", model: "" });
   });
 
   /**

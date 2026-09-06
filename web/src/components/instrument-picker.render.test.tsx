@@ -16,6 +16,8 @@ const clampMeter = createInstrument({
   id: "i1",
   serialNo: "W8045321",
   description: "Clamp Meter",
+  make: "Kyoritsu",
+  model: "KS 2027",
   certNo: "BLE2604334-2",
   calDate: "2026-05-07",
   calDueDate: "2099-05-07",
@@ -46,75 +48,108 @@ function Harness(props: { instruments?: Instrument[]; template?: Template }): Re
 
 /**
  * Record↔instrument linking (SPEC §5): the heat-load TESTING EQUIPMENT table is
- * flagged `link_to_instrument_register`, so each row offers a picker over the
- * calibration register that copies the instrument into the row. Expired
- * instruments are allowed with a visible warning, never blocked (settled with
- * the user 2026-08-20).
+ * flagged `link_to_instrument_register`, so its instrument column is a picker
+ * over the calibration register as well as a plain text cell — clicking it
+ * offers the register, typing is always still allowed. Picking copies the
+ * instrument into the row. Expired instruments are allowed with a visible
+ * warning, never blocked (settled with the user 2026-08-20).
  */
 describe("instrument table register picker", () => {
-  it("renders a picker per row on the flagged table, none without instruments", () => {
+  it("turns the instrument column into a combobox, and only when a register exists", () => {
     const { unmount } = render(<Harness instruments={[clampMeter]} />);
     // The section pads to its min_rows of 4 — one picker per row.
-    expect(
-      screen.getAllByRole("combobox", { name: /Pick instrument for row/ }),
-    ).toHaveLength(4);
+    expect(screen.getAllByRole("combobox", { name: /^Description row/ })).toHaveLength(4);
     unmount();
 
     // With no register supplied the table renders exactly as before.
     render(<Harness />);
-    expect(
-      screen.queryByRole("combobox", { name: /Pick instrument for row/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("combobox", { name: /^Description row/ })).toBeNull();
+    expect(screen.getByLabelText("Description row 3")).toHaveValue("");
   });
 
-  it("copies the picked instrument into the row's description and cert columns", async () => {
+  it("opens the register on click and copies the pick into the row", async () => {
     const user = userEvent.setup();
     render(<Harness instruments={[clampMeter]} />);
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Pick instrument for row 3 from the calibration register" }),
-      "i1",
-    );
+    await user.click(screen.getByLabelText("Description row 3"));
+    await user.click(screen.getByRole("option", { name: /Clamp Meter/ }));
 
     // No serial column on this table, so the serial rides in the description.
     expect(screen.getByLabelText("Description row 3")).toHaveValue(
       "Clamp Meter — S/N W8045321",
     );
     expect(screen.getByLabelText("Cal. Cert No. row 3")).toHaveValue("BLE2604334-2");
-    // The picker now shows the linked instrument, and a valid cert warns nothing.
-    expect(
-      screen.getByRole("combobox", { name: /row 3/ }),
-    ).toHaveValue("i1");
+    // The menu closes behind the pick, and a valid cert warns nothing.
+    expect(screen.queryByRole("listbox")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("still takes free text, and filters the register down as you type", async () => {
+    const user = userEvent.setup();
+    render(<Harness instruments={[clampMeter, expiredLogger]} />);
+
+    const cell = screen.getByLabelText("Description row 3");
+    await user.type(cell, "Thermo");
+
+    // Typing writes the cell, unchanged and unblocked…
+    expect(cell).toHaveValue("Thermo");
+    // …and narrows the register to what matches.
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByRole("option", { name: /IR Thermometer/ })).toBeInTheDocument();
+
+    // An instrument the register has never heard of is kept as typed.
+    await user.clear(cell);
+    await user.type(cell, "Borrowed anemometer");
+    expect(cell).toHaveValue("Borrowed anemometer");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByText(/what you typed is kept/)).toBeInTheDocument();
+  });
+
+  it("offers the whole register from a prefilled cell, not a filtered-out one", async () => {
+    const user = userEvent.setup();
+    render(<Harness template={powerTurnOn} instruments={[clampMeter, expiredLogger]} />);
+
+    // Row 1's Function arrives prefilled from the template…
+    expect(screen.getByLabelText("Function row 1")).toHaveValue("Insulation Resistance");
+    await user.click(screen.getByLabelText("Function row 1"));
+    // …and opening it still offers every instrument, unfiltered.
+    expect(screen.getAllByRole("option")).toHaveLength(2);
   });
 
   it("fills the power-turn-on shape too — function / serial / cert columns", async () => {
     const user = userEvent.setup();
     render(<Harness template={powerTurnOn} instruments={[clampMeter]} />);
 
-    await user.selectOptions(
-      screen.getAllByRole("combobox", { name: /Pick instrument for row 1 / })[0]!,
-      "i1",
-    );
+    await user.click(screen.getByLabelText("Function row 1"));
+    await user.click(screen.getByRole("option", { name: /Clamp Meter/ }));
 
     expect(screen.getByLabelText("Function row 1")).toHaveValue("Clamp Meter");
     expect(screen.getByLabelText("Serial No row 1")).toHaveValue("W8045321");
     expect(screen.getByLabelText("Calibration Cert row 1")).toHaveValue("BLE2604334-2");
-    // Make / Model isn't in the register — left for the engineer.
-    expect(screen.getByLabelText("Make / Model row 1")).toHaveValue("");
+    // One Make / Model column, so the register's two fields arrive joined.
+    expect(screen.getByLabelText("Make / Model row 1")).toHaveValue("Kyoritsu/KS 2027");
+  });
+
+  it("picks with the keyboard as well as the pointer", async () => {
+    const user = userEvent.setup();
+    render(<Harness template={powerTurnOn} instruments={[clampMeter, expiredLogger]} />);
+
+    // Opening highlights the first instrument, so one ArrowDown lands on the second.
+    await user.click(screen.getByLabelText("Function row 2"));
+    await user.keyboard("{ArrowDown}{Enter}");
+
+    expect(screen.getByLabelText("Serial No row 2")).toHaveValue("E1034007017");
   });
 
   it("allows an expired instrument but shows a visible warning", async () => {
     const user = userEvent.setup();
     render(<Harness instruments={[clampMeter, expiredLogger]} />);
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: /row 1 / }),
-      "i2",
-    );
+    await user.click(screen.getByLabelText("Description row 4"));
+    await user.click(screen.getByRole("option", { name: /IR Thermometer/ }));
 
     // The pick still lands — expired is allowed, not blocked…
-    expect(screen.getByLabelText("Cal. Cert No. row 1")).toHaveValue("PLS-26010053-01");
+    expect(screen.getByLabelText("Cal. Cert No. row 4")).toHaveValue("PLS-26010053-01");
     // …but the row carries an unmissable warning.
     expect(screen.getByRole("alert")).toHaveTextContent(/Calibration expired 2020-01-01/);
   });

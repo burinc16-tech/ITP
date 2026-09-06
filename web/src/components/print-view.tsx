@@ -5,6 +5,7 @@ import type { RecordStatus } from "../data/record";
 import type { SignatureView } from "../data/signature";
 import { buildVarMap } from "../lib/interpolate";
 import type { RecordValues } from "../lib/values";
+import { showsDraftWatermark } from "../lib/watermark";
 import { PrintInfoBlock } from "./print-info-block";
 import { PrintPage } from "./print-page";
 import { PrintSection } from "./print-section";
@@ -52,6 +53,8 @@ export function PrintView(props: {
   const signatures = props.signatures ?? NO_SIGNATURES;
   const vars = buildVarMap(template.variables, values.variables);
 
+  const draft = showsDraftWatermark(status, signatures);
+
   const pageStyle = `@page { size: A4 ${template.page.orientation}; margin: 0; }`;
   const pages = paginate(template.sections);
   const total = pages.length + (template.footer ? 1 : 0);
@@ -68,6 +71,7 @@ export function PrintView(props: {
           total={total}
           serialNo={serialNo}
           status={status}
+          draft={draft}
         >
           {sections.map((section, secIdx) => (
             <PrintSection
@@ -94,6 +98,7 @@ export function PrintView(props: {
           total={total}
           serialNo={serialNo}
           status={status}
+          draft={draft}
         >
           <PrintSignOff footer={template.footer} captured={signatures} />
         </PrintPage>

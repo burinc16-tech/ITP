@@ -99,7 +99,15 @@ export class ResendEmailSender implements EmailSender {
   constructor(
     private readonly apiKey: string,
     private readonly from: string,
-    private readonly fetchImpl: typeof fetch = fetch,
+    // Wrapped, not a bare `fetch` reference. Stored as a field and called as
+    // `this.fetchImpl(...)`, a bare reference is invoked with `this` bound to
+    // this instance rather than the global scope, and the Workers runtime
+    // rejects that with "Illegal invocation: function called with incorrect
+    // `this` reference". It failed only in production: with no API key the
+    // Worker uses ConsoleEmailSender, which never touches fetch, so every local
+    // and test run passed while real sends failed. Matches the wrapper already
+    // used in web/src/data/auth.ts and signoff-api.ts.
+    private readonly fetchImpl: typeof fetch = (input, init) => fetch(input, init),
   ) {}
 
   async send(msg: EmailMessage): Promise<void> {

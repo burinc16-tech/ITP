@@ -152,13 +152,69 @@ body {
   margin-left: 0.4rem;
 }
 
-/* "From register" instrument picker on flagged tables (SPEC §5). */
-.col-register {
-  min-width: 14rem;
+/*
+ * Instrument cell on tables flagged for the calibration register (SPEC §5):
+ * a text input that is also a picker. The menu is fixed-positioned so the
+ * table's horizontal scroll cannot clip it on a phone.
+ */
+.instrument-cell {
+  position: relative;
 }
-.col-register select {
-  width: 100%;
+.instrument-cell-input {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+.instrument-cell-input input {
+  flex: 1;
+  min-width: 0;
+}
+.instrument-cell-toggle {
+  flex: 0 0 auto;
+  width: 2rem;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.instrument-cell-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.instrument-menu {
+  position: fixed;
+  z-index: 20;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem;
+  max-height: 16rem;
+  min-width: 16rem;
+  max-width: min(28rem, calc(100vw - 1.5rem));
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+.instrument-menu li {
+  padding: 0.5rem 0.6rem;
   min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.instrument-menu li.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+.instrument-menu-empty {
+  color: var(--muted);
+  cursor: default;
 }
 .cal-link-warning {
   margin: 0.3rem 0 0;

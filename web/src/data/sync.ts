@@ -379,6 +379,8 @@ interface ServerInstrument {
   id: string;
   serial_no?: string;
   description?: string;
+  make?: string;
+  model?: string;
   cal_cert_url?: string;
   cert_no?: string;
   cal_date?: string;
@@ -392,6 +394,8 @@ function fromServerInstrument(row: ServerInstrument): Instrument {
     id: row.id,
     serial_no: row.serial_no ?? "",
     description: row.description ?? "",
+    make: row.make ?? "",
+    model: row.model ?? "",
     cal_cert_url: row.cal_cert_url ?? "",
     cert_no: row.cert_no ?? "",
     cal_date: row.cal_date ?? "",
@@ -407,6 +411,8 @@ function instrumentBody(instrument: Instrument): Record<string, unknown> {
     id: instrument.id,
     serial_no: instrument.serial_no,
     description: instrument.description,
+    make: instrument.make ?? "",
+    model: instrument.model ?? "",
     cal_cert_url: instrument.cal_cert_url,
     cert_no: instrument.cert_no ?? "",
     cal_date: instrument.cal_date,

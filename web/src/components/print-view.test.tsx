@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { parseTemplate } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
+import type { SignatureView } from "../data/signature";
 import { emptyValues, setHeader, setRowValue } from "../lib/values";
 import { PrintView } from "./print-view";
 
@@ -12,6 +13,24 @@ function filledValues() {
   v = setHeader(v, "doc_no", "ITR-042");
   v = setRowValue(v, "s2_01", "na"); // three-state → prints "N.A."
   return v;
+}
+
+
+function signature(slotId: string): Map<string, SignatureView> {
+  return new Map([
+    [
+      slotId,
+      {
+        slot_id: slotId,
+        role: "Contractor",
+        name: "B. Chotwatanakul",
+        company: "Kenyon Pte Ltd",
+        method: "on_device" as const,
+        signed_at: "2026-08-05T02:00:00.000Z",
+        image_url: "blob:sig",
+      },
+    ],
+  ]);
 }
 
 describe("PrintView", () => {
@@ -61,6 +80,19 @@ describe("PrintView", () => {
       <PrintView template={template} values={filledValues()} status="accepted" serialNo="AMK3-HLT-0007" />,
     );
     expect(accepted.container.querySelectorAll(".print-watermark")).toHaveLength(0);
+  });
+
+  it("drops the watermark once the record carries any signature", () => {
+    const signed = render(
+      <PrintView
+        template={template}
+        values={filledValues()}
+        status="draft"
+        serialNo="AMK3-HLT-0007"
+        signatures={signature("sig_contractor")}
+      />,
+    );
+    expect(signed.container.querySelectorAll(".print-watermark")).toHaveLength(0);
   });
 
   it("renders values as plain text — interpolated steps and the selected result", () => {

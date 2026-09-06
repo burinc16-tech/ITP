@@ -13,6 +13,15 @@ export interface Instrument {
   /** Manufacturer serial or asset number — the field an engineer reads off the tool. */
   serial_no: string;
   description: string;
+  /**
+   * Manufacturer and model as printed on the tool (`MEGGER`, `MIT310`). Kept
+   * apart rather than as one string because the ductwork leakage form asks for
+   * them in separate columns; `lib/instrument-link` joins them for the forms
+   * with a single Make / Model column. Optional so rows written before the
+   * register carried them still load.
+   */
+  make?: string;
+  model?: string;
   /** Reference to the calibration certificate (URL or document ref); may be blank. */
   cal_cert_url: string;
   /**
@@ -45,6 +54,8 @@ export function createInstrument(opts: {
   id: string;
   serialNo: string;
   description?: string;
+  make?: string;
+  model?: string;
   calCertUrl?: string;
   certNo?: string;
   calDate: string;
@@ -56,6 +67,8 @@ export function createInstrument(opts: {
     id: opts.id,
     serial_no: opts.serialNo,
     description: opts.description ?? "",
+    make: opts.make ?? "",
+    model: opts.model ?? "",
     cal_cert_url: opts.calCertUrl ?? "",
     cert_no: opts.certNo ?? "",
     cal_date: opts.calDate,

@@ -100,7 +100,8 @@ These are invariants. Breaking one is a defect even if tests pass.
 - All interactive controls hidden in print; values render as plain text.
 - Kenyon logo embedded base64 in the page header, repeated on every page.
 - Page footer on every page: serial number, template code and rev, page X of Y, status.
-- `DRAFT` watermark on any record not yet `accepted`.
+- `DRAFT` watermark on any record that is unsigned and not yet `accepted` — the
+  first signature removes it (`lib/watermark.ts`, the single place the rule lives).
 - **Verification method:** print the original `Heat_Load_Test_Report.html` to PDF and
   the app's output to PDF, and compare page by page. Matching the original wins over
   any improvement you might prefer.

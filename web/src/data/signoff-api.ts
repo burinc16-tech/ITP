@@ -23,6 +23,20 @@ export interface SignLinkView {
   status: string;
   /** Photo metadata; each image is fetched from the token-gated route (§6, §8). */
   attachments?: { id: string; field_id: string; caption: string }[];
+  /**
+   * Signatures already captured on the record, so the signer sees the same
+   * document the office prints. Metadata only — each image is fetched from the
+   * token-gated route, like attachments.
+   */
+  signatures?: {
+    id: string;
+    slot_id: string;
+    role: string;
+    name: string;
+    company: string;
+    method: string;
+    signed_at: string;
+  }[];
 }
 
 /** Why a link can't be used. `error` is the catch-all (network/5xx/unexpected). */

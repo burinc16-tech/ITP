@@ -392,6 +392,9 @@ export function createApp(deps: AppDeps) {
       id: body.id,
       serial_no: body.serial_no ?? "",
       description: body.description ?? "",
+      // Older clients push neither make nor model; blanks are a valid row.
+      make: body.make ?? "",
+      model: body.model ?? "",
       cal_cert_url: body.cal_cert_url ?? "",
       // An older client pushes no `cert_no`; a blank is a valid register row, so
       // the write is accepted rather than rejected as invalid.
@@ -727,6 +730,7 @@ export function createApp(deps: AppDeps) {
       });
     }
     const photos = await attachments.listByRecord(r.req.record_id);
+    const captured = await signatures.listByRecord(r.req.record_id);
     return c.json({
       record: r.record,
       slot: { slot_id: r.req.slot_id, role: r.req.role },
@@ -736,6 +740,19 @@ export function createApp(deps: AppDeps) {
       // Metadata only — the signer fetches each image from the token-gated route
       // below, so a large photo set doesn't bloat this JSON.
       attachments: photos.map((a) => ({ id: a.id, field_id: a.field_id, caption: a.caption })),
+      // Signatures already on the record, so the signer reviews the same document
+      // the office sees — countersigning a form whose earlier slots print blank is
+      // how a wrong sheet gets signed. Metadata only, images fetched below; the
+      // signer's own IP/email evidence (§6) is never exposed.
+      signatures: captured.map((s) => ({
+        id: s.id,
+        slot_id: s.slot_id,
+        role: s.role,
+        name: s.name,
+        company: s.company,
+        method: s.method,
+        signed_at: s.signed_at,
+      })),
     });
   });
 
@@ -750,6 +767,28 @@ export function createApp(deps: AppDeps) {
       return c.json({ error: "not found" }, 404);
     }
     const bytes = await images.get(att.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
+    });
+  });
+
+  // Serve one captured signature's image bytes, gated by the same single-use
+  // token — the counterpart to the attachment route above, so the sign page can
+  // print the slots that are already signed. The signature must belong to the
+  // linked record.
+  app.get("/api/sign/:token/signatures/:signatureId", async (c) => {
+    const r = await resolve(c.req.param("token"));
+    if (!r.ok) return c.json(r.body, r.status);
+    const sig = await signatures.getById(c.req.param("signatureId"));
+    if (!sig || sig.record_id !== r.req.record_id) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(sig.image_key);
     if (!bytes) return c.json({ error: "not found" }, 404);
     return new Response(bytes as BodyInit, {
       status: 200,

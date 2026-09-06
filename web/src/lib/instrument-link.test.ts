@@ -5,6 +5,7 @@ import {
   applyInstrumentToRow,
   expiredInstrumentWarning,
   instrumentOptionLabel,
+  makeModel,
   matchInstrument,
 } from "./instrument-link";
 
@@ -12,6 +13,8 @@ const clampMeter = createInstrument({
   id: "i1",
   serialNo: "W8045321",
   description: "Clamp Meter",
+  make: "Kyoritsu",
+  model: "KS 2027",
   certNo: "BLE2604334-2",
   calDate: "2026-05-07",
   calDueDate: "2027-05-07",
@@ -29,6 +32,7 @@ describe("instrument-link", () => {
       qty: "1 no",
       remarks: "x",
       description: "Clamp Meter — S/N W8045321",
+      make_model: "Kyoritsu/KS 2027",
       cal_cert: "BLE2604334-2",
     });
   });
@@ -48,7 +52,12 @@ describe("instrument-link", () => {
       [col("instrument"), col("model"), col("serial_no"), col("cal_due", "date")],
       clampMeter,
     );
-    expect(acmv).toEqual({ instrument: "Clamp Meter", serial_no: "W8045321", cal_due: "2027-05-07" });
+    expect(acmv).toEqual({
+      instrument: "Clamp Meter",
+      model: "Kyoritsu/KS 2027",
+      serial_no: "W8045321",
+      cal_due: "2027-05-07",
+    });
 
     // "function" + "cal_cert" (power-turn-on, power/lighting circuit, bolt torque).
     const pto = applyInstrumentToRow(
@@ -56,7 +65,12 @@ describe("instrument-link", () => {
       [col("function"), col("make_model"), col("serial_no"), col("cal_cert")],
       clampMeter,
     );
-    expect(pto).toEqual({ function: "Clamp Meter", serial_no: "W8045321", cal_cert: "BLE2604334-2" });
+    expect(pto).toEqual({
+      function: "Clamp Meter",
+      make_model: "Kyoritsu/KS 2027",
+      serial_no: "W8045321",
+      cal_cert: "BLE2604334-2",
+    });
 
     // "due_date" + "cal_date" (ductwork air leakage).
     const dal = applyInstrumentToRow(
@@ -92,6 +106,37 @@ describe("instrument-link", () => {
     expect(expiredInstrumentWarning(clampMeter, "2027-05-08")).toMatch(
       /expired 2027-05-07/,
     );
+  });
+
+  /**
+   * Make and model are one register field pair but two different column shapes
+   * on the forms: most ask for a single "Make / Model", the ductwork leakage
+   * form asks for each separately. A column that stands alone carries both, so
+   * the manufacturer never falls off the record.
+   */
+  it("splits make and model only where the table has a column for each", () => {
+    const ductwork = applyInstrumentToRow(
+      {},
+      [col("instrument"), col("make"), col("model"), col("serial_no")],
+      clampMeter,
+    );
+    expect(ductwork).toMatchObject({ make: "Kyoritsu", model: "KS 2027" });
+
+    // One column, either spelling — both halves, joined.
+    expect(
+      applyInstrumentToRow({}, [col("make_model")], clampMeter).make_model,
+    ).toBe("Kyoritsu/KS 2027");
+    expect(applyInstrumentToRow({}, [col("model")], clampMeter).model).toBe(
+      "Kyoritsu/KS 2027",
+    );
+  });
+
+  it("joins make and model the way the paper forms are already filled in", () => {
+    expect(makeModel({ make: "MEGGER", model: "MIT310" })).toBe("MEGGER/MIT310");
+    expect(makeModel({ make: "MEGGER", model: "" })).toBe("MEGGER");
+    expect(makeModel({ make: "", model: "MIT310" })).toBe("MIT310");
+    // A register row written before make/model existed carries neither.
+    expect(makeModel({})).toBe("");
   });
 
   it("labels a dropdown option with description and serial", () => {
