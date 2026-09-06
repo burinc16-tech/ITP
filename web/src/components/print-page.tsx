@@ -4,8 +4,9 @@ import { KENYON_LOGO } from "../assets/kenyon-logo";
 import type { RecordStatus } from "../data/record";
 
 /**
- * One printed A4 page: repeated Kenyon header, the page body, a DRAFT watermark
- * on anything not yet `accepted`, and a footer carrying serial no, template code
+ * One printed A4 page: repeated Kenyon header, the page body, the DRAFT
+ * watermark when `draft` is set (decided once per document from
+ * `lib/watermark`), and a footer carrying serial no, template code
  * + rev, page X of Y, and status (CLAUDE.md print rules). Page dimensions come
  * from the template's orientation — never hardcoded, and so does the print
  * density (`page.density`), which tightens a dense form onto one sheet.
@@ -16,16 +17,17 @@ export function PrintPage(props: {
   total: number;
   serialNo: string | null;
   status: RecordStatus;
+  draft: boolean;
   children: ReactNode;
 }): ReactNode {
-  const { template, index, total, serialNo, status, children } = props;
+  const { template, index, total, serialNo, status, draft, children } = props;
   return (
     <section
       className="print-page"
       data-orientation={template.page.orientation}
       data-density={template.page.density ?? "normal"}
     >
-      {status !== "accepted" && (
+      {draft && (
         <div className="print-watermark" aria-hidden="true">
           DRAFT
         </div>

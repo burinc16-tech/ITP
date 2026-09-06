@@ -8,6 +8,7 @@ import {
   RFI_DISCIPLINES,
   type RfiCoverOptions,
 } from "../lib/rfi-cover";
+import { showsDraftWatermark } from "../lib/watermark";
 
 const EMPTY: Map<string, SignatureView> = new Map();
 
@@ -30,13 +31,14 @@ export function PrintRfiCover(props: {
   signatures?: Map<string, SignatureView>;
 }): ReactNode {
   const { template, record, options, status } = props;
-  const data = buildRfiCoverData(template, props.signatures ?? EMPTY, options);
+  const signatures = props.signatures ?? EMPTY;
+  const data = buildRfiCoverData(template, signatures, options);
   const disciplineLabel = (v: string): string =>
     RFI_DISCIPLINES.find((d) => d.value === v)?.label ?? v;
 
   return (
     <section className="print-page rfi-cover-page" data-orientation="portrait">
-      {status !== "accepted" && (
+      {showsDraftWatermark(status, signatures) && (
         <div className="print-watermark" aria-hidden="true">
           DRAFT
         </div>

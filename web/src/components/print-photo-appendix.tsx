@@ -3,7 +3,9 @@ import type { Template } from "@schema";
 import { KENYON_LOGO } from "../assets/kenyon-logo";
 import type { AttachmentView } from "../data/attachment";
 import type { RecordStatus } from "../data/record";
+import type { SignatureView } from "../data/signature";
 import { paginatePhotos, photoRows } from "../lib/photo-appendix";
+import { showsDraftWatermark } from "../lib/watermark";
 
 /**
  * The opt-in photo attachment pages (SPEC §12), printed after the record's
@@ -21,10 +23,12 @@ export function PrintPhotoAppendix(props: {
   photos: AttachmentView[];
   status: RecordStatus;
   serialNo: string | null;
+  signatures?: ReadonlyMap<string, SignatureView>;
 }): ReactNode {
   const { template, photos, status, serialNo } = props;
   if (photos.length === 0) return null;
   const pages = paginatePhotos(photos);
+  const draft = showsDraftWatermark(status, props.signatures);
 
   return (
     <>
@@ -34,7 +38,7 @@ export function PrintPhotoAppendix(props: {
           className="print-page photo-appendix-page"
           data-orientation="portrait"
         >
-          {status !== "accepted" && (
+          {draft && (
             <div className="print-watermark" aria-hidden="true">
               DRAFT
             </div>

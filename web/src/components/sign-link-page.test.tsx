@@ -63,6 +63,44 @@ describe("SignLinkPage", () => {
     expect(await screen.findByText(/has expired/)).toBeInTheDocument();
   });
 
+  it("watermarks DRAFT while the document is unsigned", async () => {
+    const f = vi.fn().mockResolvedValue(R(200, view));
+    const { container } = render(
+      <SignLinkPage token="tok" baseUrl="http://api" templates={[heatLoad]} fetchImpl={f} />,
+    );
+    await screen.findByText(/Signature requested/);
+    expect(container.querySelectorAll(".print-watermark").length).toBeGreaterThan(0);
+  });
+
+  it("prints an already-captured signature and drops the watermark", async () => {
+    const signedView = {
+      ...view,
+      signatures: [
+        {
+          id: "sg1",
+          slot_id: "sig_tested",
+          role: "Inspection / Tested by",
+          name: "Burin",
+          company: "Kenyon Pte Ltd",
+          method: "on_device",
+          signed_at: "2026-08-05T02:00:00.000Z",
+        },
+      ],
+    };
+    const f = vi.fn().mockResolvedValue(R(200, signedView));
+    const { container } = render(
+      <SignLinkPage token="tok" baseUrl="http://api" templates={[heatLoad]} fetchImpl={f} />,
+    );
+    await screen.findByText(/Signature requested/);
+
+    // The contractor's signature prints in its slot, fetched through the token.
+    const img = container.querySelector(".print-sign-img");
+    expect(img).toHaveAttribute("src", "http://api/api/sign/tok/signatures/sg1");
+    expect(screen.getAllByText("Burin").length).toBeGreaterThan(0);
+    // …and the signer no longer sees a DRAFT sheet.
+    expect(container.querySelectorAll(".print-watermark")).toHaveLength(0);
+  });
+
   it("shows photo evidence via the token-gated image URL", async () => {
     const idfRecord = {
       ...createDraft(idf, { id: "r2", now: "2026-08-04T00:00:00.000Z", createdBy: "u" }),

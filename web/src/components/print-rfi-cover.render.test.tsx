@@ -36,6 +36,23 @@ function options(): RfiCoverOptions {
   };
 }
 
+function signed(): Map<string, SignatureView> {
+  return new Map([
+    [
+      "sig_tested",
+      {
+        slot_id: "sig_tested",
+        role: "Inspection / Tested by",
+        name: "Burin",
+        company: "Kenyon Pte Ltd",
+        method: "on_device" as const,
+        signed_at: "2026-07-03T02:00:00.000Z",
+        image_url: "blob:sig",
+      },
+    ],
+  ]);
+}
+
 describe("PrintRfiCover", () => {
   it("renders as a single A4 portrait page", () => {
     const { container } = render(
@@ -163,5 +180,18 @@ describe("PrintRfiCover", () => {
     expect(
       accepted.container.querySelectorAll(".print-watermark"),
     ).toHaveLength(0);
+  });
+
+  it("drops the watermark once the record carries any signature", () => {
+    const { container } = render(
+      <PrintRfiCover
+        template={template}
+        record={draft()}
+        options={options()}
+        status="draft"
+        signatures={signed()}
+      />,
+    );
+    expect(container.querySelectorAll(".print-watermark")).toHaveLength(0);
   });
 });

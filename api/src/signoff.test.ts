@@ -431,6 +431,81 @@ describe("remote sign-off — revoke", () => {
   });
 });
 
+describe("remote sign-off — existing signatures on the open view", () => {
+  async function seedSignature(h: Awaited<ReturnType<typeof harness>>) {
+    await h.images.put("signatures/r1/sg1", new Uint8Array([137, 80, 3, 4]), "image/png");
+    await h.signatures.add({
+      id: "sg1",
+      record_id: "r1",
+      slot_id: "sig_tested",
+      role: "Inspection / Tested by",
+      name: "Burin",
+      company: "Kenyon Pte Ltd",
+      method: "on_device",
+      signed_by_user: "u-site_engineer",
+      device_id: "d1",
+      image_key: "signatures/r1/sg1",
+      signed_at: "2026-08-05T02:00:00.000Z",
+      signer_email: null,
+      signer_ip: null,
+    });
+  }
+
+  it("lists the record's captured signatures without leaking signer evidence", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedSignature(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}`);
+    const view = (await res.json()) as {
+      signatures: Record<string, unknown>[];
+    };
+    expect(view.signatures).toEqual([
+      {
+        id: "sg1",
+        slot_id: "sig_tested",
+        role: "Inspection / Tested by",
+        name: "Burin",
+        company: "Kenyon Pte Ltd",
+        method: "on_device",
+        signed_at: "2026-08-05T02:00:00.000Z",
+      },
+    ]);
+    // Signer IP / email / device are §6 evidence — never sent to another signer.
+    expect(JSON.stringify(view.signatures)).not.toContain("signer_ip");
+    expect(JSON.stringify(view.signatures)).not.toContain("d1");
+  });
+
+  it("serves a signature image through the token-gated route", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedSignature(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}/signatures/sg1`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([137, 80, 3, 4]));
+  });
+
+  it("404s a signature that isn't on the linked record", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedSignature(h);
+    const { body } = await issue(h.app);
+    const res = await h.app.request(`/api/sign/${body.token}/signatures/ghost`);
+    expect(res.status).toBe(404);
+  });
+
+  it("refuses a signature image on an unknown token", async () => {
+    const h = await harness();
+    await seedRecord(h.store);
+    await seedSignature(h);
+    await issue(h.app);
+    const res = await h.app.request("/api/sign/deadbeef/signatures/sg1");
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("remote sign-off — photo evidence (§6, §8)", () => {
   async function seedPhoto(h: Awaited<ReturnType<typeof harness>>) {
     await h.images.put("attachments/r1/at1", new Uint8Array([137, 80, 1, 2]), "image/png");

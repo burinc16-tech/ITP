@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
 import type { AttachmentView } from "../data/attachment";
 import { templateFor } from "../data/record";
-import { formatSignedAt } from "../data/signature";
+import { formatSignedAt, type SignatureView } from "../data/signature";
 import {
   openSignLink,
   rejectSignLink,
@@ -188,6 +188,22 @@ export function SignLinkPage(props: {
     else photos.set(a.field_id, [entry]);
   }
 
+  // Signatures already on the record, keyed by slot as the print view expects and
+  // with images from the same token-gated route. Passing these is what lets the
+  // shared watermark rule drop DRAFT here exactly as it does in the app.
+  const signatures = new Map<string, SignatureView>();
+  for (const s of view.signatures ?? []) {
+    signatures.set(s.slot_id, {
+      slot_id: s.slot_id,
+      role: s.role,
+      name: s.name,
+      company: s.company,
+      method: s.method === "remote_link" ? "remote_link" : "on_device",
+      signed_at: s.signed_at,
+      image_url: `${apiBase}/api/sign/${token}/signatures/${s.id}`,
+    });
+  }
+
   return (
     <Shell>
       <div className="sign-page-intro">
@@ -205,6 +221,7 @@ export function SignLinkPage(props: {
           values={values}
           status={view.record.status}
           serialNo={view.record.serial_no ?? null}
+          signatures={signatures}
           attachments={photos}
         />
       </div>

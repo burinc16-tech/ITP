@@ -355,6 +355,10 @@ Rules that apply to path B:
   and must be reissued. A signer must never sign a version that later changed.
 - The link page is read-only. It exposes one record — never a project, a register,
   or any navigation.
+- The link page shows the record **as the office prints it**: photo evidence and any
+  signatures already captured, both fetched through the same token-gated routes, so
+  the watermark rule in §7 reads the same there as in the app. Metadata only — a
+  signer never receives another signer's IP, email, or device id.
 - Every transition (issued, opened, signed, rejected, expired, revoked) is written
   to `AuditLog`.
 - Rejection carries a reason and returns the record to `rejected` (§6 table).
@@ -386,7 +390,9 @@ existing paper form.** Consultants reject unfamiliar layouts.
 - All interactive controls hidden in print; values render as plain text.
 - Kenyon logo embedded base64 in the header.
 - Footer on every page: serial number, template code + rev, page X of Y, status.
-- Watermark `DRAFT` diagonally across any record not yet `accepted`.
+- Watermark `DRAFT` diagonally across any record that is unsigned and not yet
+  `accepted`. The first captured signature removes it: a contractor-signed record
+  is issued for inspection long before acceptance and must not print as a draft.
 - Signatures render as the captured image plus printed name, company, and timestamp.
 - Batch export: select many records by filter, produce one merged PDF for a
   turnover package.

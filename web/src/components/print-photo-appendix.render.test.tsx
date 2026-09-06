@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { parseTemplate } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
 import type { AttachmentView } from "../data/attachment";
+import type { SignatureView } from "../data/signature";
 import { PHOTO_APPENDIX_FIELD } from "../lib/photo-appendix";
 import { PrintPhotoAppendix } from "./print-photo-appendix";
 
@@ -15,6 +16,24 @@ const photos = (n: number): AttachmentView[] =>
     caption: `Location: L${i + 1}\nDate:\nTime:`,
     image_url: `blob:p${i + 1}`,
   }));
+
+
+function signature(slotId: string): Map<string, SignatureView> {
+  return new Map([
+    [
+      slotId,
+      {
+        slot_id: slotId,
+        role: "Contractor",
+        name: "B. Chotwatanakul",
+        company: "Kenyon Pte Ltd",
+        method: "on_device" as const,
+        signed_at: "2026-08-05T02:00:00.000Z",
+        image_url: "blob:sig",
+      },
+    ],
+  ]);
+}
 
 describe("PrintPhotoAppendix", () => {
   it("renders nothing when the record has no appendix photos", () => {
@@ -81,5 +100,18 @@ describe("PrintPhotoAppendix", () => {
       <PrintPhotoAppendix template={template} photos={photos(1)} status="accepted" serialNo={null} />,
     );
     expect(accepted.querySelectorAll(".print-watermark")).toHaveLength(0);
+  });
+
+  it("drops the watermark once the record carries any signature", () => {
+    const { container } = render(
+      <PrintPhotoAppendix
+        template={template}
+        photos={photos(1)}
+        status="draft"
+        serialNo={null}
+        signatures={signature("sig_contractor")}
+      />,
+    );
+    expect(container.querySelectorAll(".print-watermark")).toHaveLength(0);
   });
 });

@@ -892,6 +892,7 @@ export function RecordForm(props: {
             photos={appendixPhotos(attachments)}
             status={record.status}
             serialNo={record.serial_no}
+            signatures={signatures}
           />
         </div>
       )}
