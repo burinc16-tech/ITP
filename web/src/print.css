@@ -336,9 +336,10 @@
   height: 28mm;
 }
 /* A captured signature (SPEC §7): the ink over a solid border, no dashed box.
-   The ink fills the box — a signature reproduced small is hard to compare
-   against a wet-ink original, so it is scaled up to the pad, keeping its aspect
-   ratio and a hairline of clearance from the border. */
+   A signature reproduced small is hard to compare against a wet-ink original,
+   so the image is first cropped to its ink (lib/trim-signature.ts, applied when
+   the stored PNG becomes a view URL) and then drawn at 70% of the pad on its
+   longer axis, centred, keeping its aspect ratio. */
 .print-sign-pad-filled {
   border: 1px solid #1a1a1a;
   border-radius: 0;
@@ -349,8 +350,8 @@
   padding: 0.8mm;
 }
 .print-sign-img {
-  width: 100%;
-  height: 100%;
+  width: 70%;
+  height: 70%;
   object-fit: contain;
 }
 

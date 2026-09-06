@@ -42,6 +42,7 @@ import { buildContextSnapshot } from "../lib/context-snapshot";
 import { dataUrlToBlob } from "../lib/data-url";
 import { downscaleImage } from "../lib/downscale-image";
 import { appendixPhotos } from "../lib/photo-appendix";
+import { trimSignature } from "../lib/trim-signature";
 import {
   defaultCoverOptions,
   RFI_DISCIPLINES,
@@ -254,11 +255,14 @@ export function RecordForm(props: {
   const refreshSignatures = useCallback(
     async (recordId: string) => {
       const rows = await signaturesRepo.listByRecord(recordId);
+      // Displayed (and printed) cropped to the ink so the pad shows it at size;
+      // the stored blob itself is untouched evidence (Hard Rule #6).
+      const images = await Promise.all(rows.map((s) => trimSignature(s.image)));
       for (const url of imageUrls.current) URL.revokeObjectURL(url);
       const urls: string[] = [];
       const map = new Map<string, SignatureView>();
-      for (const s of rows) {
-        const url = URL.createObjectURL(s.image);
+      for (const [i, s] of rows.entries()) {
+        const url = URL.createObjectURL(images[i]!);
         urls.push(url);
         map.set(s.slot_id, {
           slot_id: s.slot_id,

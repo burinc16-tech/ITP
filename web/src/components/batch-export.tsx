@@ -6,6 +6,7 @@ import { templateFor, type ChecklistRecord } from "../data/record";
 import type { RecordsRepo } from "../data/records-repo";
 import type { SignaturesRepo } from "../data/signatures-repo";
 import type { SignatureView } from "../data/signature";
+import { trimSignature } from "../lib/trim-signature";
 import { PrintView } from "./print-view";
 
 interface ExportRecord {
@@ -52,7 +53,8 @@ export function BatchExport(props: {
         }
         const signatures = new Map<string, SignatureView>();
         for (const s of await signaturesRepo.listByRecord(id)) {
-          const url = URL.createObjectURL(s.image);
+          // Cropped to the ink for display; the stored blob is untouched evidence.
+          const url = URL.createObjectURL(await trimSignature(s.image));
           urls.push(url);
           signatures.set(s.slot_id, {
             slot_id: s.slot_id,
