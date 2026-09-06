@@ -3,6 +3,7 @@ import type { Template } from "@schema";
 import type { AttachmentView } from "../data/attachment";
 import { templateFor } from "../data/record";
 import { formatSignedAt, type SignatureView } from "../data/signature";
+import { trimSignature } from "../lib/trim-signature";
 import {
   openSignLink,
   rejectSignLink,
@@ -53,6 +54,13 @@ export function SignLinkPage(props: {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Object URLs of the record's existing signatures, cropped to their ink the
+  // same way the app displays them (lib/trim-signature.ts), keyed by signature
+  // id. Until a crop lands, or when the fetch fails, the token-gated API URL is
+  // shown untrimmed instead.
+  const [croppedSignatures, setCroppedSignatures] = useState<Map<string, string>>(
+    () => new Map(),
+  );
 
   useEffect(() => {
     let alive = true;
@@ -73,6 +81,40 @@ export function SignLinkPage(props: {
       alive = false;
     };
   }, [baseUrl, token, fetchImpl]);
+
+  useEffect(() => {
+    const sigs = view?.signatures ?? [];
+    if (sigs.length === 0) return;
+    let alive = true;
+    const urls: string[] = [];
+    const doFetch: typeof fetch = fetchImpl ?? ((input, init) => fetch(input, init));
+    const apiBase = baseUrl.replace(/\/$/, "");
+    void (async () => {
+      const entries = await Promise.all(
+        sigs.map(async (s): Promise<[string, string] | null> => {
+          try {
+            const res = await doFetch(`${apiBase}/api/sign/${token}/signatures/${s.id}`);
+            if (!res.ok) return null;
+            const url = URL.createObjectURL(await trimSignature(await res.blob()));
+            urls.push(url);
+            return [s.id, url];
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const found = entries.filter((e): e is [string, string] => e !== null);
+      if (!alive) {
+        for (const u of urls) URL.revokeObjectURL(u);
+        return;
+      }
+      if (found.length > 0) setCroppedSignatures(new Map(found));
+    })();
+    return () => {
+      alive = false;
+      for (const u of urls) URL.revokeObjectURL(u);
+    };
+  }, [view, baseUrl, token, fetchImpl]);
 
   const failMessage = (kind: SignLinkError): void => {
     // A closed/expired/version error means the link is now dead — surface it as a
@@ -188,9 +230,10 @@ export function SignLinkPage(props: {
     else photos.set(a.field_id, [entry]);
   }
 
-  // Signatures already on the record, keyed by slot as the print view expects and
-  // with images from the same token-gated route. Passing these is what lets the
-  // shared watermark rule drop DRAFT here exactly as it does in the app.
+  // Signatures already on the record, keyed by slot as the print view expects,
+  // with images cropped to the ink where that has landed and otherwise straight
+  // from the same token-gated route. Passing these is what lets the shared
+  // watermark rule drop DRAFT here exactly as it does in the app.
   const signatures = new Map<string, SignatureView>();
   for (const s of view.signatures ?? []) {
     signatures.set(s.slot_id, {
@@ -200,7 +243,8 @@ export function SignLinkPage(props: {
       company: s.company,
       method: s.method === "remote_link" ? "remote_link" : "on_device",
       signed_at: s.signed_at,
-      image_url: `${apiBase}/api/sign/${token}/signatures/${s.id}`,
+      image_url:
+        croppedSignatures.get(s.id) ?? `${apiBase}/api/sign/${token}/signatures/${s.id}`,
     });
   }
 

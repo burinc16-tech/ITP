@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { parseTemplate } from "@schema";
 import heatLoadRaw from "../../../spec/templates/heat-load-test.json";
@@ -119,5 +119,41 @@ describe("SignLinkPage", () => {
 
     const img = await screen.findByAltText("north wall");
     expect(img).toHaveAttribute("src", "http://api/api/sign/tok/attachments/at1");
+  });
+
+  it("shows an existing signature cropped once its image has been fetched", async () => {
+    const signedView = {
+      ...view,
+      signatures: [
+        {
+          id: "sg1",
+          slot_id: "sig_tested",
+          role: "Inspection / Tested by",
+          name: "Burin",
+          company: "Kenyon Pte Ltd",
+          method: "on_device",
+          signed_at: "2026-08-05T02:00:00.000Z",
+        },
+      ],
+    };
+    const png = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const f = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/signatures/sg1")) {
+        return { ok: true, status: 200, blob: async () => png } as unknown as Response;
+      }
+      return R(200, signedView);
+    });
+    const { container } = render(
+      <SignLinkPage token="tok" baseUrl="http://api" templates={[heatLoad]} fetchImpl={f} />,
+    );
+    await screen.findByText(/Signature requested/);
+
+    // The image is fetched through the token, cropped (a no-op crop under jsdom,
+    // which has no canvas), and shown from an object URL instead of the API URL.
+    await waitFor(() =>
+      expect(container.querySelector(".print-sign-img")).toHaveAttribute("src", "blob:test"),
+    );
+    expect(f).toHaveBeenCalledWith("http://api/api/sign/tok/signatures/sg1");
   });
 });
