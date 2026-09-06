@@ -243,6 +243,14 @@ export function createApp(deps: AppDeps) {
 
   app.get("/api/auth/me", requireUser, (c) => c.json({ user: publicUser(c.get("user")) }));
 
+  // The user directory: who is who, for the register to show a creator NAME
+  // where the record only stores the creator id. Any signed-in user may read it
+  // (colleagues on the same jobs); never the email or password hash.
+  app.get("/api/users", requireUser, async (c) => {
+    const all = await users.list();
+    return c.json({ users: all.map((u) => ({ id: u.id, name: u.name, role: u.role })) });
+  });
+
   app.get("/api/health", (c) => c.json({ ok: true }));
 
   // --- Record sync (task 1) ------------------------------------------------

@@ -290,4 +290,28 @@ describe("Register delete", () => {
       confirm.mockRestore();
     }
   });
+
+  it("shows the creator name from the user directory, else the stored id", async () => {
+    const repo = await seed([draft(heatLoad)]);
+    const { unmount } = render(
+      <Register
+        repo={repo}
+        registryRepo={emptyRegistry}
+        signaturesRepo={emptySignatures}
+        sync={passSync}
+        templates={templates}
+        onOpen={vi.fn()}
+        onNewRecord={vi.fn()}
+        onExport={vi.fn()}
+        userNames={new Map([["eng", "Ellie Ng"]])}
+      />,
+    );
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("Ellie Ng")).toBeInTheDocument();
+    expect(within(table).queryByText("eng")).toBeNull();
+    unmount();
+
+    render(<Register repo={repo} registryRepo={emptyRegistry} signaturesRepo={emptySignatures} sync={passSync} templates={templates} onOpen={vi.fn()} onNewRecord={vi.fn()} onExport={vi.fn()} />);
+    expect(within(await screen.findByRole("table")).getByText("eng")).toBeInTheDocument();
+  });
 });

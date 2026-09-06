@@ -14,6 +14,13 @@ export interface AuthUser {
   role: Role;
 }
 
+/** A directory entry: who a stored user id is. Never carries the email. */
+export interface DirectoryUser {
+  id: string;
+  name: string;
+  role: Role;
+}
+
 export interface Session {
   token: string;
   user: AuthUser;
@@ -58,6 +65,23 @@ export class AuthClient {
     }
   }
 
+  /**
+   * Every user the server knows (id, name, role): the directory behind the
+   * register BY column, which otherwise shows the raw creator id. Null when the
+   * call fails so the caller keeps whatever directory it last cached.
+   */
+  async listUsers(token: string): Promise<DirectoryUser[] | null> {
+    try {
+      const res = await this.fetchImpl(`${trimBase(this.baseUrl)}/api/users`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      return ((await res.json()) as { users: DirectoryUser[] }).users;
+    } catch {
+      return null;
+    }
+  }
+
   /** Best-effort logout; the local session is cleared regardless by the caller. */
   async logout(token: string): Promise<void> {
     try {
@@ -89,4 +113,41 @@ export function loadStoredToken(): string | null {
   } catch {
     return null;
   }
+}
+
+const DIRECTORY_KEY = "itp-itr-user-directory";
+
+/**
+ * Cache the user directory so names resolve offline and on the first render
+ * after a reload, before the login backfill has re-fetched it.
+ */
+export function storeUserDirectory(users: DirectoryUser[]): void {
+  try {
+    localStorage.setItem(DIRECTORY_KEY, JSON.stringify(users));
+  } catch {
+    // Storage unavailable: the directory lives in memory for this run only.
+  }
+}
+
+export function loadUserDirectory(): DirectoryUser[] {
+  try {
+    const raw = localStorage.getItem(DIRECTORY_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (u): u is DirectoryUser =>
+        typeof u === "object" &&
+        u !== null &&
+        typeof (u as DirectoryUser).id === "string" &&
+        typeof (u as DirectoryUser).name === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** id -> display name, the shape the register consumes. */
+export function userNameMap(users: DirectoryUser[]): Map<string, string> {
+  return new Map(users.map((u) => [u.id, u.name]));
 }

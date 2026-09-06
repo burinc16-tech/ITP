@@ -32,6 +32,16 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
 });
 
 /**
+ * The BY column: the creator name from the user directory, or the stored id
+ * when the directory has not seen that user (fetched before they were added, or
+ * no directory at all in local-only mode). Never blank for a known creator.
+ */
+function creatorName(id: string | null, names?: ReadonlyMap<string, string>): string {
+  if (!id) return "—";
+  return names?.get(id) ?? id;
+}
+
+/**
  * The ITR register (SPEC §10 screen 3): every record, filterable, opened into the
  * form. The hub of the register-first navigation. Columns are limited to what
  * exists client-side today — project/system/equipment entities and server-side
@@ -46,9 +56,20 @@ export function Register(props: {
   onOpen: (record: ChecklistRecord) => void;
   onNewRecord: () => void;
   onExport: (ids: string[]) => void;
+  /** id -> name for the BY column; a missing directory falls back to the id. */
+  userNames?: ReadonlyMap<string, string>;
 }): ReactNode {
-  const { repo, registryRepo, signaturesRepo, sync, templates, onOpen, onNewRecord, onExport } =
-    props;
+  const {
+    repo,
+    registryRepo,
+    signaturesRepo,
+    sync,
+    templates,
+    onOpen,
+    onNewRecord,
+    onExport,
+    userNames,
+  } = props;
   const [records, setRecords] = useState<ChecklistRecord[] | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [systems, setSystems] = useState<SystemNode[]>([]);
@@ -292,7 +313,7 @@ export function Register(props: {
                   </td>
                   <td>{r.serial_no ?? "—"}</td>
                   <td>{DATE_FORMAT.format(new Date(r.updated_at))}</td>
-                  <td>{r.created_by ?? "—"}</td>
+                  <td>{creatorName(r.created_by, userNames)}</td>
                   <td className="register-row-actions">
                     <button
                       type="button"

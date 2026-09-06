@@ -867,6 +867,8 @@ export interface User {
 export interface UserStore {
   getByEmail(email: string): Promise<User | null>;
   getById(id: string): Promise<User | null>;
+  /** Every user, for the client-side name directory (the register BY column). */
+  list(): Promise<User[]>;
   create(user: User): Promise<void>;
 }
 
@@ -902,6 +904,13 @@ export class D1UserStore implements UserStore {
       .bind(id)
       .first<User>();
     return row ?? null;
+  }
+
+  async list(): Promise<User[]> {
+    const { results } = await this.db
+      .prepare("SELECT id, email, name, role, password_hash, created_at FROM users ORDER BY name")
+      .all<User>();
+    return results;
   }
 
   async create(user: User): Promise<void> {
@@ -961,6 +970,11 @@ export class MemoryUserStore implements UserStore {
   async getById(id: string): Promise<User | null> {
     const u = this.byId.get(id);
     return u ? { ...u } : null;
+  }
+  async list(): Promise<User[]> {
+    return [...this.byId.values()]
+      .map((u) => ({ ...u }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
   async create(user: User): Promise<void> {
     this.byId.set(user.id, { ...user, email: user.email.toLowerCase() });

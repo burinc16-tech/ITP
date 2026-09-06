@@ -16,7 +16,15 @@ import { RecordForm } from "./components/record-form";
 import { Register } from "./components/register";
 import { AttachmentsRepo } from "./data/attachments-repo";
 import { AuditRepo } from "./data/audit-repo";
-import { AuthClient, loadStoredToken, storeToken, type Session } from "./data/auth";
+import {
+  AuthClient,
+  loadStoredToken,
+  loadUserDirectory,
+  storeToken,
+  storeUserDirectory,
+  userNameMap,
+  type Session,
+} from "./data/auth";
 import { ChecklistDb } from "./data/db";
 import { InstrumentsRepo } from "./data/instruments-repo";
 import { RegistryRepo } from "./data/registry-repo";
@@ -127,6 +135,11 @@ export function App(): ReactNode {
   // Bumped when a login backfill lands (records pull + registry syncDown), so
   // the visible view re-reads the local store it rendered from before the merge.
   const [dataEpoch, setDataEpoch] = useState(0);
+  // User directory (id -> name) for the register BY column. Seeded from the
+  // last cached copy so names resolve offline; refreshed on every login.
+  const [userNames, setUserNames] = useState<Map<string, string>>(() =>
+    userNameMap(loadUserDirectory()),
+  );
 
   const applySession = (next: Session | null) => {
     sessionToken = next?.token ?? null;
@@ -183,10 +196,18 @@ export function App(): ReactNode {
   useEffect(() => {
     if (!queuedSync || !session) return;
     let alive = true;
+    // The signed-in user is always resolvable, even before the directory fetch
+    // lands or when it fails, so their own records never show a raw id.
+    setUserNames((prev) => new Map(prev).set(session.user.id, session.user.name));
     void (async () => {
       const remote = await queuedSync.pullRecords();
       if (remote && alive) await repo.mergeRemote(remote);
       await registryRepo.syncDown();
+      const users = authClient ? await authClient.listUsers(session.token) : null;
+      if (users && alive) {
+        storeUserDirectory(users);
+        setUserNames(userNameMap(users));
+      }
       if (alive) setDataEpoch((e) => e + 1);
     })();
     return () => {
@@ -306,6 +327,7 @@ export function App(): ReactNode {
             onOpen={openRecord}
             onNewRecord={() => setNewDialog({})}
             onExport={(ids) => setView({ kind: "batch", ids })}
+            userNames={userNames}
           />
         ) : view.kind === "dashboard" ? (
           <Dashboard
