@@ -247,6 +247,7 @@ export function CalibrationRegister(props: {
           No instruments yet. Add the test equipment used on this project.
         </p>
       ) : (
+        <div className="table-scroll">
         <table className="cal-table">
           <thead>
             <tr>
@@ -309,6 +310,7 @@ export function CalibrationRegister(props: {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

@@ -70,6 +70,12 @@ body {
   margin: 0 auto;
   padding: 1rem;
 }
+/* Table-heavy list screens (ITR register, calibration register) get a wider
+   column so their many columns fit without a scroller on a desktop window.
+   Whatever still overflows scrolls inside .table-scroll, never the page. */
+.app-main-wide {
+  max-width: 1280px;
+}
 
 .template-form {
   display: flex;

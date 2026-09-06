@@ -224,6 +224,7 @@ export function Register(props: {
       ) : filtered.length === 0 ? (
         <p className="register-empty">No records yet. Create one above.</p>
       ) : (
+        <div className="table-scroll">
         <table className="register-table">
           <thead>
             <tr>
@@ -315,6 +316,7 @@ export function Register(props: {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

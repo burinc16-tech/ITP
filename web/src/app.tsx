@@ -288,7 +288,14 @@ export function App(): ReactNode {
           )}
         </div>
       </header>
-      <main className="app-main" key={dataEpoch}>
+      <main
+        className={
+          view.kind === "register" || view.kind === "calibration"
+            ? "app-main app-main-wide"
+            : "app-main"
+        }
+        key={dataEpoch}
+      >
         {view.kind === "register" ? (
           <Register
             repo={repo}
