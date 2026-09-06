@@ -19,15 +19,24 @@ bucket_name = "itp-itr-signatures"
 # Auth (task 4): privileged endpoints require a bearer session from
 # POST /api/auth/login — no shared secret. Seed users with scripts/create-user.mjs.
 #
-# Email (task 3): set a Resend API key as a secret and a verified From address to
-# actually send signing links. When RESEND_API_KEY/EMAIL_FROM are unset, the
-# Worker logs the link to the console instead of sending (safe local default).
-#   wrangler secret put RESEND_API_KEY
-#   EMAIL_FROM must be a From on a domain verified in Resend.
+# Email (task 3): real sending needs BOTH RESEND_API_KEY and EMAIL_FROM on `env`.
+# With either missing the Worker logs the signing link instead of sending it —
+# a safe default, but it means a silent misconfiguration looks like "no email".
+#
+# Set BOTH as secrets, not as a [vars] entry:
+#   node ./node_modules/wrangler/bin/wrangler.js secret put RESEND_API_KEY --config api/wrangler.toml
+#   node ./node_modules/wrangler/bin/wrangler.js secret put EMAIL_FROM     --config api/wrangler.toml
+#
+# EMAIL_FROM is not secret, so a [vars] entry would be the natural home — but
+# changing a var requires `wrangler deploy`, which re-bundles whatever source is
+# in the working tree. Secrets update the bindings on the already-deployed
+# script without touching its code, so email can be turned on without shipping
+# in-progress work. Use a From on a domain verified in Resend, currently
+# send.full-defects.com — e.g. "Kenyon T&C <no-reply@send.full-defects.com>".
 [vars]
-# Public base URL of the frontend that serves the /sign/:token page (it runs on
-# this PC behind the Cloudflare tunnel at itp.full-defects.com). Used to build the
-# emailed/issued signing links; without it, links fall back to the Worker's own
-# origin (…workers.dev), which does NOT serve the /sign page.
+# Public base URL of the frontend that serves the /sign/:token page. Since
+# 4 Sep 2026 that is the itp-itr-web Worker (see ../wrangler.web.toml), not the
+# old vite preview behind the tunnel — same hostname, different server. Used to
+# build the emailed/issued signing links; without it, links fall back to the
+# Worker's own origin (…workers.dev), which does NOT serve the /sign page.
 SIGN_BASE_URL = "https://itp.full-defects.com"
-# EMAIL_FROM = "Kenyon T&C <no-reply@your-domain>"
