@@ -88,6 +88,12 @@ export interface SyncLayer {
   pullSignatures(recordId: string): Promise<SignatureMeta[] | null>;
   /** Fetch one signature's PNG bytes (with auth), or null. Best-effort. */
   pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null>;
+  /**
+   * Every record id the server holds a signature for, or null when unavailable/
+   * offline/local-only. The register's delete guard (Hard Rule #6) for records
+   * signed on another device and never opened here. Best-effort.
+   */
+  pullSignedRecordIds(): Promise<string[] | null>;
   /** Push an audit entry the client authored (SPEC §9). Best-effort. */
   pushAudit(entry: AuditEntry): Promise<void>;
   /** Push a captured photo attachment (SPEC §8). Best-effort. */
@@ -150,6 +156,11 @@ export class PassthroughSync implements SyncLayer {
   }
 
   async pullSignatureImage(_recordId: string, _signatureId: string): Promise<Blob | null> {
+    return null;
+  }
+
+  async pullSignedRecordIds(): Promise<string[] | null> {
+    // Local-only mode: there is no server to read from.
     return null;
   }
 
@@ -339,6 +350,14 @@ export class ApiSync implements SyncLayer {
     } catch (err) {
       console.warn("audit push failed (kept locally)", err);
     }
+  }
+
+  async pullSignedRecordIds(): Promise<string[] | null> {
+    const body = await getJson<{ record_ids: string[] }>(
+      `${this.baseUrl}/api/records/signed`,
+      this.authHeader(),
+    );
+    return body?.record_ids ?? null;
   }
 
   async pushAttachment(attachment: Attachment): Promise<void> {
@@ -684,6 +703,13 @@ export class ApiTransport implements Transport {
       headers: { "content-type": "application/json", ...this.authHeader() },
       body: JSON.stringify(record),
     });
+    // A 409 on a record push is the server refusing the record's OWN state —
+    // a locked (accepted/rejected) record, or a delete of signed evidence (Hard
+    // Rule #6) — not a malformed request. That is a lock conflict in all but
+    // name: the write must not be retried, and the local copy must be
+    // reconciled to the server's, or last-write-wins keeps the refused copy
+    // forever (it carries the newer `updated_at`). Report it as one.
+    if (res.status === 409) return { applied: false, conflict: true };
     if (classifyResponse(res, "record push") === "terminal") {
       return { applied: false, conflict: false };
     }
@@ -740,6 +766,14 @@ export class ApiTransport implements Transport {
       body: JSON.stringify(entry),
     });
     classifyResponse(res, "audit push");
+  }
+
+  async pullSignedRecordIds(): Promise<string[] | null> {
+    const body = await getJson<{ record_ids: string[] }>(
+      `${this.baseUrl}/api/records/signed`,
+      this.authHeader(),
+    );
+    return body?.record_ids ?? null;
   }
 
   async pushAttachment(attachment: Attachment): Promise<void> {

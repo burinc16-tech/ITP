@@ -290,6 +290,16 @@ export function createApp(deps: AppDeps) {
     return c.json({ records: await store.list() });
   });
 
+  // Every record id that carries a signature, for the register's delete guard
+  // (Hard Rule #6). The guard otherwise reads the device's OWN signature store,
+  // which knows nothing about a record signed elsewhere and never opened here —
+  // so Delete was offered on it, the tombstone was refused below, and the
+  // record vanished from that one device. Registered before :id for the same
+  // reason as the list route.
+  app.get("/api/records/signed", requireUser, async (c) => {
+    return c.json({ record_ids: await signatures.signedRecordIds() });
+  });
+
   app.get("/api/records/:id", requireUser, async (c) => {
     const record = await store.get(c.req.param("id"));
     if (!record) return c.json({ error: "not found" }, 404);

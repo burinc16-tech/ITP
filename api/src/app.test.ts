@@ -252,3 +252,69 @@ describe("api record delete tombstones", () => {
     expect(((await get.json()) as { deleted?: boolean }).deleted).toBeUndefined();
   });
 });
+
+/**
+ * The register's delete guard reads the device's own signature store, which
+ * knows nothing about a record signed elsewhere and never opened here. This
+ * route is the server's answer to "which records are evidence?" (Hard Rule #6).
+ */
+describe("api GET /api/records/signed", () => {
+  async function withSignatures() {
+    const store = new MemoryRecordStore();
+    const users = new MemoryUserStore();
+    const sessions = new MemorySessionStore();
+    const signatures = new MemorySignatureStore();
+    await users.create({
+      id: "u1", email: "eng@site.co", name: "Eng", role: "site_engineer",
+      password_hash: "x", created_at: "t",
+    });
+    await sessions.create({
+      id: "s1", user_id: "u1", token_hash: await hashToken("sess-token"),
+      created_at: "t", expires_at: "2999-01-01T00:00:00.000Z",
+    });
+    const sig = (id: string, recordId: string) => ({
+      id, record_id: recordId, slot_id: "sig_contractor", role: "contractor",
+      name: "Eng", company: "Kenyon", method: "on_device", signed_by_user: "u1",
+      device_id: "dev-1", image_key: `signatures/${id}.png`,
+      signed_at: "2026-08-02T01:30:00.000Z", signer_email: null, signer_ip: null,
+    });
+    // r1 signed twice, r2 once, r3 unsigned — the list is ids, deduplicated.
+    await signatures.add(sig("sig1", "r1"));
+    await signatures.add(sig("sig2", "r1"));
+    await signatures.add(sig("sig3", "r2"));
+    const app = createApp({ store, users, sessions, signatures });
+    const authed = { authorization: "Bearer sess-token", "content-type": "application/json" };
+    return { app, authed };
+  }
+
+  it("lists each signed record id once", async () => {
+    const { app, authed } = await withSignatures();
+    const res = await app.request("/api/records/signed", { headers: authed });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { record_ids: string[] };
+    expect([...body.record_ids].sort()).toEqual(["r1", "r2"]);
+  });
+
+  it("rejects without a session", async () => {
+    const { app } = await withSignatures();
+    const res = await app.request("/api/records/signed");
+    expect(res.status).toBe(401);
+  });
+
+  it("is empty when nothing is signed", async () => {
+    const { app, authed } = await make();
+    const res = await app.request("/api/records/signed", { headers: authed });
+    expect(await res.json()).toEqual({ record_ids: [] });
+  });
+
+  it("is not captured as a record id by the :id route", async () => {
+    // A record literally named "signed" must still be reachable by id, and the
+    // list must not 404 as an unknown record.
+    const { app, authed } = await make();
+    await app.request("/api/records", {
+      method: "POST", headers: authed, body: JSON.stringify(record({ id: "signed" })),
+    });
+    const list = await app.request("/api/records/signed", { headers: authed });
+    expect(await list.json()).toEqual({ record_ids: [] });
+  });
+});
