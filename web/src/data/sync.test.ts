@@ -86,6 +86,24 @@ describe("ApiTransport — record push", () => {
     await expect(t.pushRecord(record)).resolves.toEqual({ applied: false, conflict: false });
   });
 
+  it("reports a 409 as a conflict — the server refused the record's state, not the request", async () => {
+    // A refused delete of signed evidence (Hard Rule #6) or a locked record:
+    // never retried, but the queue must reconcile local to the server copy.
+    stubFetch(vi.fn().mockResolvedValue(R(409, { error: "record has signatures; signed evidence is never deleted" })));
+    const t = new ApiTransport("http://api", "tok");
+    await expect(t.pushRecord(record)).resolves.toEqual({ applied: false, conflict: true });
+  });
+
+  it("pulls the signed record ids (best-effort; null on failure)", async () => {
+    const f = vi.fn().mockResolvedValue(R(200, { record_ids: ["r1", "r2"] }));
+    stubFetch(f);
+    await expect(new ApiTransport("http://api", "tok").pullSignedRecordIds()).resolves.toEqual(["r1", "r2"]);
+    expect(f.mock.calls[0]![0]).toBe("http://api/api/records/signed");
+
+    stubFetch(vi.fn().mockResolvedValue(R(500)));
+    await expect(new ApiTransport("http://api", "tok").pullSignedRecordIds()).resolves.toBeNull();
+  });
+
   it("omits the auth header when there is no token", async () => {
     const f = vi.fn().mockResolvedValue(R(200, {}));
     stubFetch(f);

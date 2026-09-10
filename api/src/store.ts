@@ -238,6 +238,12 @@ export interface SignatureStore {
   add(sig: SignatureRow): Promise<void>;
   getById(id: string): Promise<SignatureRow | null>;
   listByRecord(recordId: string): Promise<SignatureRow[]>;
+  /**
+   * Every record id carrying at least one signature — the register's delete
+   * guard on a device that has not opened those records (Hard Rule #6). Ids
+   * only, never the rows: this is a set lookup, not evidence.
+   */
+  signedRecordIds(): Promise<string[]>;
 }
 
 /** An append-only audit entry (§9). */
@@ -482,6 +488,13 @@ export class D1SignatureStore implements SignatureStore {
       .bind(recordId)
       .all<SignatureRow>();
     return res.results ?? [];
+  }
+
+  async signedRecordIds(): Promise<string[]> {
+    const res = await this.db
+      .prepare("SELECT DISTINCT record_id FROM signatures")
+      .all<{ record_id: string }>();
+    return (res.results ?? []).map((r) => r.record_id);
   }
 }
 
@@ -760,6 +773,9 @@ export class MemorySignatureStore implements SignatureStore {
   }
   async listByRecord(recordId: string): Promise<SignatureRow[]> {
     return this.rows.filter((r) => r.record_id === recordId);
+  }
+  async signedRecordIds(): Promise<string[]> {
+    return [...new Set(this.rows.map((r) => r.record_id))];
   }
 }
 

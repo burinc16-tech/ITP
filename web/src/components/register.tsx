@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
 import {
   templateFor,
@@ -11,7 +11,7 @@ import type { Equipment, Project, SystemNode } from "../data/registry";
 import type { RegistryRepo } from "../data/registry-repo";
 import { deleteRecord } from "../data/save";
 import type { SignaturesRepo } from "../data/signatures-repo";
-import type { SyncLayer } from "../data/sync";
+import { subscribeConflicts, type SyncLayer } from "../data/sync";
 import { isDeletableStatus } from "../data/workflow";
 import { STATUS_LABELS } from "./status-bar";
 
@@ -76,6 +76,10 @@ export function Register(props: {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   // Records carrying signatures — never offered a Delete action (Hard Rule #6).
   const [signedIds, setSignedIds] = useState<Set<string>>(() => new Set());
+  // Ids this register has deleted and is waiting on the server to accept, and
+  // the note shown when one is refused instead (see the conflict effect below).
+  const removedIds = useRef<Set<string>>(new Set());
+  const [restoreNote, setRestoreNote] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<RecordStatus | "all">("all");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
@@ -84,12 +88,13 @@ export function Register(props: {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [all, ps, ss, es, signed] = await Promise.all([
+      const [all, ps, ss, es, signed, serverSigned] = await Promise.all([
         repo.list(),
         registryRepo.listProjects(),
         registryRepo.listAllSystems(),
         registryRepo.listAllEquipment(),
         signaturesRepo.signedRecordIds(),
+        sync.pullSignedRecordIds(),
       ]);
       if (!alive) return;
       all.sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
@@ -97,12 +102,43 @@ export function Register(props: {
       setProjects(ps);
       setSystems(ss);
       setEquipment(es);
+      // The server's view as well as this device's: a record signed elsewhere
+      // and never opened here holds no local signature, but is evidence all the
+      // same (Hard Rule #6). Best-effort — offline falls back to what's local.
+      for (const id of serverSigned ?? []) signed.add(id);
       setSignedIds(signed);
     })();
     return () => {
       alive = false;
     };
-  }, [repo, registryRepo, signaturesRepo]);
+  }, [repo, registryRepo, signaturesRepo, sync]);
+
+  // A delete resolves optimistically — the tombstone is local and queued — so a
+  // refusal arrives later, during a drain, via the conflict bus (§8): the server
+  // holds signatures this device never saw (Hard Rule #6). The queue has
+  // already restored the server's copy locally; here the row comes back and
+  // the person is told why, instead of the record silently vanishing from this
+  // one device. Only deletes made from this register are reported — an edit
+  // conflict on an open form is that form's to explain.
+  useEffect(
+    () =>
+      subscribeConflicts((id) => {
+        if (!removedIds.current.delete(id)) return;
+        void (async () => {
+          const all = await repo.list();
+          const restored = all.find((r) => r.id === id);
+          if (!restored) return;
+          all.sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
+          setRecords(all);
+          setSignedIds((prev) => new Set(prev).add(id));
+          const title = templateFor(restored, templates)?.title ?? "record";
+          setRestoreNote(
+            `This ${title} was not deleted: it is signed on the server, so it is evidence. It has been restored to the register.`,
+          );
+        })();
+      }),
+    [repo, templates],
+  );
 
   // Soft-delete: the record becomes a synced tombstone (see data/save.ts), so it
   // disappears from the register on every device — not just this one.
@@ -114,6 +150,10 @@ export function Register(props: {
       }? It will be removed from the register on every device. This cannot be undone.`,
     );
     if (!ok) return;
+    setRestoreNote(null);
+    // Noted before the push so a refusal that arrives synchronously (a
+    // pass-through sync layer) is still recognised as ours.
+    removedIds.current.add(record.id);
     await deleteRecord({ repo, sync, signatures: signaturesRepo }, record.id);
     setRecords((prev) => (prev ? prev.filter((r) => r.id !== record.id) : prev));
     setSelected((prev) => {
@@ -239,6 +279,12 @@ export function Register(props: {
           </button>
         </div>
       </div>
+
+      {restoreNote && (
+        <p className="record-conflict" role="alert">
+          {restoreNote}
+        </p>
+      )}
 
       {records === null ? (
         <p className="register-empty">Loading records…</p>

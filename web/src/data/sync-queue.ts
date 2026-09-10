@@ -44,6 +44,8 @@ export interface Transport {
   pullSignatures(recordId: string): Promise<SignatureMeta[] | null>;
   /** Best-effort fetch of one signature's PNG bytes, or null. */
   pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null>;
+  /** Best-effort read of every signed record id, or null (Hard Rule #6 guard). */
+  pullSignedRecordIds(): Promise<string[] | null>;
   /** Push one calibration-register instrument. Throws on a retryable failure. */
   pushInstrument(instrument: Instrument): Promise<void>;
   /** Best-effort read of the server's register (tombstones included), or null. */
@@ -156,6 +158,10 @@ export class QueuedSync implements SyncLayer {
     return this.deps.transport.pullSignatureImage(recordId, signatureId);
   }
 
+  pullSignedRecordIds(): Promise<string[] | null> {
+    return this.deps.transport.pullSignedRecordIds();
+  }
+
   /**
    * Instruments do not ride the outbox. They are reference data, not evidence:
    * losing a push costs nothing permanent because `InstrumentsRepo.syncDown`
@@ -233,7 +239,10 @@ export class QueuedSync implements SyncLayer {
         if (!entry) break;
         try {
           const outcome = await this.deliver(entry);
-          if (outcome === "conflict") this.deps.onConflict?.(entry.target_id);
+          if (outcome === "conflict") {
+            if (entry.kind === "record") await this.reconcile(entry.target_id);
+            this.deps.onConflict?.(entry.target_id);
+          }
           await this.deps.outbox.remove(entry.id);
           this.changed();
         } catch (err) {
@@ -274,6 +283,22 @@ export class QueuedSync implements SyncLayer {
         return "ok";
       }
     }
+  }
+
+  /**
+   * The server refused a record write because of the record's own state: it is
+   * locked (accepted/rejected, §8), or it is signed evidence and the write was a
+   * delete (Hard Rule #6). Local last-write-wins would otherwise keep the
+   * refused copy for good — it carries the newer `updated_at`, so the durable
+   * pull never overwrites it, and a refused delete leaves the record vanished
+   * from this one device. Restore the server's copy here, in the one place
+   * every refusal passes through, rather than only when a form happens to be
+   * showing the record. Best-effort: offline, or a record the server no longer
+   * has, leaves the local copy as it is.
+   */
+  private async reconcile(recordId: string): Promise<void> {
+    const server = await this.deps.transport.pull(recordId);
+    if (server) await this.deps.records.upsert(server);
   }
 
   private kick(): void {

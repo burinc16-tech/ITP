@@ -50,8 +50,10 @@ class FakeTransport implements Transport {
     this.maybeFail();
     this.attachments.push(a.id);
   }
-  async pull(): Promise<ChecklistRecord | null> {
-    return null;
+  /** Scripted server copies for `pull` — what the queue restores after a refusal. */
+  readonly serverCopies = new Map<string, ChecklistRecord>();
+  async pull(id: string): Promise<ChecklistRecord | null> {
+    return this.serverCopies.get(id) ?? null;
   }
   async pullAttachments(): Promise<null> {
     return null;
@@ -63,6 +65,9 @@ class FakeTransport implements Transport {
     return null;
   }
   async pullSignatureImage(): Promise<Blob | null> {
+    return null;
+  }
+  async pullSignedRecordIds(): Promise<string[] | null> {
     return null;
   }
   async pushInstrument(i: Instrument): Promise<void> {
@@ -198,6 +203,44 @@ describe("QueuedSync", () => {
     await h.queue.drain();
     expect(h.conflicts).toEqual([r.id]);
     expect(await h.queue.pendingCount()).toBe(0); // can't push a locked record
+  });
+
+  it("restores the server's copy when a tombstone push is refused (Hard Rule #6 self-heal)", async () => {
+    const h = harness();
+    const r = draft(h.clock());
+    await h.records.upsert(r);
+    // This device deletes the record, but the server holds signatures for it —
+    // captured elsewhere, never seen here. Without the restore, the tombstone's
+    // newer updated_at would out-vote the server copy for good.
+    h.advance(1_000);
+    const tombstone = { ...r, deleted: true, updated_at: h.clock() };
+    await h.records.upsert(tombstone);
+    await h.queue.push(tombstone);
+    h.transport.conflictIds.add(r.id);
+    h.transport.serverCopies.set(r.id, r);
+
+    await h.queue.drain();
+    expect(h.conflicts).toEqual([r.id]);
+    const local = await h.records.get(r.id);
+    expect(local?.deleted).toBeUndefined();
+    expect(local?.updated_at).toBe(r.updated_at);
+    expect(await h.records.list()).toHaveLength(1); // back in the register
+    expect(await h.queue.pendingCount()).toBe(0);
+  });
+
+  it("leaves the local copy alone when the server copy can't be fetched", async () => {
+    const h = harness();
+    const r = draft(h.clock());
+    h.advance(1_000);
+    const tombstone = { ...r, deleted: true, updated_at: h.clock() };
+    await h.records.upsert(tombstone);
+    await h.queue.push(tombstone);
+    h.transport.conflictIds.add(r.id);
+    // No server copy scripted: pull returns null (offline, or the record is gone).
+
+    await h.queue.drain();
+    expect(h.conflicts).toEqual([r.id]);
+    expect((await h.records.get(r.id))?.deleted).toBe(true);
   });
 
   it("drops an entry whose entity has vanished, without calling the transport", async () => {

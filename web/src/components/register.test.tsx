@@ -10,7 +10,7 @@ import { RecordsRepo } from "../data/records-repo";
 import { RegistryRepo } from "../data/registry-repo";
 import { createEquipment, createProject, createSystem } from "../data/registry";
 import { SignaturesRepo } from "../data/signatures-repo";
-import { PassthroughSync } from "../data/sync";
+import { PassthroughSync, publishConflict } from "../data/sync";
 import { uuidv7 } from "../data/uuidv7";
 import { Register } from "./register";
 
@@ -229,6 +229,80 @@ describe("Register delete", () => {
     // Three rows, exactly one Delete: the unsigned draft.
     expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(3);
     expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
+  });
+
+  it("withholds Delete on a record the server reports as signed, with no local signature", async () => {
+    const { repo, signatures, registry } = harness();
+    // Signed on another device and never opened here: no local signature row.
+    const signedElsewhere = draft(heatLoad);
+    const unsigned = draft(heatLoad);
+    for (const r of [signedElsewhere, unsigned]) await repo.upsert(r);
+    class ServerSigned extends PassthroughSync {
+      async pullSignedRecordIds() {
+        return [signedElsewhere.id];
+      }
+    }
+
+    render(
+      <Register
+        repo={repo}
+        registryRepo={registry}
+        signaturesRepo={signatures}
+        sync={new ServerSigned()}
+        templates={templates}
+        onOpen={vi.fn()}
+        onNewRecord={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+    await screen.findByRole("table");
+
+    expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
+  });
+
+  it("restores the row and says why when the server refuses the delete", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const { repo, signatures, registry } = harness();
+      const rec = draft(heatLoad);
+      await repo.upsert(rec);
+      // A sync layer whose tombstone push is refused: as the queue does, it
+      // restores the server's copy locally, then publishes the conflict.
+      class Refusing extends PassthroughSync {
+        async push(record: ChecklistRecord) {
+          if (record.deleted) {
+            await repo.upsert(rec);
+            publishConflict(record.id);
+          }
+          return { conflict: false };
+        }
+      }
+
+      render(
+        <Register
+          repo={repo}
+          registryRepo={registry}
+          signaturesRepo={signatures}
+          sync={new Refusing()}
+          templates={templates}
+          onOpen={vi.fn()}
+          onNewRecord={vi.fn()}
+          onExport={vi.fn()}
+        />,
+      );
+      await screen.findByRole("table");
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+
+      // The record is back, explained, and no longer offered for deletion.
+      expect(await screen.findByRole("alert")).toHaveTextContent(/was not deleted/);
+      expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+      expect((await repo.get(rec.id))?.deleted).toBeUndefined();
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it("deletes after confirmation: row gone, tombstone stored and hidden", async () => {
