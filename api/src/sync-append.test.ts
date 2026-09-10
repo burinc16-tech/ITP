@@ -97,6 +97,80 @@ describe("POST /api/records/:id/signatures", () => {
   });
 });
 
+/**
+ * The read side of the same evidence (§8). A signature is captured on one device
+ * and pushed; every other device needs to pull it back, or the slot shows blank
+ * there and the record reads as unsigned.
+ */
+describe("GET /api/records/:id/signatures (cross-device backfill §8)", () => {
+  async function seeded() {
+    const h = await make();
+    await post(h.app, "/api/records/r1/signatures", h.authed, signatureBody());
+    return h;
+  }
+
+  it("lists a record's signature metadata (auth)", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/signatures", { headers: authed });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([
+      {
+        id: "sig-1", slot_id: "sig_tested", role: "Tested by",
+        name: "A. Engineer", company: "Kenyon Pte Ltd", method: "on_device",
+        signed_by_user: "u1", device_id: "dev-1",
+        signed_at: "2026-08-02T02:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("withholds the signer's email and IP", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/signatures", { headers: authed });
+    const [row] = (await res.json()) as Array<Record<string, unknown>>;
+    expect(row).not.toHaveProperty("signer_email");
+    expect(row).not.toHaveProperty("signer_ip");
+    expect(row).not.toHaveProperty("image_key");
+  });
+
+  it("rejects the list without a session", async () => {
+    const { app } = await seeded();
+    const res = await app.request("/api/records/r1/signatures");
+    expect(res.status).toBe(401);
+  });
+
+  it("404s the list when the record is absent", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/nope/signatures", { headers: authed });
+    expect(res.status).toBe(404);
+  });
+
+  it("serves the signature image bytes (auth)", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/signatures/sig-1", { headers: authed });
+    expect(res.status).toBe(200);
+    // IMAGE decodes to three zero bytes; enough to prove the blob round-trips.
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([0, 0, 0]));
+  });
+
+  it("rejects the image without a session", async () => {
+    const { app } = await seeded();
+    const res = await app.request("/api/records/r1/signatures/sig-1");
+    expect(res.status).toBe(401);
+  });
+
+  it("404s a signature belonging to a different record", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/other/signatures/sig-1", { headers: authed });
+    expect(res.status).toBe(404);
+  });
+
+  it("404s an unknown signature id", async () => {
+    const { app, authed } = await seeded();
+    const res = await app.request("/api/records/r1/signatures/ghost", { headers: authed });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("POST /api/records/:id/audit", () => {
   it("rejects without a session", async () => {
     const { app } = await make();

@@ -66,7 +66,14 @@ export function formatSignedAt(iso: string): string {
   return SIGNED_AT_FORMAT.format(new Date(iso)).replace(", ", " ");
 }
 
-/** Build a captured signature. Pure — id, time, and device id are passed in. */
+/**
+ * Build a captured signature. Pure — id, time, and device id are passed in.
+ *
+ * `method` defaults to `on_device`, which is what capturing on the pad produces.
+ * A cross-device backfill (§8) passes the server's value through instead: the
+ * evidence must land identically on every device, and a signature left through
+ * a remote sign-off link is `remote_link` wherever it is read.
+ */
 export function createSignature(opts: {
   id: string;
   recordId: string;
@@ -75,6 +82,7 @@ export function createSignature(opts: {
   name: string;
   company: string;
   image: Blob;
+  method?: SignatureMethod;
   signedByUser: string | null;
   deviceId: string;
   now: string;
@@ -87,7 +95,7 @@ export function createSignature(opts: {
     name: opts.name,
     company: opts.company,
     image: opts.image,
-    method: "on_device",
+    method: opts.method ?? "on_device",
     signed_by_user: opts.signedByUser,
     device_id: opts.deviceId,
     signed_at: opts.now,

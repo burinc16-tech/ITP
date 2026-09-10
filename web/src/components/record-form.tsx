@@ -320,11 +320,55 @@ export function RecordForm(props: {
     [attachmentsRepo],
   );
 
-  // Load signatures once the record is known (and only when its id changes).
   const recordId = record?.id;
+
+  // On open, backfill signatures captured elsewhere (§8), then show them. A
+  // signature is written to the signing device's local store and pushed up, so
+  // without this pull the slot reads blank on every other device — and the DRAFT
+  // watermark and the register's delete guard, which both key off local
+  // signature presence, would treat a signed record as unsigned. Covers a slot
+  // signed on the tablet and a consultant's remote sign-off alike. Best-effort:
+  // offline or local-only mode just shows what's local.
+  const backfillSignatures = useCallback(
+    async (id: string) => {
+      const server = await sync.pullSignatures(id);
+      if (server) {
+        const local = new Set((await signaturesRepo.listByRecord(id)).map((s) => s.id));
+        for (const meta of server) {
+          if (local.has(meta.id)) continue;
+          const image = await sync.pullSignatureImage(id, meta.id);
+          if (!image) continue;
+          try {
+            await signaturesRepo.add(
+              createSignature({
+                id: meta.id,
+                recordId: id,
+                slotId: meta.slot_id,
+                role: meta.role,
+                name: meta.name,
+                company: meta.company,
+                image,
+                method: meta.method,
+                signedByUser: meta.signed_by_user,
+                deviceId: meta.device_id,
+                now: meta.signed_at,
+              }),
+            );
+          } catch (err) {
+            // The repo's evidence-conflict tripwire (§12) — loud, but not fatal:
+            // the record still opens, showing the signatures this device holds.
+            console.error("signature backfill rejected", meta.id, err);
+          }
+        }
+      }
+      await refreshSignatures(id);
+    },
+    [signaturesRepo, sync, refreshSignatures],
+  );
+
   useEffect(() => {
-    if (recordId) void refreshSignatures(recordId);
-  }, [recordId, refreshSignatures]);
+    if (recordId) void backfillSignatures(recordId);
+  }, [recordId, backfillSignatures]);
 
   // On open, backfill photos captured on another device (§8): pull the server's
   // list and, for any we don't hold locally, fetch the image (with auth) and store

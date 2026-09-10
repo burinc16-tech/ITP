@@ -10,7 +10,13 @@ import type { RecordsRepo } from "./records-repo";
 import type { Equipment, Project, SystemNode } from "./registry";
 import type { CapturedSignature } from "./signature";
 import type { SignaturesRepo } from "./signatures-repo";
-import type { AttachmentMeta, PushResult, RegistrySnapshot, SyncLayer } from "./sync";
+import type {
+  AttachmentMeta,
+  PushResult,
+  RegistrySnapshot,
+  SignatureMeta,
+  SyncLayer,
+} from "./sync";
 
 /**
  * The raw network transport the queue drains against. Unlike the eager `ApiSync`
@@ -34,6 +40,10 @@ export interface Transport {
   pullAttachments(recordId: string): Promise<AttachmentMeta[] | null>;
   /** Best-effort fetch of one attachment's image bytes, or null. */
   pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null>;
+  /** Best-effort read of a record's signature metadata, or null (§8 backfill). */
+  pullSignatures(recordId: string): Promise<SignatureMeta[] | null>;
+  /** Best-effort fetch of one signature's PNG bytes, or null. */
+  pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null>;
   /** Push one calibration-register instrument. Throws on a retryable failure. */
   pushInstrument(instrument: Instrument): Promise<void>;
   /** Best-effort read of the server's register (tombstones included), or null. */
@@ -136,6 +146,14 @@ export class QueuedSync implements SyncLayer {
 
   pullAttachmentImage(recordId: string, attachmentId: string): Promise<Blob | null> {
     return this.deps.transport.pullAttachmentImage(recordId, attachmentId);
+  }
+
+  pullSignatures(recordId: string): Promise<SignatureMeta[] | null> {
+    return this.deps.transport.pullSignatures(recordId);
+  }
+
+  pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null> {
+    return this.deps.transport.pullSignatureImage(recordId, signatureId);
   }
 
   /**
