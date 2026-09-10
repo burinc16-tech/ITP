@@ -59,6 +59,12 @@ class FakeTransport implements Transport {
   async pullAttachmentImage(): Promise<Blob | null> {
     return null;
   }
+  async pullSignatures(): Promise<null> {
+    return null;
+  }
+  async pullSignatureImage(): Promise<Blob | null> {
+    return null;
+  }
   async pushInstrument(i: Instrument): Promise<void> {
     this.maybeFail();
     this.instruments.push(i.id);

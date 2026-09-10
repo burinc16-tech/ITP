@@ -156,6 +156,48 @@ describe("ApiTransport — evidence push", () => {
     await expect(new ApiTransport("http://api", "tok").pullAttachmentImage("r1", "at1")).resolves.toBeNull();
   });
 
+  it("pulls the signature list, narrowing the wire method (best-effort; null on failure)", async () => {
+    const rows = [
+      {
+        id: "s1", slot_id: "sig_tested", role: "Tested by", name: "A. Engineer",
+        company: "Kenyon", method: "remote_link", signed_by_user: "u",
+        device_id: "d", signed_at: "t",
+      },
+      // A method the client doesn't know falls back to on_device rather than
+      // reaching the local store as an invalid SignatureMethod.
+      { id: "s2", slot_id: "sig_witness", role: "Witnessed by", device_id: "d2", signed_at: "t2", method: "who knows" },
+    ];
+    const f = vi.fn().mockResolvedValue(R(200, rows));
+    stubFetch(f);
+    await expect(new ApiTransport("http://api", "tok").pullSignatures("r1")).resolves.toEqual([
+      {
+        id: "s1", slot_id: "sig_tested", role: "Tested by", name: "A. Engineer",
+        company: "Kenyon", method: "remote_link", signed_by_user: "u",
+        device_id: "d", signed_at: "t",
+      },
+      {
+        id: "s2", slot_id: "sig_witness", role: "Witnessed by", name: "",
+        company: "", method: "on_device", signed_by_user: null,
+        device_id: "d2", signed_at: "t2",
+      },
+    ]);
+    expect(f.mock.calls[0]![0]).toBe("http://api/api/records/r1/signatures");
+
+    stubFetch(vi.fn().mockResolvedValue(R(500)));
+    await expect(new ApiTransport("http://api", "tok").pullSignatures("r1")).resolves.toBeNull();
+  });
+
+  it("pulls a signature image as a blob, null on failure", async () => {
+    const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const f = vi.fn().mockResolvedValue({ ok: true, status: 200, blob: async () => blob } as unknown as Response);
+    stubFetch(f);
+    await expect(new ApiTransport("http://api", "tok").pullSignatureImage("r1", "s1")).resolves.toBe(blob);
+    expect(f.mock.calls[0]![0]).toBe("http://api/api/records/r1/signatures/s1");
+
+    stubFetch(vi.fn().mockRejectedValue(new Error("offline")));
+    await expect(new ApiTransport("http://api", "tok").pullSignatureImage("r1", "s1")).resolves.toBeNull();
+  });
+
   it("pull swallows a failure and returns null", async () => {
     stubFetch(vi.fn().mockResolvedValue(R(500)));
     await expect(new ApiTransport("http://api", "tok").pull("r1")).resolves.toBeNull();

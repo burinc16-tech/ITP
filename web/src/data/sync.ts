@@ -3,7 +3,7 @@ import type { AuditEntry } from "./audit";
 import type { Instrument } from "./instrument";
 import type { ChecklistRecord } from "./record";
 import type { Equipment, Project, SystemNode } from "./registry";
-import type { CapturedSignature } from "./signature";
+import type { CapturedSignature, SignatureMethod } from "./signature";
 import type { Transport } from "./sync-queue";
 
 /**
@@ -36,6 +36,25 @@ export interface AttachmentMeta {
   created_at: string;
 }
 
+/**
+ * Server-side metadata for one captured signature (SPEC §6, §8), for
+ * cross-device backfill. Every field the local fingerprint covers is here, so a
+ * backfilled signature is byte-for-byte the same evidence the signing device
+ * holds — anything less and re-adding it would trip the evidence-conflict
+ * tripwire (§12). The image rides separately, like an attachment's.
+ */
+export interface SignatureMeta {
+  id: string;
+  slot_id: string;
+  role: string;
+  name: string;
+  company: string;
+  method: SignatureMethod;
+  signed_by_user: string | null;
+  device_id: string;
+  signed_at: string;
+}
+
 /** The server's copy of the project registry (SPEC §4, §10 screen 8). */
 export interface RegistrySnapshot {
   projects: Project[];
@@ -61,6 +80,14 @@ export interface SyncLayer {
   pull(id: string): Promise<ChecklistRecord | null>;
   /** Push a captured on-device signature (SPEC §6 path A). Best-effort. */
   pushSignature(signature: CapturedSignature): Promise<void>;
+  /**
+   * Read the server's signature list for a record, or null when unavailable/
+   * offline. Used to backfill a signature captured on another device, or one
+   * left by a consultant through a remote sign-off link (§6, §8). Best-effort.
+   */
+  pullSignatures(recordId: string): Promise<SignatureMeta[] | null>;
+  /** Fetch one signature's PNG bytes (with auth), or null. Best-effort. */
+  pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null>;
   /** Push an audit entry the client authored (SPEC §9). Best-effort. */
   pushAudit(entry: AuditEntry): Promise<void>;
   /** Push a captured photo attachment (SPEC §8). Best-effort. */
@@ -115,6 +142,15 @@ export class PassthroughSync implements SyncLayer {
 
   async pushSignature(_signature: CapturedSignature): Promise<void> {
     // No queue, no network — the signature is durable in Dexie.
+  }
+
+  async pullSignatures(_recordId: string): Promise<SignatureMeta[] | null> {
+    // Local-only mode: there is no server to read from.
+    return null;
+  }
+
+  async pullSignatureImage(_recordId: string, _signatureId: string): Promise<Blob | null> {
+    return null;
   }
 
   async pushAudit(_entry: AuditEntry): Promise<void> {
@@ -173,7 +209,7 @@ async function getJson<T>(url: string, headers: Record<string, string>): Promise
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch (err) {
-    console.warn("attachment list failed", err);
+    console.warn("authenticated GET failed", url, err);
     return null;
   }
 }
@@ -185,7 +221,7 @@ async function getBlob(url: string, headers: Record<string, string>): Promise<Bl
     if (!res.ok) return null;
     return await res.blob();
   } catch (err) {
-    console.warn("attachment image fetch failed", err);
+    console.warn("authenticated image fetch failed", url, err);
     return null;
   }
 }
@@ -276,6 +312,21 @@ export class ApiSync implements SyncLayer {
       // Local save already succeeded; retries are Phase 5.
       console.warn("signature push failed (kept locally)", err);
     }
+  }
+
+  async pullSignatures(recordId: string): Promise<SignatureMeta[] | null> {
+    const rows = await getJson<ServerSignature[]>(
+      `${this.baseUrl}/api/records/${recordId}/signatures`,
+      this.authHeader(),
+    );
+    return rows ? rows.map(fromServerSignature) : null;
+  }
+
+  pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/signatures/${signatureId}`,
+      this.authHeader(),
+    );
   }
 
   async pushAudit(entry: AuditEntry): Promise<void> {
@@ -372,6 +423,37 @@ export class ApiSync implements SyncLayer {
     );
     return body?.records ?? null;
   }
+}
+
+/**
+ * A signature row as the API returns it. `method` is an open string on the
+ * wire, so it is narrowed here rather than trusted — the same guard the remote
+ * sign page applies to the server's copy.
+ */
+interface ServerSignature {
+  id: string;
+  slot_id: string;
+  role: string;
+  name?: string;
+  company?: string;
+  method?: string;
+  signed_by_user?: string | null;
+  device_id: string;
+  signed_at: string;
+}
+
+function fromServerSignature(row: ServerSignature): SignatureMeta {
+  return {
+    id: row.id,
+    slot_id: row.slot_id,
+    role: row.role,
+    name: row.name ?? "",
+    company: row.company ?? "",
+    method: row.method === "remote_link" ? "remote_link" : "on_device",
+    signed_by_user: row.signed_by_user ?? null,
+    device_id: row.device_id,
+    signed_at: row.signed_at,
+  };
 }
 
 /** An instrument row as the API returns it — SQLite has no boolean, so 0/1. */
@@ -634,6 +716,21 @@ export class ApiTransport implements Transport {
       },
     );
     classifyResponse(res, "signature push");
+  }
+
+  async pullSignatures(recordId: string): Promise<SignatureMeta[] | null> {
+    const rows = await getJson<ServerSignature[]>(
+      `${this.baseUrl}/api/records/${recordId}/signatures`,
+      this.authHeader(),
+    );
+    return rows ? rows.map(fromServerSignature) : null;
+  }
+
+  pullSignatureImage(recordId: string, signatureId: string): Promise<Blob | null> {
+    return getBlob(
+      `${this.baseUrl}/api/records/${recordId}/signatures/${signatureId}`,
+      this.authHeader(),
+    );
   }
 
   async pushAudit(entry: AuditEntry): Promise<void> {

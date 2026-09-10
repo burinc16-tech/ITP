@@ -479,6 +479,48 @@ export function createApp(deps: AppDeps) {
     return c.json({ applied: true }, 201);
   });
 
+  // Read a record's captured signatures on another signed-in device (§8): list
+  // the metadata, then fetch each image. The counterpart to the photo pair
+  // below — without it a signature stays on the device that captured it and
+  // every other device shows the slot blank. An `<img src>` can't send a
+  // bearer, so the client fetches the bytes with auth and backfills them into
+  // its local append-only store. The signer's email and IP are deliberately
+  // withheld: they are server-side remote-link evidence (§6), not client state.
+  app.get("/api/records/:id/signatures", requireUser, async (c) => {
+    const recordId = c.req.param("id");
+    if (!(await store.get(recordId))) return c.json({ error: "not found" }, 404);
+    const rows = await signatures.listByRecord(recordId);
+    return c.json(
+      rows.map((s) => ({
+        id: s.id,
+        slot_id: s.slot_id,
+        role: s.role,
+        name: s.name,
+        company: s.company,
+        method: s.method,
+        signed_by_user: s.signed_by_user,
+        device_id: s.device_id,
+        signed_at: s.signed_at,
+      })),
+    );
+  });
+
+  app.get("/api/records/:id/signatures/:signatureId", requireUser, async (c) => {
+    const sig = await signatures.getById(c.req.param("signatureId"));
+    if (!sig || sig.record_id !== c.req.param("id")) {
+      return c.json({ error: "not found" }, 404);
+    }
+    const bytes = await images.get(sig.image_key);
+    if (!bytes) return c.json({ error: "not found" }, 404);
+    return new Response(bytes as BodyInit, {
+      status: 200,
+      headers: {
+        "content-type": imageContentType(bytes),
+        "cache-control": "private, max-age=300",
+      },
+    });
+  });
+
   // --- Sync push: photo attachments (SPEC §4, §8) --------------------------
   // Upsert by client id (last-write-wins), so a recaption re-pushes the row. The
   // image bytes reuse the R2 store; the blob is only rewritten when it actually
