@@ -6,6 +6,7 @@ import type { SignatureView } from "../data/signature";
 import {
   buildRfiCoverData,
   RFI_DISCIPLINES,
+  RFI_RESULTS,
   type RfiCoverOptions,
 } from "../lib/rfi-cover";
 import { showsDraftWatermark } from "../lib/watermark";
@@ -185,7 +186,8 @@ export function PrintRfiCover(props: {
           </tbody>
         </table>
 
-        {/* Inspection result — manual, blank boxes for handwriting on site. */}
+        {/* Inspection result — the user-chosen box is ticked; none chosen prints
+            all three blank for handwriting on site. */}
         <table className="rfi-table">
           <tbody>
             <tr>
@@ -195,9 +197,11 @@ export function PrintRfiCover(props: {
             </tr>
             <tr>
               <td className="rfi-result-cell" colSpan={4}>
-                <span className="rfi-result-box">☐ PASS</span>
-                <span className="rfi-result-box">☐ FAIL</span>
-                <span className="rfi-result-box">☐ CONDITIONAL PASS</span>
+                {RFI_RESULTS.map((r) => (
+                  <span key={r.value} className="rfi-result-box">
+                    {data.result === r.value ? "☑" : "☐"} {r.label}
+                  </span>
+                ))}
               </td>
             </tr>
             <tr>

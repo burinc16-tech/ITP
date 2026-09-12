@@ -139,7 +139,21 @@ describe("PrintRfiCover", () => {
     expect(img?.getAttribute("src")).toBe("blob:sig");
   });
 
-  it("leaves the inspector sign-off and result as blank boxes", () => {
+  it("ticks only the user-chosen inspection result", () => {
+    render(
+      <PrintRfiCover
+        template={template}
+        record={draft()}
+        options={{ ...options(), result: "conditional" }}
+        status="draft"
+      />,
+    );
+    expect(screen.getByText("☐ PASS")).toBeInTheDocument();
+    expect(screen.getByText("☐ FAIL")).toBeInTheDocument();
+    expect(screen.getByText("☑ CONDITIONAL PASS")).toBeInTheDocument();
+  });
+
+  it("leaves the inspector sign-off and result as blank boxes by default", () => {
     const { container } = render(
       <PrintRfiCover
         template={template}
@@ -150,8 +164,9 @@ describe("PrintRfiCover", () => {
     );
     // Both contractor (unsigned) and inspector signature boxes are blank.
     expect(container.querySelectorAll(".rfi-sig-box")).toHaveLength(2);
-    // Result options print as empty (unchecked) boxes.
+    // No result chosen: all three boxes print empty for handwriting.
     expect(screen.getByText("☐ PASS")).toBeInTheDocument();
+    expect(screen.getByText("☐ FAIL")).toBeInTheDocument();
     expect(screen.getByText("☐ CONDITIONAL PASS")).toBeInTheDocument();
   });
 
