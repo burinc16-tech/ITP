@@ -295,6 +295,10 @@
 }
 .print-sign-col {
   flex: 1;
+  /* Let a column shrink below its longest word: without this, flex refuses to
+     go under min-content and a captured surname pushes the last column off the
+     sheet (measured 2026-09-12: every 3-column portrait grid ran 61px wide). */
+  min-width: 0;
   border-top: 1px solid #1a1a1a;
   padding-top: 4mm;
 }
@@ -321,6 +325,9 @@
   border-bottom: 1px solid #999;
   min-height: 5mm;
   text-align: center;
+  /* Last resort only: the column sizing below keeps a normal name on one line,
+     but an extreme one must wrap rather than overflow the sheet. */
+  overflow-wrap: anywhere;
 }
 .print-sign-sigrow {
   align-items: flex-start;
@@ -427,6 +434,46 @@
 .print-page[data-density="compact"] .print-sign-sigrow .print-sign-lbl,
 .print-page[data-density="compact"] .print-sign-sigrow .print-colon {
   padding-top: 6mm;
+}
+
+/* Column-count sizing for the sign-off grid. Placed AFTER the compact-density
+   block, with a `.print-page` prefix, so on a compact 4-column grid (IDF) these
+   win both the specificity ties (gap) and the label/colon widths. */
+/* Three columns on one sheet: the 28mm label + 16mm gaps leave the value field
+   narrower than a long surname (measured 2026-09-12, "Chotwatanakul" needs
+   ~22.5mm at 10.5pt). Tighter labels and gaps give it ~27mm. */
+.print-page .print-signoff-grid[data-cols="3"] {
+  gap: 10mm;
+}
+.print-page .print-signoff-grid[data-cols="3"] .print-sign-lbl {
+  width: 22mm;
+}
+/* Four or more columns: smaller type as well, so each ~41mm column still holds
+   the name; the heading may wrap to two lines by word. */
+.print-page .print-signoff-grid[data-cols="4"],
+.print-page .print-signoff-grid[data-cols="5"],
+.print-page .print-signoff-grid[data-cols="6"] {
+  gap: 4mm;
+}
+.print-page .print-signoff-grid[data-cols="4"] .print-sign-row,
+.print-page .print-signoff-grid[data-cols="5"] .print-sign-row,
+.print-page .print-signoff-grid[data-cols="6"] .print-sign-row {
+  font-size: 9.5pt;
+}
+.print-page .print-signoff-grid[data-cols="4"] .print-sign-col h3,
+.print-page .print-signoff-grid[data-cols="5"] .print-sign-col h3,
+.print-page .print-signoff-grid[data-cols="6"] .print-sign-col h3 {
+  font-size: 10pt;
+}
+.print-page .print-signoff-grid[data-cols="4"] .print-sign-lbl,
+.print-page .print-signoff-grid[data-cols="5"] .print-sign-lbl,
+.print-page .print-signoff-grid[data-cols="6"] .print-sign-lbl {
+  width: 16mm;
+}
+.print-page .print-signoff-grid[data-cols="4"] .print-sign-row .print-colon,
+.print-page .print-signoff-grid[data-cols="5"] .print-sign-row .print-colon,
+.print-page .print-signoff-grid[data-cols="6"] .print-sign-row .print-colon {
+  width: 3mm;
 }
 .print-page[data-density="compact"] .print-sign-pad {
   height: 18mm;

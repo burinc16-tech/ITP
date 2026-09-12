@@ -13,8 +13,11 @@ export function PrintSignatureGrid(props: {
   captured?: Map<string, SignatureView>;
 }): ReactNode {
   const { signatures, captured } = props;
+  // The column count drives the grid's spacing (print.css): three or more
+  // columns on a portrait sheet get tighter labels and gaps, so a captured
+  // long surname never pushes the last column off the page.
   return (
-    <div className="print-signoff-grid">
+    <div className="print-signoff-grid" data-cols={signatures.length}>
       {signatures.map((sig) => {
         const signed = captured?.get(sig.id);
         return (
