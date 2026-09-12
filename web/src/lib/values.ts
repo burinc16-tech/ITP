@@ -8,6 +8,7 @@ import {
   type Template,
 } from "@schema";
 import { buildVarMap, interpolate } from "./interpolate";
+import type { RfiCoverState } from "./rfi-cover";
 
 /**
  * The record's captured values. Everything is stored as strings — the shape the
@@ -39,6 +40,13 @@ export interface RecordValues {
    * before the feature existed still renders. Read it through `columnsFor`.
    */
   columns?: Record<string, string[]>;
+  /**
+   * The print-step Inspection Request cover: whether it is ticked, and its
+   * user-edited options (SPEC §12). Lives on the record so it survives reopen
+   * and syncs like every other value. Optional: records written before the
+   * cover persisted do not carry it — read it through `coverStateOf`.
+   */
+  rfi_cover?: RfiCoverState;
 }
 
 /**

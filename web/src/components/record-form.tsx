@@ -44,9 +44,13 @@ import { downscaleImage } from "../lib/downscale-image";
 import { appendixPhotos } from "../lib/photo-appendix";
 import { trimSignature } from "../lib/trim-signature";
 import {
+  coverStateOf,
   defaultCoverOptions,
   RFI_DISCIPLINES,
+  RFI_RESULTS,
+  withCoverState,
   type RfiCoverOptions,
+  type RfiCoverState,
 } from "../lib/rfi-cover";
 import type { RecordValues } from "../lib/values";
 import { PhotoAppendixPanel } from "./photo-appendix-panel";
@@ -132,9 +136,11 @@ export function RecordForm(props: {
   const [preview, setPreview] = useState(false);
   // Opt-in Inspection Request (RFI) cover page (handover task 2). Off by
   // default; options are seeded from the record on first enable, then the
-  // user's edits win (SPEC §12).
-  const [coverEnabled, setCoverEnabled] = useState(false);
-  const [coverOptions, setCoverOptions] = useState<RfiCoverOptions | null>(null);
+  // user's edits win (SPEC §12). The state lives ON THE RECORD
+  // (`values.rfi_cover`) so it survives Save → reopen and syncs; this local
+  // override exists only for a locked record, whose values can no longer be
+  // written but which the user may still want to print with a cover.
+  const [coverOverride, setCoverOverride] = useState<RfiCoverState | null>(null);
   // Opt-in photo attachment pages (SPEC §12). Off by default; the photos
   // themselves live on the record either way — the toggle only controls print.
   const [photoPagesEnabled, setPhotoPagesEnabled] = useState(false);
@@ -599,6 +605,11 @@ export function RecordForm(props: {
     void persist();
   }, [persist]);
 
+  // A locked record's transient cover choice never carries over to another record.
+  useEffect(() => {
+    setCoverOverride(null);
+  }, [recordId]);
+
   // Apply a status transition: fold in any unsaved values, resolve the
   // context_snapshot at `completed`, save, then append the audit entry (§6/§9).
   const handleAction = useCallback(
@@ -772,6 +783,13 @@ export function RecordForm(props: {
 
   const editable = statusFieldsEditable(record.status);
   const canSign = !isLocked(record.status);
+  const cover: RfiCoverState = coverOverride ?? coverStateOf(values);
+  // Editable record: the change is a value change, autosaved like any other
+  // (Hard Rule #1). Locked record: kept on screen only, for this print.
+  const updateCover = (next: RfiCoverState): void => {
+    if (editable) handleChange(withCoverState(values, next));
+    else setCoverOverride(next);
+  };
   const workflowCtx: WorkflowContext = {
     role,
     satisfiedStages: satisfiedStages(template, new Set(signatures.keys())),
@@ -848,13 +866,15 @@ export function RecordForm(props: {
           <label className="cover-toggle">
             <input
               type="checkbox"
-              checked={coverEnabled}
+              checked={cover.enabled}
               onChange={(e) => {
                 const on = e.target.checked;
-                setCoverEnabled(on);
-                if (on && !coverOptions) {
-                  setCoverOptions(defaultCoverOptions(template, values, record));
-                }
+                updateCover({
+                  enabled: on,
+                  options:
+                    cover.options ??
+                    (on ? defaultCoverOptions(template, values, record) : null),
+                });
               }}
             />
             Include Inspection Request cover page
@@ -872,12 +892,15 @@ export function RecordForm(props: {
           </label>
         </div>
 
-        {coverEnabled && coverOptions && (
+        {cover.enabled && cover.options && (
           <CoverOptionsPanel
-            options={coverOptions}
-            onChange={setCoverOptions}
+            options={cover.options}
+            onChange={(options) => updateCover({ enabled: true, options })}
             onReset={() =>
-              setCoverOptions(defaultCoverOptions(template, values, record))
+              updateCover({
+                enabled: true,
+                options: defaultCoverOptions(template, values, record),
+              })
             }
           />
         )}
@@ -912,12 +935,12 @@ export function RecordForm(props: {
         )}
       </div>
 
-      {coverEnabled && coverOptions && (
+      {cover.enabled && cover.options && (
         <div className="print-doc rfi-cover-doc">
           <PrintRfiCover
             template={template}
             record={record}
-            options={coverOptions}
+            options={cover.options}
             status={record.status}
             signatures={signatures}
           />
@@ -959,9 +982,17 @@ export function RecordForm(props: {
 /**
  * Print-step editor for the RFI cover (handover task 2). The discipline is
  * user-chosen (SPEC §12) and the app-filled text fields are pre-seeded but
- * editable — the user's edits are what print. Manual on-site fields (IRF No.,
- * Scope, Result, Inspector sign-off) are not here; they print as blank boxes.
+ * editable — the user's edits are what print. The Inspection Result is chosen
+ * here too (blank by default). Manual on-site fields (IRF No., Scope, Inspector
+ * sign-off) are not here; they print as blank boxes.
  */
+/** Sentence-case labels for the result radios; the print keeps the form's caps. */
+const RFI_RESULT_SCREEN_LABELS: Record<(typeof RFI_RESULTS)[number]["value"], string> = {
+  pass: "Pass",
+  fail: "Fail",
+  conditional: "Conditional Pass",
+};
+
 function CoverOptionsPanel(props: {
   options: RfiCoverOptions;
   onChange: (next: RfiCoverOptions) => void;
@@ -1018,6 +1049,30 @@ function CoverOptionsPanel(props: {
             onChange={(e) => set("otherText", e.target.value)}
           />
         )}
+      </fieldset>
+
+      <fieldset className="cover-discipline cover-result">
+        <legend>Inspection result</legend>
+        <label className="cover-radio">
+          <input
+            type="radio"
+            name="rfi-result"
+            checked={options.result === ""}
+            onChange={() => set("result", "")}
+          />
+          Leave blank
+        </label>
+        {RFI_RESULTS.map((r) => (
+          <label key={r.value} className="cover-radio">
+            <input
+              type="radio"
+              name="rfi-result"
+              checked={options.result === r.value}
+              onChange={() => set("result", r.value)}
+            />
+            {RFI_RESULT_SCREEN_LABELS[r.value]}
+          </label>
+        ))}
       </fieldset>
 
       <div className="cover-fields">

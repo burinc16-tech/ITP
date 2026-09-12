@@ -8,12 +8,14 @@ import type { SignatureView } from "../data/signature";
 import { emptyValues, setHeader } from "./values";
 import {
   buildRfiCoverData,
+  coverStateOf,
   defaultCoverOptions,
   defaultDiscipline,
   formatCoverDate,
   RFI_CONTRACTOR_DEFAULT,
   RFI_DECLARATION,
   RFI_DRAWING_NO_DEFAULT,
+  withCoverState,
 } from "./rfi-cover";
 
 const heatLoad = parseTemplate(heatLoadRaw);
@@ -94,6 +96,43 @@ describe("defaultCoverOptions", () => {
     const rec = { ...draftOf(heatLoad), serial_no: "ACMV-01" };
     const opts = defaultCoverOptions(heatLoad, emptyValues(heatLoad), rec);
     expect(opts.ref).toBe("ACMV-01");
+  });
+});
+
+describe("cover state on the record (SPEC §12)", () => {
+  it("seeds the result blank so the boxes stay handwritable by default", () => {
+    const opts = defaultCoverOptions(heatLoad, emptyValues(heatLoad), draftOf(heatLoad));
+    expect(opts.result).toBe("");
+  });
+
+  it("reads off for a record written before the cover persisted", () => {
+    expect(coverStateOf(emptyValues(heatLoad))).toEqual({ enabled: false, options: null });
+  });
+
+  it("round-trips the toggle and options through the record values", () => {
+    const values = emptyValues(heatLoad);
+    const options = {
+      ...defaultCoverOptions(heatLoad, values, draftOf(heatLoad)),
+      result: "pass" as const,
+    };
+    const next = withCoverState(values, { enabled: true, options });
+    // The rest of the values are untouched — only the cover key is written.
+    expect(next.header).toBe(values.header);
+    expect(coverStateOf(next)).toEqual({ enabled: true, options });
+  });
+
+  it("treats a stored option set without a result as blank", () => {
+    const values = emptyValues(heatLoad);
+    const { result: _dropped, ...legacy } = defaultCoverOptions(
+      heatLoad,
+      values,
+      draftOf(heatLoad),
+    );
+    const stored = {
+      ...values,
+      rfi_cover: { enabled: true, options: legacy as typeof legacy & { result: "" } },
+    };
+    expect(coverStateOf(stored).options?.result).toBe("");
   });
 });
 

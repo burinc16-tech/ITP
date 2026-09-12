@@ -273,6 +273,9 @@ body {
   align-items: center;
   gap: 0.3rem;
   cursor: pointer;
+  /* Two-word labels (Fire Protection, Conditional Pass) must not wrap: a
+     wrapped label stretches the radio circle to two lines tall. */
+  white-space: nowrap;
 }
 .cover-other {
   flex: 1 1 12rem;

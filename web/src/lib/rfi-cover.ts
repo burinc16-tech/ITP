@@ -16,7 +16,12 @@ import type { RecordValues } from "./values";
  *  - App-derived, not editable: the contractor sign-off (name/date/signature
  *    image come from the record's captured contractor signature).
  *  - Manual on-site (left blank on the print for handwriting): IRF No., Scope /
- *    Remarks, Inspection Result, and the Inspector / Engineer sign-off.
+ *    Remarks, and the Inspector / Engineer sign-off. The Inspection Result is
+ *    user-chosen at the print step (blank by default, settled 2026-09-12).
+ *
+ * The toggle and the options PERSIST on the record (`values.rfi_cover`) so a
+ * cover ticked and filled before "Save record" is still ticked and filled when
+ * the form is reopened, on this device or another (settled 2026-09-12).
  */
 
 /** The declaration paragraph, verbatim from the reference form. */
@@ -37,6 +42,16 @@ export const RFI_DISCIPLINES = [
 
 export type RfiDiscipline = (typeof RFI_DISCIPLINES)[number]["value"];
 
+/** Inspection result options, in the order they appear on the reference form. */
+export const RFI_RESULTS = [
+  { value: "pass", label: "PASS" },
+  { value: "fail", label: "FAIL" },
+  { value: "conditional", label: "CONDITIONAL PASS" },
+] as const;
+
+/** `""` prints every box empty for on-site handwriting. */
+export type RfiResult = "" | (typeof RFI_RESULTS)[number]["value"];
+
 export const RFI_DRAWING_NO_DEFAULT = "Please refer to the attachment";
 export const RFI_CONTRACTOR_DEFAULT = "Kenyon";
 
@@ -55,6 +70,36 @@ export interface RfiCoverOptions {
   discipline: RfiDiscipline;
   /** Free text shown/printed only when `discipline === "other"`. */
   otherText: string;
+  /** USER-CHOSEN inspection result; `""` leaves the boxes blank on the print. */
+  result: RfiResult;
+}
+
+/** The print-step cover state as persisted on the record (`values.rfi_cover`). */
+export interface RfiCoverState {
+  enabled: boolean;
+  /** Null until the cover is first enabled — seeded from the record then. */
+  options: RfiCoverOptions | null;
+}
+
+/**
+ * The cover state a record carries, tolerating records written before the
+ * cover persisted (no `rfi_cover` → off) or before `result` existed (→ blank).
+ */
+export function coverStateOf(values: RecordValues): RfiCoverState {
+  const stored = values.rfi_cover;
+  if (!stored) return { enabled: false, options: null };
+  const options = stored.options
+    ? { ...stored.options, result: stored.options.result ?? "" }
+    : null;
+  return { enabled: Boolean(stored.enabled), options };
+}
+
+/** Write the cover state into the record's values (immutable). */
+export function withCoverState(
+  values: RecordValues,
+  state: RfiCoverState,
+): RecordValues {
+  return { ...values, rfi_cover: state };
 }
 
 /** The contractor sign-off as printed: pulled from the record's signature. */
@@ -170,6 +215,7 @@ export function defaultCoverOptions(
     ref: record.serial_no ?? "",
     discipline: defaultDiscipline(template),
     otherText: "",
+    result: "",
   };
 }
 
