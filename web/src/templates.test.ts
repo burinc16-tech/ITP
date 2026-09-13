@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TEMPLATES } from "./templates";
+import { CURRENT_TEMPLATES, TEMPLATES } from "./templates";
+import { templateVersionId } from "./data/record";
 
 /**
  * The bundled library parses. `templates.ts` validates at module scope, so a
@@ -13,8 +14,21 @@ describe("bundled templates", () => {
     expect(TEMPLATES.length).toBeGreaterThan(0);
   });
 
-  it("have unique codes", () => {
-    const codes = TEMPLATES.map((t) => t.code);
+  it("have unique version ids", () => {
+    // A code may appear more than once — every revision stays bundled so the
+    // records filed under it keep rendering (SPEC §2) — but never twice at the
+    // same rev.
+    const ids = TEMPLATES.map(templateVersionId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("offer one current revision per code for new records", () => {
+    const codes = CURRENT_TEMPLATES.map((t) => t.code);
     expect(new Set(codes).size).toBe(codes.length);
+    expect(codes).toEqual([...new Set(TEMPLATES.map((t) => t.code))]);
+    // The one revised template so far: the Inspection Request Form is at Rev B,
+    // and Rev A is bundled but not offered.
+    expect(CURRENT_TEMPLATES.find((t) => t.code === "IRF")?.rev).toBe("B");
+    expect(TEMPLATES.filter((t) => t.code === "IRF").map((t) => t.rev)).toEqual(["A", "B"]);
   });
 });

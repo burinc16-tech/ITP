@@ -1,4 +1,5 @@
 import { parseTemplate, type Template } from "@schema";
+import { currentRevisions } from "./data/record";
 import heatLoadRaw from "../../spec/templates/heat-load-test.json";
 import powerTurnOnRaw from "../../spec/templates/power-turn-on.json";
 import idfHandoverRaw from "../../spec/templates/idf-handover.json";
@@ -35,6 +36,7 @@ import sprinklerPressureTestRaw from "../../spec/templates/sprinkler-pipe-pressu
 import billiTapTestRaw from "../../spec/templates/billi-tap-test.json";
 import meterVerificationRaw from "../../spec/templates/meter-verification-record.json";
 import inspectionRequestRaw from "../../spec/templates/inspection-request-form.json";
+import inspectionRequestRevBRaw from "../../spec/templates/inspection-request-form-rev-b.json";
 import inspectionSignoffReportRaw from "../../spec/templates/inspection-signoff-report.json";
 import greaseSeparatorLeakTestRaw from "../../spec/templates/grease-separator-leak-test.json";
 import greaseSeparatorFunctionalRaw from "../../spec/templates/grease-separator-functional-test.json";
@@ -81,8 +83,15 @@ export const TEMPLATES: Template[] = [
   parseTemplate(sprinklerPressureTestRaw),
   parseTemplate(billiTapTestRaw),
   parseTemplate(meterVerificationRaw),
-  parseTemplate(inspectionRequestRaw),
+  parseTemplate(inspectionRequestRaw), // IRF Rev A — superseded; kept for the records filed under it
+  parseTemplate(inspectionRequestRevBRaw),
   parseTemplate(inspectionSignoffReportRaw),
   parseTemplate(greaseSeparatorLeakTestRaw),
   parseTemplate(greaseSeparatorFunctionalRaw),
 ];
+
+/**
+ * What the New-record dialog offers: one entry per template code, the highest
+ * revision. `TEMPLATES` above keeps every revision so existing records resolve.
+ */
+export const CURRENT_TEMPLATES: Template[] = currentRevisions(TEMPLATES);

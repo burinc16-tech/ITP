@@ -8,7 +8,8 @@ import {
   isStandardSection,
   parseTemplate,
 } from "@schema";
-import rawTemplate from "../../../spec/templates/inspection-request-form.json";
+import rawRevA from "../../../spec/templates/inspection-request-form.json";
+import rawTemplate from "../../../spec/templates/inspection-request-form-rev-b.json";
 import { RFI_DECLARATION, RFI_DISCIPLINES, RFI_DRAWING_NO_DEFAULT } from "../lib/rfi-cover";
 import { satisfiedStages } from "../data/workflow";
 
@@ -23,15 +24,21 @@ import { satisfiedStages } from "../data/workflow";
  * several test records, and an inspector who is not the test form's signer — so
  * those two properties are asserted as the reason the file is in the repo, not
  * as incidental structure.
+ *
+ * Rev B (2026-09-13) follows the paper's revision to THREE sign-off blocks. Rev A
+ * stays bundled, frozen, for the records already filed under it (SPEC §2); the
+ * last describe pins it.
  */
 
 const SOURCE = resolve(process.cwd(), "spec/reference/inspection-request-form.html");
 const template = parseTemplate(rawTemplate);
+const revA = parseTemplate(rawRevA);
 const html = readFileSync(SOURCE, "utf8");
 
 describe("Inspection Request Form — parity with the source sheet", () => {
   it("is a one-page portrait record, filed across disciplines rather than under one", () => {
     expect(template.code).toBe("IRF");
+    expect(template.rev).toBe("B");
     expect(template.title).toBe("Inspection Request Form (M&E)");
     expect(template.category).toBe("ITR");
     expect(template.scope).toBe("location");
@@ -153,24 +160,21 @@ describe("Inspection Request Form — the two things the print-step cover cannot
     }
   });
 
-  it("signs off twice, with the inspector a different person from the contractor", () => {
+  it("signs off three times, with the paper's labels, each a different person", () => {
     const contractor = template.sections.find((s) => s.id === "contractor_sign_off")!;
     const inspector = template.sections.find((s) => s.id === "inspector_sign_off")!;
-    if (!isSignOffSection(contractor) || !isSignOffSection(inspector)) {
-      throw new Error("both sign-off blocks live in the section flow");
+    const authority = template.sections.find((s) => s.id === "authority_sign_off")!;
+    if (!isSignOffSection(contractor) || !isSignOffSection(inspector) || !isSignOffSection(authority)) {
+      throw new Error("all three sign-off blocks live in the section flow");
     }
 
-    // Rev A of the paper labelled both blocks "Inspected By:", and the template
-    // carries that wording; the section titles are what tell them apart, on
-    // screen and in print. The 2026-09-13 paper revision renamed them
-    // "Conducted By:" / "Witnessed By:" and added a third block, AUTHORITY
-    // SIGN-OFF ("Approved By:"). The print-step cover follows the paper
-    // (print-rfi-cover.tsx); re-labelling or extending THIS template is a new
-    // template version (SPEC §2) and is deliberately not done here.
+    // The paper's three blocks, labelled as the paper labels them.
     expect(contractor.title).toBe("Contractor Sign-off");
     expect(inspector.title).toBe("Inspector / Engineer Sign-off");
-    expect(contractor.signatures[0]!.role).toBe("Inspected By");
-    expect(inspector.signatures[0]!.role).toBe("Inspected By");
+    expect(authority.title).toBe("Authority Sign-off");
+    expect(contractor.signatures[0]!.role).toBe("Conducted By");
+    expect(inspector.signatures[0]!.role).toBe("Witnessed By");
+    expect(authority.signatures[0]!.role).toBe("Approved By");
     for (const label of [
       "CONTRACTOR SIGN-OFF",
       "Conducted By:",
@@ -182,38 +186,50 @@ describe("Inspection Request Form — the two things the print-step cover cannot
       expect(html).toContain(label);
     }
 
-    // The contractor is Kenyon and cannot be anyone else; the inspector is the
-    // consultant, so no company is defaulted for them.
+    // The contractor is Kenyon and cannot be anyone else; the inspector and the
+    // authority are the consultant / client side, so no company is defaulted.
     expect(contractor.signatures[0]!.company_default).toBe("Kenyon Pte Ltd");
     expect(contractor.signatures[0]!.company_locked).toBe(true);
     expect(inspector.signatures[0]!.company_default).toBeUndefined();
+    expect(authority.signatures[0]!.company_default).toBeUndefined();
 
-    // Both are required, and they gate opposite ends of the workflow.
+    // All three are required, and they gate the three signed workflow steps in
+    // the paper's order: contractor completes, inspector witnesses, authority
+    // accepts.
     expect(contractor.signatures[0]!.stage).toBe("contractor");
-    expect(inspector.signatures[0]!.stage).toBe("client");
-    expect(contractor.signatures[0]!.required).toBe(true);
-    expect(inspector.signatures[0]!.required).toBe(true);
+    expect(inspector.signatures[0]!.stage).toBe("witness");
+    expect(authority.signatures[0]!.stage).toBe("client");
+    for (const block of [contractor, inspector, authority]) {
+      expect(block.signatures[0]!.required).toBe(true);
+    }
   });
 
-  it("runs draft → accepted on those two signatures, with nothing to witness between", () => {
+  it("runs draft → accepted on those three signatures, one per gated step", () => {
     const nothing = satisfiedStages(template, new Set());
-    // No `witness` slot is declared, and a stage with no slots is satisfied
-    // vacuously — so the QA/QC steps in the middle never block on a signature.
-    expect(nothing.has("witness")).toBe(true);
+    // No `check` slot is declared, and a stage with no slots is satisfied
+    // vacuously — so nothing blocks between the three signed steps.
     expect(nothing.has("check")).toBe(true);
     expect(nothing.has("contractor")).toBe(false);
+    expect(nothing.has("witness")).toBe(false);
     expect(nothing.has("client")).toBe(false);
 
     const contractorSigned = satisfiedStages(template, new Set(["sig_contractor"]));
     expect(contractorSigned.has("contractor")).toBe(true);
-    expect(contractorSigned.has("client")).toBe(false);
+    expect(contractorSigned.has("witness")).toBe(false);
 
-    const both = satisfiedStages(template, new Set(["sig_contractor", "sig_inspector"]));
-    expect(both.has("client")).toBe(true);
+    const witnessed = satisfiedStages(template, new Set(["sig_contractor", "sig_inspector"]));
+    expect(witnessed.has("witness")).toBe(true);
+    expect(witnessed.has("client")).toBe(false);
+
+    const all = satisfiedStages(
+      template,
+      new Set(["sig_contractor", "sig_inspector", "sig_authority"]),
+    );
+    expect(all.has("client")).toBe(true);
   });
 });
 
-describe("Inspection Request Form — prints as one page", () => {
+describe("Inspection Request Form — prints as three pages", () => {
   it("orders its blocks the way the sheet does", () => {
     expect(template.sections.map((s) => s.id)).toEqual([
       "scope",
@@ -222,9 +238,11 @@ describe("Inspection Request Form — prints as one page", () => {
       "contractor_sign_off",
       "inspection_result",
       "inspector_sign_off",
+      "authority_sign_off",
     ]);
     // The result sits AFTER the contractor's signature on the paper, because the
-    // inspector fills it — which is the whole reason for a second signer.
+    // inspector fills it — which is the whole reason for a second signer — and
+    // the authority approves last.
     const sections = template.sections.map((s) => s.id);
     expect(sections.indexOf("contractor_sign_off")).toBeLessThan(
       sections.indexOf("inspection_result"),
@@ -232,37 +250,37 @@ describe("Inspection Request Form — prints as one page", () => {
     expect(sections.indexOf("inspection_result")).toBeLessThan(
       sections.indexOf("inspector_sign_off"),
     );
+    expect(sections.indexOf("inspector_sign_off")).toBeLessThan(
+      sections.indexOf("authority_sign_off"),
+    );
 
     const scope = template.sections[0]!;
     if (!isFieldGroupSection(scope)) throw new Error("scope is not a field group");
     expect(html).toContain("Scope / Remarks:");
   });
 
-  it("splits into three pages, each sign-off grid with its own content", () => {
+  it("splits into three pages, the result with the contractor and the two hand-signed grids together", () => {
     const breaks = template.sections.map(
       (s) => (s as { page_break_before?: boolean }).page_break_before === true,
     );
     // MEASURED in Chrome against a filled record, not estimated (see the `scope`
-    // note): the body budget is 881px and the whole request is 1425px, so the
-    // paper's single page cannot be one page here. The two sign-off grids cost
-    // 339px each, which is what forces a third sheet.
+    // note): a sign-off grid costs ~339px of the 881px body budget, so three of
+    // them plus the result cannot share Rev A's page 3. The result moved up.
     //
-    // page 1 scope + covered records | 2 declaration + contractor | 3 result + inspector
-    expect(breaks).toEqual([true, false, true, false, true, false]);
+    // page 1 scope + covered records | 2 declaration + contractor + result | 3 inspector + authority
+    expect(breaks).toEqual([true, false, true, false, false, true, false]);
 
     const pages = breaks.reduce<number>((n, b, i) => (i === 0 || b ? n + 1 : n), 0);
     expect(pages).toBe(3);
 
-    // A two-page split (break before `contractor_sign_off` only) was measured at
-    // 892.8px on page 2 against the 881px budget and rejected. Guard the shape
-    // that replaced it: each sign-off opens a page but does not start one.
-    const signOffIds = ["contractor_sign_off", "inspector_sign_off"];
-    for (const id of signOffIds) {
+    // Guard the shape: the contractor's and the authority's grids share a page
+    // with what precedes them; only the inspector's opens one.
+    for (const id of ["contractor_sign_off", "authority_sign_off"]) {
       const section = template.sections.find((s) => s.id === id)!;
       expect((section as { page_break_before?: boolean }).page_break_before).toBeUndefined();
     }
 
-    // A top-level `footer` would print a fourth page; both sign-offs are sections.
+    // A top-level `footer` would print a fourth page; all sign-offs are sections.
     expect(template.footer).toBeUndefined();
   });
 
@@ -284,5 +302,36 @@ describe("Inspection Request Form — prints as one page", () => {
     // into the template is the two defaults it is meant to carry.
     expect(json).toContain(RFI_DRAWING_NO_DEFAULT);
     expect(json).toContain("Kenyon Pte Ltd");
+  });
+});
+
+describe("Inspection Request Form — Rev A stays frozen", () => {
+  it("is still bundled at Rev A with its two 'Inspected By' slots, for the records filed under it", () => {
+    // Records store `template_version_id` = "IRF@A" and must keep rendering
+    // exactly as signed (SPEC §2). Rev A is not edited; it is superseded.
+    expect(revA.code).toBe("IRF");
+    expect(revA.rev).toBe("A");
+    expect(revA.source).toContain("SUPERSEDED");
+    const signOffs = revA.sections.filter(isSignOffSection);
+    expect(signOffs.map((s) => s.id)).toEqual(["contractor_sign_off", "inspector_sign_off"]);
+    expect(signOffs.map((s) => s.signatures[0]!.role)).toEqual(["Inspected By", "Inspected By"]);
+    expect(signOffs.map((s) => s.signatures[0]!.stage)).toEqual(["contractor", "client"]);
+  });
+
+  it("differs from Rev B only where the paper changed", () => {
+    // Same header band, same sections up to the sign-offs — a Rev B record is
+    // the same request with one more block and the paper's new labels.
+    expect(revA.header.fields).toEqual(template.header.fields);
+    const ids = (t: typeof revA) => t.sections.map((s) => s.id);
+    expect(ids(template)).toEqual([...ids(revA), "authority_sign_off"]);
+    const stripNotes = (s: unknown) =>
+      JSON.parse(
+        JSON.stringify(s, (k, v) => (k === "_note" || k === "page_break_before" ? undefined : v)),
+      );
+    for (const id of ["scope", "attached_records", "declaration", "inspection_result"]) {
+      expect(stripNotes(template.sections.find((s) => s.id === id))).toEqual(
+        stripNotes(revA.sections.find((s) => s.id === id)),
+      );
+    }
   });
 });
