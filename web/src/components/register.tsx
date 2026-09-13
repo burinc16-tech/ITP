@@ -244,8 +244,11 @@ export function Register(props: {
             >
               <option value="all">All templates</option>
               {templates.map((t) => (
-                <option key={t.code} value={templateVersionId(t)}>
+                <option key={templateVersionId(t)} value={templateVersionId(t)}>
                   {t.title}
+                  {templates.some((o) => o !== t && o.code === t.code)
+                    ? ` (Rev ${t.rev})`
+                    : ""}
                 </option>
               ))}
             </select>

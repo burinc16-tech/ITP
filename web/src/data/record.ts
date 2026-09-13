@@ -84,6 +84,23 @@ export function templateFor(
 }
 
 /**
+ * The current revision of each template code — what a NEW record is filled
+ * against. Every revision stays in the bundle so records filed under an earlier
+ * one still resolve by version id (SPEC §2: a template is immutable once used,
+ * and a change is a new version); only the highest `rev` per code is offered
+ * for new records. Revs are letters (A, B, …), so string order is revision
+ * order. Bundle order is kept.
+ */
+export function currentRevisions(templates: Template[]): Template[] {
+  const latest = new Map<string, Template>();
+  for (const t of templates) {
+    const seen = latest.get(t.code);
+    if (!seen || t.rev.localeCompare(seen.rev) > 0) latest.set(t.code, t);
+  }
+  return templates.filter((t) => latest.get(t.code) === t);
+}
+
+/**
  * The head of each revision chain — records no later revision supersedes. One
  * head per ITR, so counting or deriving over heads never double-counts a
  * corrected record against its superseded rev (§6).

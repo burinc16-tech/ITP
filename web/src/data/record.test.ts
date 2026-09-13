@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { parseTemplate } from "@schema";
 import rawTemplate from "../../../spec/templates/heat-load-test.json";
-import { createDraft, reviseRejected, type ChecklistRecord } from "./record";
+import {
+  createDraft,
+  currentRevisions,
+  reviseRejected,
+  templateVersionId,
+  type ChecklistRecord,
+} from "./record";
 import { uuidv7 } from "./uuidv7";
 
 const template = parseTemplate(rawTemplate);
@@ -79,5 +85,27 @@ describe("createDraft scope", () => {
     expect(rec.project_id).toBeNull();
     expect(rec.system_id).toBeNull();
     expect(rec.equipment_id).toBeNull();
+  });
+});
+
+describe("currentRevisions", () => {
+  const revA = { ...template, code: "IRF", rev: "A" };
+  const revB = { ...template, code: "IRF", rev: "B" };
+  const other = { ...template, code: "HLT", rev: "A" };
+
+  it("keeps one template per code — the highest rev — in bundle order", () => {
+    expect(currentRevisions([other, revA, revB]).map(templateVersionId)).toEqual([
+      "HLT@A",
+      "IRF@B",
+    ]);
+    // Order of revisions in the bundle does not matter.
+    expect(currentRevisions([revB, other, revA]).map(templateVersionId)).toEqual([
+      "IRF@B",
+      "HLT@A",
+    ]);
+  });
+
+  it("is the identity when every code has one revision", () => {
+    expect(currentRevisions([other, revB])).toEqual([other, revB]);
   });
 });

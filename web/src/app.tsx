@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Template } from "@schema";
-import { TEMPLATES } from "./templates";
+import { CURRENT_TEMPLATES, TEMPLATES } from "./templates";
 import { BatchExport } from "./components/batch-export";
 import { CalibrationRegister } from "./components/calibration-register";
 import { Dashboard } from "./components/dashboard";
@@ -391,7 +391,7 @@ export function App(): ReactNode {
 
       {newDialog !== null && (
         <NewRecordDialog
-          templates={TEMPLATES}
+          templates={CURRENT_TEMPLATES}
           registryRepo={registryRepo}
           prefill={newDialog}
           onCreate={(scope) => void createFromScope(scope)}
