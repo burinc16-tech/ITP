@@ -16,8 +16,10 @@ import type { RecordValues } from "./values";
  *  - App-derived, not editable: the contractor sign-off (name/date/signature
  *    image come from the record's captured contractor signature).
  *  - Manual on-site (left blank on the print for handwriting): IRF No., Scope /
- *    Remarks, and the Inspector / Engineer sign-off. The Inspection Result is
- *    user-chosen at the print step (blank by default, settled 2026-09-12).
+ *    Remarks, and the Inspector / Engineer and Authority sign-offs (the paper's
+ *    second and third blocks, "Witnessed By" / "Approved By", 2026-09-13). The
+ *    Inspection Result is user-chosen at the print step (blank by default,
+ *    settled 2026-09-12).
  *
  * The toggle and the options PERSIST on the record (`values.rfi_cover`) so a
  * cover ticked and filled before "Save record" is still ticked and filled when

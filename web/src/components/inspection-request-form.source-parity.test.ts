@@ -160,13 +160,25 @@ describe("Inspection Request Form — the two things the print-step cover cannot
       throw new Error("both sign-off blocks live in the section flow");
     }
 
-    // The paper labels both blocks "Inspected By:" — the section titles are what
-    // tell them apart, on screen and in print.
+    // Rev A of the paper labelled both blocks "Inspected By:", and the template
+    // carries that wording; the section titles are what tell them apart, on
+    // screen and in print. The 2026-09-13 paper revision renamed them
+    // "Conducted By:" / "Witnessed By:" and added a third block, AUTHORITY
+    // SIGN-OFF ("Approved By:"). The print-step cover follows the paper
+    // (print-rfi-cover.tsx); re-labelling or extending THIS template is a new
+    // template version (SPEC §2) and is deliberately not done here.
     expect(contractor.title).toBe("Contractor Sign-off");
     expect(inspector.title).toBe("Inspector / Engineer Sign-off");
     expect(contractor.signatures[0]!.role).toBe("Inspected By");
     expect(inspector.signatures[0]!.role).toBe("Inspected By");
-    for (const label of ["CONTRACTOR SIGN-OFF", "INSPECTOR / ENGINEER SIGN-OFF", "Inspected By:"]) {
+    for (const label of [
+      "CONTRACTOR SIGN-OFF",
+      "Conducted By:",
+      "INSPECTOR / ENGINEER SIGN-OFF",
+      "Witnessed By:",
+      "AUTHORITY SIGN-OFF",
+      "Approved By:",
+    ]) {
       expect(html).toContain(label);
     }
 

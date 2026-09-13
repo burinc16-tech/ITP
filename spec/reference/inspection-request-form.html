@@ -26,16 +26,20 @@
   }
 
   /* ── Print ── */
+  @page { size: A4; margin: 0; }
   @media print {
     html, body { background: #fff; }
     .page {
       width: 210mm;
-      min-height: 297mm;
+      min-height: 0;
+      height: auto;
       margin: 0;
-      padding: 10mm 12mm 10mm 12mm;
+      padding: 8mm 12mm 8mm 12mm;
       box-shadow: none;
-      page-break-after: always;
+      page-break-after: avoid;
+      page-break-inside: avoid;
     }
+    table { page-break-inside: avoid; }
     .no-print { display: none !important; }
     input, textarea, select {
       border: none !important;
@@ -147,7 +151,7 @@
     cursor: crosshair;
     display: block;
     width: 100%;
-    height: 120px;
+    height: 90px;
     background: transparent;
     touch-action: none;
   }
@@ -349,7 +353,7 @@
       <td class="field-label section-title" colspan="4">CONTRACTOR SIGN-OFF</td>
     </tr>
     <tr>
-      <td class="field-label">Inspected By:</td>
+      <td class="field-label">Conducted By:</td>
       <td><input type="text" id="prelim_by" value="Burin" placeholder="Name"></td>
       <td class="field-label">Date:</td>
       <td><input type="date" id="prelim_date" value="2026-07-03"></td>
@@ -359,7 +363,7 @@
       <td colspan="3" style="padding:4px;">
         <div class="sig-pad-wrapper">
           <img class="sig-mirror" id="sig_prelim_mirror" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwkAAABGCAYAAACHfdioAAABcUlEQVR4Xu3ZsQ0AMAzDsOb/p7sFVW8gJ78geA4AAMBjdgEAAIgEAADg50kAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAuDxeAEeM1X6NAAAAAElFTkSuQmCC">
-          <canvas id="sig_prelim" height="120" width="777"></canvas>
+          <canvas id="sig_prelim" height="90" width="777"></canvas>
           <div class="sig-controls no-print">
             <button onclick="clearSig('sig_prelim','sig_prelim_mirror')">Clear</button>
           </div>
@@ -393,7 +397,7 @@
     </tr>
     <tr>
       <td class="field-label nowrap" style="vertical-align:top; padding-top:5px;">Comments:</td>
-      <td colspan="3"><textarea id="result_comments" rows="5" placeholder="Inspector comments / conditions / defects noted..."></textarea></td>
+      <td colspan="3"><textarea id="result_comments" rows="4" placeholder="Inspector comments / conditions / defects noted..."></textarea></td>
     </tr>
   </tbody></table>
 
@@ -406,7 +410,7 @@
       <td class="section-title bold" colspan="4">INSPECTOR / ENGINEER SIGN-OFF</td>
     </tr>
     <tr>
-      <td class="field-label">Inspected By:</td>
+      <td class="field-label">Witnessed By:</td>
       <td><input type="text" id="insp_by" placeholder="Name / Designation" value=""></td>
       <td class="field-label">Date:</td>
       <td><input type="date" id="insp_signoff_date" value="2026-07-03"></td>
@@ -416,9 +420,37 @@
       <td colspan="3" style="padding:4px;">
         <div class="sig-pad-wrapper">
           <img class="sig-mirror" id="sig_insp_mirror" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwkAAABGCAYAAACHfdioAAABcUlEQVR4Xu3ZsQ0AMAzDsOb/p7sFVW8gJ78geA4AAMBjdgEAAIgEAADg50kAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAEAkAAECIBAAAIEQCAAAQIgEAAAiRAAAAhEgAAABCJAAAACESAACAuDxeAEeM1X6NAAAAAElFTkSuQmCC">
-          <canvas id="sig_insp" height="120" width="777"></canvas>
+          <canvas id="sig_insp" height="90" width="777"></canvas>
           <div class="sig-controls no-print">
             <button onclick="clearSig('sig_insp','sig_insp_mirror')">Clear</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody></table>
+
+  <!-- ══ WITNESSED BY SIGN-OFF ══ -->
+  <table style="margin-bottom:4px;">
+    <colgroup>
+      <col style="width:25%"><col style="width:40%"><col style="width:15%"><col style="width:20%">
+    </colgroup>
+    <tbody><tr>
+      <td class="section-title bold" colspan="4">AUTHORITY SIGN-OFF</td>
+    </tr>
+    <tr>
+      <td class="field-label">Approved By:</td>
+      <td><input type="text" id="witness_by" placeholder="Name / Designation" value=""></td>
+      <td class="field-label">Date:</td>
+      <td><input type="date" id="witness_date" value=""></td>
+    </tr>
+    <tr>
+      <td class="field-label" style="vertical-align:top; padding-top:4px;">Signature:</td>
+      <td colspan="3" style="padding:4px;">
+        <div class="sig-pad-wrapper">
+          <img class="sig-mirror" id="sig_witness_mirror" alt="">
+          <canvas id="sig_witness" height="90" width="777"></canvas>
+          <div class="sig-controls no-print">
+            <button onclick="clearSig('sig_witness','sig_witness_mirror')">Clear</button>
           </div>
         </div>
       </td>
@@ -569,6 +601,7 @@ function makeFieldPersistent(el) {
 window.addEventListener('load', () => {
   initSigPad('sig_prelim', 'sig_prelim_mirror');
   initSigPad('sig_insp', 'sig_insp_mirror');
+  initSigPad('sig_witness', 'sig_witness_mirror');
 
   document.querySelectorAll('input, textarea, select').forEach(makeFieldPersistent);
 
@@ -583,8 +616,10 @@ window.addEventListener('load', () => {
   const today = new Date().toISOString().split('T')[0];
   const prelimDate = document.getElementById('prelim_date');
   const inspDate = document.getElementById('insp_signoff_date');
+  const witnessDate = document.getElementById('witness_date');
   if (!prelimDate.value) { prelimDate.value = today; prelimDate.setAttribute('value', today); }
   if (!inspDate.value) { inspDate.value = today; inspDate.setAttribute('value', today); }
+  if (!witnessDate.value) { witnessDate.value = today; witnessDate.setAttribute('value', today); }
 
   // Restore "other" enabled state based on the checkbox (for reopened saves)
   const otherSpecify = document.getElementById('other_specify');
@@ -601,7 +636,7 @@ window.addEventListener('load', () => {
 
 /* ─── Print: flatten signatures into static images ─── */
 window.addEventListener('beforeprint', () => {
-  ['sig_prelim','sig_insp'].forEach(id => {
+  ['sig_prelim','sig_insp','sig_witness'].forEach(id => {
     const canvas = document.getElementById(id);
     canvas.style.borderStyle = 'solid';
   });
@@ -626,8 +661,8 @@ function saveAs() {
     }
   });
 
-  // 2. Snapshot both signature canvases into their mirror images
-  [['sig_prelim','sig_prelim_mirror'], ['sig_insp','sig_insp_mirror']].forEach(([cid, mid]) => {
+  // 2. Snapshot all signature canvases into their mirror images
+  [['sig_prelim','sig_prelim_mirror'], ['sig_insp','sig_insp_mirror'], ['sig_witness','sig_witness_mirror']].forEach(([cid, mid]) => {
     const canvas = document.getElementById(cid);
     const mirror = document.getElementById(mid);
     try {
@@ -682,7 +717,7 @@ function collectAutosave() {
     else if (type === 'radio') { if (el.checked && el.name) d.radios[el.name] = el.value; }
     else if (el.id) d.fields[el.id] = el.value;
   });
-  ['sig_prelim', 'sig_insp'].forEach(cid => {
+  ['sig_prelim', 'sig_insp', 'sig_witness'].forEach(cid => {
     const cv = document.getElementById(cid);
     if (cv && !sigIsBlank(cv)) {
       try { d.sigs[cid] = cv.toDataURL('image/png'); } catch (e) {}

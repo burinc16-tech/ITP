@@ -18,7 +18,9 @@ const EMPTY: Map<string, SignatureView> = new Map();
  * printed as page 1 in front of the record when the print-step toggle is on.
  * ONE shared component, driven entirely by record/template data and the
  * user-chosen options — never per-template markup (Hard Rule #4). Layout
- * replicates `spec/reference/inspection-request-form.html` (A4 portrait).
+ * replicates `spec/reference/inspection-request-form.html` (A4 portrait):
+ * three sign-off blocks — contractor (captured), then inspector/engineer and
+ * authority, both left blank for on-site handwriting.
  *
  * The page is A4 **portrait** regardless of the record's orientation; a named
  * `@page rfi-cover` rule (print.css) keeps it portrait even when the record
@@ -164,7 +166,7 @@ export function PrintRfiCover(props: {
               </td>
             </tr>
             <tr>
-              <td className="rfi-lbl">Inspected By:</td>
+              <td className="rfi-lbl">Conducted By:</td>
               <td className="rfi-val">{data.contractorSignOff?.name ?? ""}</td>
               <td className="rfi-lbl">Date:</td>
               <td className="rfi-val">{data.contractorSignOff?.date ?? ""}</td>
@@ -198,7 +200,11 @@ export function PrintRfiCover(props: {
             <tr>
               <td className="rfi-result-cell" colSpan={4}>
                 {RFI_RESULTS.map((r) => (
-                  <span key={r.value} className="rfi-result-box">
+                  <span
+                    key={r.value}
+                    className={`rfi-result-box rfi-result-${r.value}`}
+                    data-checked={data.result === r.value ? "true" : undefined}
+                  >
                     {data.result === r.value ? "☑" : "☐"} {r.label}
                   </span>
                 ))}
@@ -211,34 +217,9 @@ export function PrintRfiCover(props: {
           </tbody>
         </table>
 
-        {/* Inspector / engineer sign-off — manual, blank. */}
-        <table className="rfi-table">
-          <colgroup>
-            <col style={{ width: "25%" }} />
-            <col style={{ width: "40%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "20%" }} />
-          </colgroup>
-          <tbody>
-            <tr>
-              <td className="rfi-section" colSpan={4}>
-                INSPECTOR / ENGINEER SIGN-OFF
-              </td>
-            </tr>
-            <tr>
-              <td className="rfi-lbl">Inspected By:</td>
-              <td className="rfi-val rfi-blank" />
-              <td className="rfi-lbl">Date:</td>
-              <td className="rfi-val rfi-blank" />
-            </tr>
-            <tr>
-              <td className="rfi-lbl rfi-top">Signature:</td>
-              <td className="rfi-sig-cell" colSpan={3}>
-                <span className="rfi-sig-box" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Inspector / engineer and authority sign-offs — manual, blank. */}
+        <RfiBlankSignOff title="INSPECTOR / ENGINEER SIGN-OFF" nameLabel="Witnessed By:" />
+        <RfiBlankSignOff title="AUTHORITY SIGN-OFF" nameLabel="Approved By:" />
       </div>
 
       <footer className="print-foot rfi-foot">
@@ -250,6 +231,43 @@ export function PrintRfiCover(props: {
         <span className="print-foot-status">{status.toUpperCase()}</span>
       </footer>
     </section>
+  );
+}
+
+/**
+ * A sign-off block left entirely blank for handwriting on site: name, date and
+ * signature box. The paper's second and third blocks differ only in title and
+ * the name label, so one shape serves both.
+ */
+function RfiBlankSignOff(props: { title: string; nameLabel: string }): ReactNode {
+  return (
+    <table className="rfi-table">
+      <colgroup>
+        <col style={{ width: "25%" }} />
+        <col style={{ width: "40%" }} />
+        <col style={{ width: "15%" }} />
+        <col style={{ width: "20%" }} />
+      </colgroup>
+      <tbody>
+        <tr>
+          <td className="rfi-section" colSpan={4}>
+            {props.title}
+          </td>
+        </tr>
+        <tr>
+          <td className="rfi-lbl">{props.nameLabel}</td>
+          <td className="rfi-val rfi-blank" />
+          <td className="rfi-lbl">Date:</td>
+          <td className="rfi-val rfi-blank" />
+        </tr>
+        <tr>
+          <td className="rfi-lbl rfi-top">Signature:</td>
+          <td className="rfi-sig-cell" colSpan={3}>
+            <span className="rfi-sig-box" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 

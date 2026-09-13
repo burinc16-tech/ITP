@@ -526,6 +526,13 @@
   font-size: 9pt;
   color: #1a1a1a;
 }
+/* The paper's own print margins (8mm/12mm). With three sign-off blocks the
+ * record page's 12mm/10mm padding pushed a blank cover 1.4mm past A4
+ * (measured 2026-09-13: 298.4mm); this plus the 18mm signature boxes below
+ * brings a fully wrapped, unsigned cover in at ~257mm of the 264mm budget. */
+.print-page.rfi-cover-page {
+  padding: 10mm 12mm 8mm 12mm;
+}
 .rfi-header {
   display: flex;
   align-items: center;
@@ -575,12 +582,15 @@
   vertical-align: top;
 }
 .rfi-area {
-  height: 16mm;
+  height: 14mm;
   vertical-align: top;
 }
 .rfi-cb-cell {
   text-align: center;
   font-size: 9pt;
+}
+.rfi-discipline td {
+  border-top: 1.5px solid #000;
 }
 .rfi-cb {
   font-size: 12pt;
@@ -611,13 +621,13 @@
 }
 .rfi-sig-box {
   display: block;
-  height: 22mm;
+  height: 18mm;
   border: 1px dashed #888;
   border-radius: 2px;
 }
 .rfi-sig-img {
   display: block;
-  max-height: 22mm;
+  max-height: 18mm;
   max-width: 100%;
   object-fit: contain;
 }
@@ -629,10 +639,31 @@
   display: inline-block;
   font-weight: bold;
   font-size: 9pt;
-  border: 1.2px solid #555;
+  border: 1.5px solid #555;
   border-radius: 3px;
   padding: 1mm 4mm;
   margin: 0 2mm;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* Coloured per outcome like the paper; the chosen box also carries its tint. */
+.rfi-result-pass {
+  border-color: #2e7d32;
+}
+.rfi-result-pass[data-checked] {
+  background: #e8f5e9;
+}
+.rfi-result-fail {
+  border-color: #c62828;
+}
+.rfi-result-fail[data-checked] {
+  background: #ffebee;
+}
+.rfi-result-conditional {
+  border-color: #e65100;
+}
+.rfi-result-conditional[data-checked] {
+  background: #fff3e0;
 }
 .rfi-foot {
   font-size: 8pt;

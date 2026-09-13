@@ -151,9 +151,30 @@ describe("PrintRfiCover", () => {
     expect(screen.getByText("☐ PASS")).toBeInTheDocument();
     expect(screen.getByText("☐ FAIL")).toBeInTheDocument();
     expect(screen.getByText("☑ CONDITIONAL PASS")).toBeInTheDocument();
+    expect(
+      screen.getByText("☑ CONDITIONAL PASS").getAttribute("data-checked"),
+    ).toBe("true");
+    expect(screen.getByText("☐ PASS").hasAttribute("data-checked")).toBe(false);
   });
 
-  it("leaves the inspector sign-off and result as blank boxes by default", () => {
+  it("prints three sign-off blocks with the paper's labels", () => {
+    render(
+      <PrintRfiCover
+        template={template}
+        record={draft()}
+        options={options()}
+        status="draft"
+      />,
+    );
+    expect(screen.getByText("CONTRACTOR SIGN-OFF")).toBeInTheDocument();
+    expect(screen.getByText("Conducted By:")).toBeInTheDocument();
+    expect(screen.getByText("INSPECTOR / ENGINEER SIGN-OFF")).toBeInTheDocument();
+    expect(screen.getByText("Witnessed By:")).toBeInTheDocument();
+    expect(screen.getByText("AUTHORITY SIGN-OFF")).toBeInTheDocument();
+    expect(screen.getByText("Approved By:")).toBeInTheDocument();
+  });
+
+  it("leaves the inspector, authority and result boxes blank by default", () => {
     const { container } = render(
       <PrintRfiCover
         template={template}
@@ -162,8 +183,8 @@ describe("PrintRfiCover", () => {
         status="draft"
       />,
     );
-    // Both contractor (unsigned) and inspector signature boxes are blank.
-    expect(container.querySelectorAll(".rfi-sig-box")).toHaveLength(2);
+    // Contractor (unsigned), inspector and authority signature boxes are blank.
+    expect(container.querySelectorAll(".rfi-sig-box")).toHaveLength(3);
     // No result chosen: all three boxes print empty for handwriting.
     expect(screen.getByText("☐ PASS")).toBeInTheDocument();
     expect(screen.getByText("☐ FAIL")).toBeInTheDocument();

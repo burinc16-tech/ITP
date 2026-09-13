@@ -79,7 +79,7 @@
       "layout": "stacked",
       "signatures": [
         { "id": "sig_contractor", "role": "Inspected By", "company_default": "Kenyon Pte Ltd", "company_locked": true, "required": true, "stage": "contractor",
-          "_note": "The paper labels this block and the inspector's block alike — both read `Inspected By:` — and the role is carried verbatim rather than disambiguated, because the section titles above them already say which is which on screen and in print." }
+          "_note": "Rev A of the paper labelled this block and the inspector's block alike — both read `Inspected By:` — and the role is carried verbatim rather than disambiguated, because the section titles above them already say which is which on screen and in print. The 2026-09-13 paper revision (spec/reference/inspection-request-form.html) reads `Conducted By:` here, `Witnessed By:` on the inspector's block, and adds a third AUTHORITY SIGN-OFF block (`Approved By:`); the print-step cover follows it, this template does not yet — that is a new template version (SPEC §2)." }
       ],
       "_note": "A `sign_off` section rather than the top-level `footer` for two reasons: the paper puts this block in the MIDDLE of the page, above the result, and a `footer` always prints on a page of its own (`PrintView` adds one), which would make a one-page form two.\n\n`stage: \"contractor\"` gates draft → completed, so a request cannot be issued until the contractor has signed the declaration above it."
     },
