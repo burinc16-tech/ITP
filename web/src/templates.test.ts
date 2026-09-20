@@ -26,9 +26,13 @@ describe("bundled templates", () => {
     const codes = CURRENT_TEMPLATES.map((t) => t.code);
     expect(new Set(codes).size).toBe(codes.length);
     expect(codes).toEqual([...new Set(TEMPLATES.map((t) => t.code))]);
-    // The one revised template so far: the Inspection Request Form is at Rev B,
-    // and Rev A is bundled but not offered.
+    // The two revised templates so far, one of each kind (SPEC §2, §12): the
+    // Inspection Request Form is at Rev B with Rev A bundled but not offered,
+    // because IRF@A records were filed; the Condensate Pipe Flood Test is at
+    // Rev B with NO Rev A bundled, because none ever was.
     expect(CURRENT_TEMPLATES.find((t) => t.code === "IRF")?.rev).toBe("B");
     expect(TEMPLATES.filter((t) => t.code === "IRF").map((t) => t.rev)).toEqual(["A", "B"]);
+    expect(CURRENT_TEMPLATES.find((t) => t.code === "CPF")?.rev).toBe("B");
+    expect(TEMPLATES.filter((t) => t.code === "CPF").map((t) => t.rev)).toEqual(["B"]);
   });
 });

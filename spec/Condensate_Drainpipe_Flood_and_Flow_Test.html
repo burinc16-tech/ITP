@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condensate Drainpipe Flood &amp; Flow Test Record – MOS-ACMV-006</title>
+<style>
+  :root{
+    --ink:#000; --grid:#000; --shade:#D9D9D9; --accent:#1f5fae; --ok:#1b7f3b; --bad:#c62828;
+    --paper-w:184.6mm;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#e9ecef;color:var(--ink);
+    font-family:Calibri,"Carlito","Segoe UI",Arial,sans-serif;font-size:9pt;}
+  /* ---------- toolbar ---------- */
+  .toolbar{position:sticky;top:0;z-index:20;background:#1f2a37;color:#fff;
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;font-size:13px}
+  .toolbar .title{font-weight:600;margin-right:auto}
+  .toolbar button{font:inherit;border:0;border-radius:6px;padding:7px 12px;cursor:pointer;background:#fff;color:#1f2a37}
+  .toolbar button.primary{background:#2f80ed;color:#fff}
+  .toolbar button.warn{background:#f2c94c;color:#1f2a37}
+  .toolbar button.ghost{background:transparent;color:#cfd8e3;border:1px solid #4a5a6e}
+  .toolbar .status{font-size:12px;color:#cfd8e3}
+  .toolbar .status.dirty{color:#f2c94c}
+  .locked-banner{display:none;background:#fff3cd;color:#664d03;text-align:center;padding:6px;font-size:12px}
+  body.locked .locked-banner{display:block}
+  /* ---------- paper ---------- */
+  .paper{width:var(--paper-w);max-width:calc(100% - 16px);margin:16px auto;background:#fff;
+    padding:10mm 0;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+  .sheet{width:100%;padding:0 6mm}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  td,th{border:0.75pt solid var(--grid);padding:2pt 4pt;vertical-align:middle;text-align:left;font-weight:normal}
+  .gap{height:5pt}
+  .shade{background:var(--shade)}
+  .b{font-weight:700}
+  .c{text-align:center}
+  .i{font-style:italic}
+  .hdr td{border:none}
+    .hdr .logo-r{text-align:right}
+  .hdr .logo-r img{height:57px}
+  .hdr .proj p{margin:0.5pt 0;font-size:10pt}
+  .hdr .proj p{display:flex;align-items:baseline}
+  .hdr .proj .k{display:inline-block;width:88px;flex:none;font-weight:700}
+  .hdr .proj .v{flex:1;min-width:40px}
+  .form-title{font-size:13pt;font-weight:700;text-align:center;padding:5pt}
+  .sec{font-weight:700;background:var(--shade);font-size:9.5pt}
+  /* ---------- inputs ---------- */
+  input,textarea,select{font:inherit;color:inherit;border:none;background:transparent;width:100%;padding:1px 2px;outline:none}
+  input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .fill{background:#f3f8ff;border-bottom:1px dotted #8aa9d6}
+  .fill:focus{background:#e3efff;border-bottom-color:var(--accent)}
+  .ce{outline:none;border-radius:2px;white-space:pre-wrap;word-break:break-word}
+  .ce:empty::before{content:"\00a0"}
+  .ce:hover{background:#f3f8ff;box-shadow:inset 0 -1px 0 #8aa9d6}
+  .ce:focus{background:#e3efff;box-shadow:inset 0 -1px 0 var(--accent)}
+  body.locked .ce:hover,body.locked .ce:focus{background:transparent;box-shadow:none}
+  .calc{background:#f4f4f4;border-bottom:1px dotted #bbb;color:#333}
+  .inline{display:inline-flex;align-items:center;gap:4px;width:100%}
+  .inline input{flex:1;min-width:0}
+  .inline .u{flex:none}
+  .dt{display:grid;grid-template-columns:auto 1fr;gap:1px 4px;align-items:center}
+  .dt input{min-width:0}
+  input[type=date],input[type=time]{min-width:0}
+  textarea{resize:none;overflow:hidden;min-height:16px;display:block}
+  label.cb{display:inline-flex;align-items:center;gap:4px;margin-right:14px;cursor:pointer}
+  label.cb input{width:auto;margin:0}
+  /* choice toggles */
+  .choice{display:inline-flex;gap:2px;align-items:center;white-space:nowrap}
+  .opt{cursor:pointer;padding:0 5px;border:1.2pt solid transparent;border-radius:10px;user-select:none;line-height:1.35}
+  .opt:hover{background:#eef4ff}
+  .opt.sel{border-color:#000;font-weight:700}
+  .opt.sel.pos{color:var(--ok);border-color:var(--ok)}
+  .opt.sel.neg{color:var(--bad);border-color:var(--bad)}
+  .choice.has-sel .opt:not(.sel){color:#999}
+  /* requirement indicators (screen only) */
+  .req{position:relative}
+  .req.ok::after,.req.bad::after{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-weight:700}
+  .req.ok::after{content:"✓";color:var(--ok)}
+  .req.bad::after{content:"✗";color:var(--bad)}
+  .rec.bad{color:var(--bad);font-weight:700}
+  .rec.ok{color:var(--ok);font-weight:700}
+  /* signatures */
+  .sig-cell{height:32pt;padding:1pt 3pt;text-align:center;position:relative}
+  .sig-cell img{max-height:29pt;max-width:100%;display:block;margin:0 auto}
+  .sig-btn{font:inherit;font-size:8.5pt;border:1px dashed var(--accent);color:var(--accent);background:#f3f8ff;border-radius:4px;padding:4px 8px;cursor:pointer}
+  .sig-clear{position:absolute;top:1px;right:2px;font-size:10px;border:0;background:#fff;color:var(--bad);cursor:pointer;padding:0 3px;border-radius:3px}
+  .sig-cell:not(.signed) .sig-clear{display:none}
+  .sig-cell.signed .sig-btn{display:none}
+  .screen-footer{display:flex;justify-content:space-between;font-size:7.5pt;color:#444;padding:6pt 6mm 0}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal.open{display:flex}
+  .modal .box{background:#fff;border-radius:10px;padding:16px;width:560px;max-width:100%;font-family:system-ui,Segoe UI,Arial,sans-serif;font-size:14px}
+  .modal h3{margin:0 0 4px;font-size:16px}
+  .modal .sub{color:#555;font-size:12px;margin-bottom:10px}
+  .modal canvas{width:100%;height:200px;border:1px solid #bbb;border-radius:6px;background:#fff;touch-action:none;cursor:crosshair;display:block}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+  .modal .row .left{margin-right:auto}
+  .modal button{font:inherit;border:1px solid #bbb;background:#fff;border-radius:6px;padding:7px 14px;cursor:pointer}
+  .modal button.primary{background:#2f80ed;border-color:#2f80ed;color:#fff}
+  .modal .namefld{width:100%;border:1px solid #bbb;border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:14px}
+  /* locked */
+  body.locked .fill,body.locked .calc{background:transparent;border-bottom-color:transparent}
+  body.locked .opt{cursor:default}
+  body.locked .opt:hover{background:transparent}
+  body.locked .sig-btn,body.locked .sig-clear,body.locked .edit-only{display:none!important}
+  /* ---------- print ---------- */
+  @page{size:A4;margin:10.6mm 12.7mm 13mm 12.7mm;
+    @bottom-right{content:"Page " counter(page) " of " counter(pages);font-family:Calibri,Carlito,Arial,sans-serif;font-size:7.5pt}}
+  @media print{
+    html,body{background:#fff}
+    .toolbar,.locked-banner,.modal,.screen-footer,.sig-btn,.sig-clear,.edit-only{display:none!important}
+    .paper{width:auto;max-width:none;margin:0;padding:0;box-shadow:none}
+    .sheet{padding:0}
+    .fill,.calc{background:transparent!important;border-bottom:none!important}
+    .ce{background:transparent!important;box-shadow:none!important}
+    input:placeholder-shown{border-bottom:0.5pt solid #777!important}
+    input[type=date]:invalid,input[type=time]:invalid{color:transparent;border-bottom:0.5pt solid #777!important}
+    .req.ok::after,.req.bad::after{content:none}
+    .rec.ok,.rec.bad{color:inherit}
+    .opt.sel.pos,.opt.sel.neg{color:#000;border-color:#000}
+    .choice.has-sel .opt:not(.sel){color:#777}
+    .opt:hover{background:none}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    table{page-break-inside:avoid}
+    input::-webkit-calendar-picker-indicator{display:none}
+    input[type=date],input[type=time]{padding:0}
+    .dt{grid-template-columns:auto 1.2fr auto 1fr;gap:0 3px}
+  }
+</style>
+<style id="page-footer">@page{@bottom-left{content:"Form Ref: MOS-ACMV-006 / Condensate Drainpipe Flood & Flow Test Form";font-family:Calibri,Carlito,Arial,sans-serif;font-size:7.5pt}}</style>
+</head>
+<body>
+<div class="toolbar">
+  <span class="title">Condensate Drainpipe Flood &amp; Flow Test Record</span>
+  <span class="status" id="status">No changes</span>
+  <button class="primary edit-only" id="btnSave" title="Save a new HTML file containing everything filled in">💾 Save Filled Form</button>
+  <button id="btnPrint" title="Print, or choose 'Save as PDF' as the printer">🖨 Print / PDF</button>
+  <button class="warn edit-only" id="btnLock" title="Save a final, read-only copy">🔒 Finalise &amp; Save</button>
+  <button class="ghost edit-only" id="btnClear">Clear</button>
+</div>
+<div class="locked-banner">This record has been finalised and is read-only. Use <b>Print / PDF</b> to produce a PDF copy.</div>
+
+<div class="paper"><div class="sheet" id="sheet">
+
+  <!-- Header -->
+  <table class="hdr">
+    <colgroup><col style="width:74%"><col style="width:26%"></colgroup>
+    <tr>
+      <td class="proj">
+        <p><span class="k ce" contenteditable="true" spellcheck="false" data-f="hProjectLbl">Project</span><span class="colon">:&nbsp;</span><span class="v ce" contenteditable="true" spellcheck="false" data-f="hProject">AMK1 300 KVA UPS System C</span></p>
+        <p><span class="k ce" contenteditable="true" spellcheck="false" data-f="hContractorLbl">Contractor</span><span class="colon">:&nbsp;</span><span class="v ce" contenteditable="true" spellcheck="false" data-f="hContractor">Kenyon Pte Ltd</span></p>
+        <p><span class="k ce" contenteditable="true" spellcheck="false" data-f="hMosLbl">MOS Reference</span><span class="colon">:&nbsp;</span><span class="v ce" contenteditable="true" spellcheck="false" data-f="hMos">MOS-ACMV-006</span></p>
+      </td>
+      <td class="logo-r"><img alt="Kenyon logo" src="data:image/jpeg;base64,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"></td>
+    </tr>
+  </table>
+  <div class="gap"></div>
+
+  <table><tr><td class="form-title shade">CONDENSATE DRAINPIPE FLOOD &amp; FLOW TEST RECORD</td></tr></table>
+  <div class="gap"></div>
+
+  <!-- General info -->
+  <table>
+    <colgroup><col style="width:18%"><col style="width:32%"><col style="width:18%"><col style="width:32%"></colgroup>
+    <tr>
+      <td class="b shade">Location</td>
+      <td><textarea class="fill" data-f="location" rows="1">AMK1 LEVEL 2 DX AHU-UR-201 / CHW AHU-UR&amp;BR-201</textarea></td>
+      <td class="b shade">Ref. No.</td>
+      <td><input class="fill" data-f="refNo" placeholder=" "></td>
+    </tr>
+    <tr>
+      <td class="b shade">Test Area</td>
+      <td><textarea class="fill" data-f="testArea" rows="1">AMK1 LEVEL 2 UPS RM to Floor Waste (refer to attached drawing)</textarea></td>
+      <td class="b shade">Drawing Ref.</td>
+      <td><input class="fill" data-f="drawingRef" placeholder=" "></td>
+    </tr>
+    <tr>
+      <td class="b shade">Pipe Material / Size</td>
+      <td><input class="fill" data-f="pipe" placeholder=" "></td>
+      <td class="b shade">Test Section Length (m)</td>
+      <td><input class="fill" type="number" step="any" data-f="length" placeholder=" "></td>
+    </tr>
+  </table>
+  <div class="gap"></div>
+
+  <!-- Part A -->
+  <table>
+    <colgroup><col style="width:6%"><col style="width:44%"><col style="width:32%"><col style="width:18%"></colgroup>
+    <tr><td colspan="4" class="sec">PART A – CONDENSATE DRAIN PIPE FLOOD TEST (MOS-ACMV-006, Clause 6.2)</td></tr>
+    <tr class="shade b"><td class="b c">Item</td><td class="b">Description</td><td class="b">Reading / Record</td><td class="b">Requirement</td></tr>
+    <tr><td class="c">A1</td><td>Test head above highest point of test section</td>
+      <td><span class="inline"><input class="fill" type="number" step="any" data-f="a1" placeholder=" "><span class="u">m</span></span></td>
+      <td class="req" id="r-a1">≥ 1.0 m</td></tr>
+    <tr><td class="c">A2</td><td>Settlement period (release of trapped air / absorption)</td>
+      <td><span class="inline"><input class="fill" type="number" step="any" data-f="a2" placeholder=" "><span class="u">min</span></span></td>
+      <td class="req" id="r-a2">≥ 30 min</td></tr>
+    <tr><td class="c">A3</td><td>Start date / time</td>
+      <td><span class="dt">Date:<input class="fill" type="date" required data-f="a3d">Time:<input class="fill" type="time" required data-f="a3t"></span></td>
+      <td>–</td></tr>
+    <tr><td class="c">A4</td><td>Water level at commencement of test (mark on standpipe)</td>
+      <td><span class="inline"><input class="fill" type="number" step="any" data-f="a4" placeholder=" "><span class="u">mm</span></span></td>
+      <td>–</td></tr>
+    <tr><td class="c">A5</td><td>End date / time</td>
+      <td><span class="dt">Date:<input class="fill" type="date" required data-f="a5d">Time:<input class="fill" type="time" required data-f="a5t"></span></td>
+      <td>–</td></tr>
+    <tr><td class="c">A6</td><td>Test duration <span class="edit-only" style="color:#777;font-size:8pt">(auto from A3/A5)</span></td>
+      <td><span class="inline"><input class="calc" readonly tabindex="-1" data-f="a6" placeholder=" "><span class="u">h</span></span></td>
+      <td class="req" id="r-a6">≥ 2 h</td></tr>
+    <tr><td class="c">A7</td><td>Water level at end of test</td>
+      <td><span class="inline"><input class="fill" type="number" step="any" data-f="a7" placeholder=" "><span class="u">mm</span></span></td>
+      <td>–</td></tr>
+    <tr><td class="c">A8</td><td>Drop in water level (A4 – A7) <span class="edit-only" style="color:#777;font-size:8pt">(auto)</span></td>
+      <td><span class="inline"><input class="calc" readonly tabindex="-1" data-f="a8" placeholder=" "><span class="u">mm</span></span></td>
+      <td class="req" id="r-a8">No drop</td></tr>
+    <tr><td class="c">A9</td><td>Visible leakage at joints / fittings</td>
+      <td><span class="choice" data-f="a9"><span class="opt neg" data-v="Yes">Yes</span>/<span class="opt pos" data-v="No">No</span></span></td>
+      <td class="req" id="r-a9">No</td></tr>
+    <tr><td></td><td class="b">Flood Test Result</td>
+      <td><span class="choice b" data-f="floodResult"><span class="opt pos" data-v="PASS">PASS</span>/<span class="opt neg" data-v="FAIL">FAIL</span></span></td>
+      <td></td></tr>
+  </table>
+  <div class="gap"></div>
+
+  <!-- Part B -->
+  <table id="partB">
+    <colgroup><col style="width:5%"><col style="width:19%"><col style="width:13%"><col style="width:14%"><col style="width:13%"><col style="width:19%"><col style="width:17%"></colgroup>
+    <tr><td colspan="7" class="sec">PART B – CONDENSATE DRAIN PIPE FLOW TEST (MOS-ACMV-006, Clause 6.3)</td></tr>
+    <tr class="shade"><td class="b c">S/N</td><td class="b">AHU Tag No.</td><td class="b">Volume Poured (L)</td><td class="b">Volume Collected (L)</td><td class="b">Recovery (%)</td><td class="b">Free flow, no ponding / leak</td><td class="b">Result</td></tr>
+    <!-- rows generated -->
+  </table>
+  <div class="gap"></div>
+
+  <table><tr><td style="padding:4pt 5pt">
+    <div class="b">Acceptance Criteria (MOS-ACMV-006, Section 7):</div>
+    <div><b>Flood test –</b> no visible leakage and no drop in water level over the 2-hour test period.</div>
+    <div><b>Flow test –</b> volume collected ≥ 90% of volume poured (≥ 1.35 L for 1.5 L); water drains freely with no ponding, backflow or leakage.</div>
+  </td></tr></table>
+  <div class="gap"></div>
+
+  <table>
+    <tr><td><div class="b">Instruments Used:</div><textarea class="fill" data-f="instruments" rows="1"></textarea></td></tr>
+    <tr><td><div class="b">Remarks:</div><textarea class="fill" data-f="remarks" rows="2"></textarea></td></tr>
+    <tr><td><b>Attachments:</b>&nbsp;
+      <label class="cb"><input type="checkbox" data-f="attDrawing"> Marked-up drawing</label>
+      <label class="cb"><input type="checkbox" data-f="attPhoto"> Photo record (start / end level, water collected)</label>
+    </td></tr>
+  </table>
+  <div class="gap"></div>
+
+  <!-- Sign-off -->
+  <table>
+    <colgroup><col style="width:23%"><col style="width:28%"><col style="width:28%"><col style="width:21%"></colgroup>
+    <tr class="shade"><td></td><td class="b">Name</td><td class="b">Signature</td><td class="b">Date</td></tr>
+    <tr><td><div class="b ce" contenteditable="true" spellcheck="false" data-f="testedRole">Tested By</div><div class="i ce" contenteditable="true" spellcheck="false" data-f="testedOrg">(Kenyon)</div></td>
+      <td><textarea class="fill" data-f="testedName" rows="1"></textarea></td>
+      <td class="sig-cell" data-sig="testedSig" data-role="Tested By (Kenyon)"></td>
+      <td><input class="fill" type="date" required data-f="testedDate"></td></tr>
+    <tr><td><div class="b ce" contenteditable="true" spellcheck="false" data-f="witnessRole">Witnessed By</div><div class="i ce" contenteditable="true" spellcheck="false" data-f="witnessOrg">(T&amp;C Consultant – NDR)</div></td>
+      <td><textarea class="fill" data-f="witnessName" rows="1"></textarea></td>
+      <td class="sig-cell" data-sig="witnessSig" data-role="Witnessed By (T&amp;C Consultant – NDR)"></td>
+      <td><input class="fill" type="date" required data-f="witnessDate"></td></tr>
+    <tr><td><div class="b ce" contenteditable="true" spellcheck="false" data-f="verifiedRole">Verified By</div><div class="i ce" contenteditable="true" spellcheck="false" data-f="verifiedOrg">(Client, if any)</div></td>
+      <td><textarea class="fill" data-f="verifiedName" rows="1"></textarea></td>
+      <td class="sig-cell" data-sig="verifiedSig" data-role="Verified By (Client, if any)"></td>
+      <td><input class="fill" type="date" required data-f="verifiedDate"></td></tr>
+  </table>
+</div>
+<div class="screen-footer"><span class="ce" contenteditable="true" spellcheck="false" data-f="footerRef" style="flex:1;margin-right:12px">Form Ref: MOS-ACMV-006 / Condensate Drainpipe Flood &amp; Flow Test Form</span><span>Page 1 of 1</span></div>
+</div>
+
+<!-- Signature modal -->
+<div class="modal" id="sigModal" role="dialog" aria-modal="true">
+  <div class="box">
+    <h3 id="sigTitle">Sign</h3>
+    <div class="sub">Draw your signature in the box using a mouse, pen or finger.</div>
+    <input class="namefld" id="sigName" placeholder="Name (fills the Name column)">
+    <canvas id="sigPad"></canvas>
+    <div class="row">
+      <button class="left" id="sigPadClear">Clear pad</button>
+      <button id="sigCancel">Cancel</button>
+      <button class="primary" id="sigApply">Apply signature</button>
+    </div>
+  </div>
+</div>
+
+<!-- Saved form data (filled in when the form is saved) -->
+<script id="form-data" type="application/json">{}</script>
+
+<script>
+(function(){
+  "use strict";
+  // Capture pristine markup before anything is modified, so saves are clean.
+  const PRISTINE = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+  const ROWS = 5;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+
+  // ---------- build Part B rows ----------
+  const partB = $("#partB");
+  for(let i=1;i<=ROWS;i++){
+    const tr=document.createElement("tr");
+    tr.innerHTML =
+      `<td class="c">${i}</td>`+
+      `<td><input class="fill" data-f="b${i}tag" placeholder=" "></td>`+
+      `<td><input class="fill" type="number" step="any" data-f="b${i}poured" value="1.5" placeholder=" "></td>`+
+      `<td><input class="fill" type="number" step="any" data-f="b${i}coll" placeholder=" "></td>`+
+      `<td><input class="calc rec" readonly tabindex="-1" data-f="b${i}rec" placeholder=" "></td>`+
+      `<td><span class="choice" data-f="b${i}flow"><span class="opt pos" data-v="Yes">Yes</span>/<span class="opt neg" data-v="No">No</span></span></td>`+
+      `<td><span class="choice" data-f="b${i}res"><span class="opt pos" data-v="P">P</span>/<span class="opt neg" data-v="F">F</span></span></td>`;
+    partB.appendChild(tr);
+  }
+
+  // ---------- state ----------
+  let state = {fields:{}, sigs:{}, locked:false};
+  let dirty = false;
+  const statusEl = $("#status");
+  function setDirty(v){
+    dirty=v;
+    statusEl.textContent = v ? "Unsaved changes" : (statusEl.dataset.saved || "No changes");
+    statusEl.classList.toggle("dirty", v);
+  }
+
+  const inputs = ()=>$$("[data-f]").filter(el=>el.matches("input,textarea"));
+  const choices = ()=>$$(".choice[data-f]");
+  const ces = ()=>$$(".ce[data-f]");
+  ces().forEach(el=>el.dataset.def=el.textContent);
+  function updateFooter(){
+    const el=$('[data-f="footerRef"]'); if(!el) return;
+    const txt=el.innerText.replace(/\s+/g," ").trim().replace(/\\/g,"\\\\").replace(/"/g,'\\"');
+    $("#page-footer").textContent='@page{@bottom-left{content:"'+txt+'";font-family:Calibri,Carlito,Arial,sans-serif;font-size:7.5pt}}';
+  }
+
+  function readForm(){
+    const f={};
+    inputs().forEach(el=>{ f[el.dataset.f] = el.type==="checkbox" ? el.checked : el.value; });
+    choices().forEach(c=>{ f[c.dataset.f] = c.dataset.value || ""; });
+    ces().forEach(el=>{ f[el.dataset.f] = el.innerText.replace(/\n$/,""); });
+    state.fields=f;
+    return state;
+  }
+  function setChoice(c,v){
+    c.dataset.value = v||"";
+    $$(".opt",c).forEach(o=>o.classList.toggle("sel", o.dataset.v===v));
+    c.classList.toggle("has-sel", !!v);
+  }
+  function writeForm(s){
+    const f=s.fields||{};
+    inputs().forEach(el=>{
+      if(!(el.dataset.f in f)) return;
+      if(el.type==="checkbox") el.checked=!!f[el.dataset.f]; else el.value=f[el.dataset.f];
+    });
+    choices().forEach(c=>setChoice(c, f[c.dataset.f]));
+    ces().forEach(el=>{ if(el.dataset.f in f) el.textContent=f[el.dataset.f]; });
+    updateFooter();
+    $$(".sig-cell").forEach(cell=>renderSig(cell, (s.sigs||{})[cell.dataset.sig]));
+  }
+
+  // ---------- calculations & indicators ----------
+  const num = v => (v===""||v==null||isNaN(parseFloat(v))) ? null : parseFloat(v);
+  const fval = k => { const el=$(`[data-f="${k}"]`); return el ? el.value : ""; };
+  function mark(id, ok){ const el=$("#"+id); if(!el) return; el.classList.remove("ok","bad"); if(ok===true) el.classList.add("ok"); if(ok===false) el.classList.add("bad"); }
+  function recalc(){
+    // A6 duration
+    const s = fval("a3d")&&fval("a3t") ? new Date(fval("a3d")+"T"+fval("a3t")) : null;
+    const e = fval("a5d")&&fval("a5t") ? new Date(fval("a5d")+"T"+fval("a5t")) : null;
+    const a6=$('[data-f="a6"]');
+    if(s&&e&&!isNaN(s)&&!isNaN(e)){ const h=(e-s)/3600000; a6.value = h.toFixed(2); } else a6.value="";
+    // A8 drop
+    const a4=num(fval("a4")), a7=num(fval("a7")), a8=$('[data-f="a8"]');
+    a8.value = (a4!=null&&a7!=null) ? +(a4-a7).toFixed(2) : "";
+    // indicators
+    const a1=num(fval("a1")), a2=num(fval("a2")), h=num(a6.value), d=num(a8.value);
+    mark("r-a1", a1==null?null:a1>=1.0);
+    mark("r-a2", a2==null?null:a2>=30);
+    mark("r-a6", h==null?null:h>=2);
+    mark("r-a8", d==null?null:d<=0);
+    const a9=$('.choice[data-f="a9"]').dataset.value;
+    mark("r-a9", a9?a9==="No":null);
+    // Part B recovery
+    for(let i=1;i<=ROWS;i++){
+      const p=num(fval(`b${i}poured`)), c=num(fval(`b${i}coll`)), r=$(`[data-f="b${i}rec"]`);
+      r.classList.remove("ok","bad");
+      if(p&&c!=null){ const pct=c/p*100; r.value=pct.toFixed(1); r.classList.add(pct>=90?"ok":"bad"); } else r.value="";
+    }
+  }
+
+  // ---------- auto-grow textareas ----------
+  function grow(t){ t.style.height="auto"; t.style.height=t.scrollHeight+"px"; }
+  const growAll = ()=>$$("textarea").forEach(grow);
+
+  // ---------- events ----------
+  document.addEventListener("input", e=>{
+    if(state.locked) return;
+    if(e.target.matches("textarea")) grow(e.target);
+    if(e.target.closest && e.target.closest(".ce")) updateFooter();
+    if(e.target.closest("[data-f]")||e.target.id==="sigName"){ recalc(); if(e.target.id!=="sigName") setDirty(true); }
+  });
+  document.addEventListener("change", e=>{ if(!state.locked && e.target.matches("[data-f]")) setDirty(true); });
+  document.addEventListener("click", e=>{
+    const o=e.target.closest(".opt"); if(!o||state.locked) return;
+    const c=o.closest(".choice");
+    setChoice(c, c.dataset.value===o.dataset.v ? "" : o.dataset.v);
+    recalc(); setDirty(true);
+  });
+
+  document.addEventListener("paste", e=>{
+    const ce=e.target.closest && e.target.closest(".ce"); if(!ce) return;
+    e.preventDefault(); const txt=(e.clipboardData||window.clipboardData).getData("text/plain");
+    document.execCommand("insertText", false, txt);
+  });
+  document.addEventListener("keydown", e=>{
+    const ce=e.target.closest && e.target.closest(".ce");
+    if(ce && e.key==="Enter"){ e.preventDefault(); ce.blur(); }
+  });
+
+  // ---------- signatures ----------
+  function renderSig(cell, data){
+    cell.innerHTML="";
+    if(data){
+      const img=new Image(); img.src=data; img.alt="Signature"; cell.appendChild(img);
+      cell.classList.add("signed");
+    } else cell.classList.remove("signed");
+    const btn=document.createElement("button"); btn.type="button"; btn.className="sig-btn"; btn.textContent="✍ Click to sign";
+    const clr=document.createElement("button"); clr.type="button"; clr.className="sig-clear"; clr.title="Remove signature"; clr.textContent="✕";
+    btn.onclick=()=>openPad(cell);
+    clr.onclick=()=>{ if(confirm("Remove this signature?")){ delete state.sigs[cell.dataset.sig]; renderSig(cell,null); setDirty(true);} };
+    cell.appendChild(btn); cell.appendChild(clr);
+  }
+
+  const modal=$("#sigModal"), pad=$("#sigPad"), ctx=pad.getContext("2d");
+  let curCell=null, drawing=false, hasInk=false, last=null;
+  function sizePad(){
+    const r=pad.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    pad.width=Math.round(r.width*dpr); pad.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#0b1f66"; ctx.lineWidth=2.2;
+    ctx.clearRect(0,0,r.width,r.height); hasInk=false;
+  }
+  function nameFieldFor(cell){ return $(`[data-f="${cell.dataset.sig.replace("Sig","Name")}"]`); }
+  function dateFieldFor(cell){ return $(`[data-f="${cell.dataset.sig.replace("Sig","Date")}"]`); }
+  function openPad(cell){
+    curCell=cell;
+    const row=cell.closest("tr"), role=$$(".ce",row.cells[0]).map(x=>x.innerText.trim()).filter(Boolean).join(" ");
+    $("#sigTitle").textContent="Sign – "+(role||cell.dataset.role);
+    $("#sigName").value=nameFieldFor(cell).value;
+    modal.classList.add("open"); sizePad();
+  }
+  const pt = e=>{ const r=pad.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; };
+  pad.addEventListener("pointerdown", e=>{ drawing=true; pad.setPointerCapture(e.pointerId); last=pt(e);
+    ctx.beginPath(); ctx.arc(last.x,last.y,1.1,0,Math.PI*2); ctx.fillStyle=ctx.strokeStyle; ctx.fill(); hasInk=true; });
+  pad.addEventListener("pointermove", e=>{ if(!drawing) return; const p=pt(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; hasInk=true; });
+  ["pointerup","pointercancel","pointerleave"].forEach(t=>pad.addEventListener(t,()=>drawing=false));
+  $("#sigPadClear").onclick=sizePad;
+  $("#sigCancel").onclick=()=>modal.classList.remove("open");
+  function trimmed(){
+    const w=pad.width,h=pad.height,d=ctx.getImageData(0,0,w,h).data;
+    let x0=w,y0=h,x1=-1,y1=-1;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){ if(d[(y*w+x)*4+3]>0){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+    if(x1<0) return null;
+    const m=6, sx=Math.max(0,x0-m), sy=Math.max(0,y0-m), sw=Math.min(w,x1+m)-sx, sh=Math.min(h,y1+m)-sy;
+    const scale=Math.min(1, 500/sw, 160/sh);
+    const c=document.createElement("canvas"); c.width=Math.round(sw*scale); c.height=Math.round(sh*scale);
+    c.getContext("2d").drawImage(pad,sx,sy,sw,sh,0,0,c.width,c.height);
+    return c.toDataURL("image/png");
+  }
+  $("#sigApply").onclick=()=>{
+    if(!hasInk){ alert("Please draw a signature first."); return; }
+    const data=trimmed(); if(!data) return;
+    state.sigs[curCell.dataset.sig]=data; renderSig(curCell,data);
+    const nm=$("#sigName").value.trim(); const nf=nameFieldFor(curCell);
+    if(nm){ nf.value=nm; grow(nf); }
+    const df=dateFieldFor(curCell); if(!df.value){ const t=new Date(); df.value=new Date(t-t.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+    modal.classList.remove("open"); setDirty(true);
+  };
+  window.addEventListener("keydown", e=>{ if(e.key==="Escape") modal.classList.remove("open"); });
+
+  // ---------- lock ----------
+  function applyLock(){
+    document.body.classList.toggle("locked", !!state.locked);
+    ces().forEach(el=>{ el.contentEditable = state.locked ? "false" : "true"; });
+    inputs().forEach(el=>{ if(state.locked){ el.readOnly=true; if(el.type==="checkbox"||el.type==="date"||el.type==="time") el.disabled=true; } });
+  }
+
+  // ---------- save ----------
+  function fileName(final){
+    const s=state.fields, safe=v=>String(v||"").trim().replace(/[^\w.-]+/g,"_").replace(/^_+|_+$/g,"");
+    const t=new Date(), stamp=new Date(t-t.getTimezoneOffset()*60000).toISOString().slice(0,16).replace(/[-:T]/g,"").replace(/^(\d{8})/,"$1_");
+    const ref=safe(s.refNo)||"NoRef";
+    return `Condensate_Drain_Test_${ref}_${stamp}${final?"_FINAL":""}.html`;
+  }
+  function buildHtml(){
+    const json=JSON.stringify(state).replace(/</g,"\\u003c");
+    return PRISTINE.replace(/(<script id="form-data" type="application\/json">)[\s\S]*?(<\/script>)/, (m,a,b)=>a+json+b);
+  }
+  async function save(final){
+    readForm();
+    const prevLocked=state.locked;
+    if(final) state.locked=true;
+    const html=buildHtml(), name=fileName(final);
+    let ok=false;
+    try{
+      if(window.showSaveFilePicker){
+        const h=await window.showSaveFilePicker({suggestedName:name, types:[{description:"HTML file",accept:{"text/html":[".html"]}}]});
+        const w=await h.createWritable(); await w.write(html); await w.close(); ok=true;
+      }
+    }catch(err){ if(err&&err.name==="AbortError"){ state.locked=prevLocked; return; } }
+    if(!ok){
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
+      a.download=name; document.body.appendChild(a); a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
+    }
+    statusEl.dataset.saved="Saved as "+name;
+    setDirty(false);
+    if(final) applyLock();
+  }
+  $("#btnSave").onclick=()=>save(false);
+  $("#btnLock").onclick=()=>{
+    readForm();
+    const f=state.fields, miss=[];
+    if(!f.refNo) miss.push("Ref. No.");
+    if(!f.floodResult) miss.push("Flood Test Result");
+    if(!state.sigs.testedSig) miss.push("Tested By signature");
+    if(!state.sigs.witnessSig) miss.push("Witnessed By signature");
+    const msg="Finalise this record?\n\nA read-only copy will be saved and this page will be locked."+
+      (miss.length?"\n\nStill missing:\n • "+miss.join("\n • "):"");
+    if(confirm(msg)) save(true);
+  };
+  $("#btnPrint").onclick=()=>{ growAll(); window.print(); };
+  window.addEventListener("beforeprint", growAll);
+  $("#btnClear").onclick=()=>{
+    if(!confirm("Clear all entries and signatures on this page? (Saved files are not affected.)")) return;
+    const keep={location:$('[data-f="location"]').defaultValue, testArea:$('[data-f="testArea"]').defaultValue};
+    inputs().forEach(el=>{ if(el.type==="checkbox") el.checked=false; else el.value=el.defaultValue||""; });
+    choices().forEach(c=>setChoice(c,""));
+    state.sigs={}; $$(".sig-cell").forEach(c=>renderSig(c,null));
+    Object.assign(state.fields,keep); recalc(); growAll(); setDirty(true);
+  };
+  window.addEventListener("beforeunload", e=>{ if(dirty){ e.preventDefault(); e.returnValue=""; } });
+
+  // ---------- init ----------
+  try{ const saved=JSON.parse($("#form-data").textContent||"{}"); if(saved&&saved.fields) state=Object.assign(state,saved); }catch(_){}
+  state.sigs=state.sigs||{};
+  writeForm(state);
+  if(state.fields && Object.keys(state.fields).length) statusEl.dataset.saved="Loaded saved entry";
+  statusEl.textContent=statusEl.dataset.saved||"No changes";
+  recalc(); applyLock();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(growAll); growAll();
+  window.addEventListener("resize", growAll);
+})();
+</script>
+</body>
+</html>
